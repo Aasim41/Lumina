@@ -1,0 +1,160 @@
+import { getToken, logout } from './auth';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const token = getToken();
+  
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  // Only set Content-Type to application/json if not FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error('Unauthorized');
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.detail || data.message || 'API Error');
+  }
+  
+  return data;
+}
+
+export const loginWithGoogle = (idToken: string) => 
+  apiFetch('/api/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ id_token: idToken })
+  });
+
+export const uploadCSV = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiFetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+};
+
+export const uploadReceipt = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiFetch('/api/upload/receipt', {
+    method: 'POST',
+    body: formData,
+  });
+};
+
+export const getSubscriptions = () => {
+  return apiFetch('/api/subscriptions/');
+};
+
+export const deleteSubscription = (id: string) => {
+  return apiFetch(`/api/subscriptions/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+export const createSubscription = (data: any) => {
+  return apiFetch('/api/subscriptions/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const exportCSV = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/analytics/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  
+  if (!response.ok) throw new Error('Failed to export');
+  
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'transactions_export.csv';
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
+export const exportPDF = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/analytics/export/pdf`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  
+  if (!response.ok) throw new Error('Failed to export PDF');
+  
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'transaction_history.pdf';
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
+export const getTransactions = (params?: URLSearchParams) => {
+  const queryString = params ? `?${params.toString()}` : '';
+  return apiFetch(`/api/transactions${queryString}`);
+};
+
+export const createTransaction = (data: any) => 
+  apiFetch('/api/transactions/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateTransaction = (id: string, data: any) => 
+  apiFetch(`/api/transactions/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
+export const deleteTransaction = (id: string) => 
+  apiFetch(`/api/transactions/${id}`, {
+    method: 'DELETE',
+  });
+
+export const getSummary = () => apiFetch('/api/analytics/summary');
+export const getCategories = () => apiFetch('/api/analytics/categories');
+export const getTrends = () => apiFetch('/api/analytics/trends');
+export const getForecast = () => apiFetch('/api/forecast/');
+export const getUserProfile = () => apiFetch('/api/users/me');
+export const updateUserProfile = (data: any) => apiFetch('/api/users/me', {
+  method: 'PATCH',
+  body: JSON.stringify(data),
+});
+
+export const getMysteryEnvelope = () => apiFetch('/api/mystery-envelope');
+export const openMysteryEnvelope = () => apiFetch('/api/mystery-envelope/open', { method: 'POST' });
+export const getRoast = (data: { amount: number, category: string, merchant: string }) => apiFetch('/api/roast', {
+  method: 'POST',
+  body: JSON.stringify(data),
+});

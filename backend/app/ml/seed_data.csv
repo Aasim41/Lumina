@@ -1,0 +1,575 @@
+merchant,category
+zomato,Food & Dining
+ZOMATO ORDER 12345,Food & Dining
+ZOMATO_ORD_BANGALORE,Food & Dining
+ZMT*ZOMATO,Food & Dining
+ZOMATO GOLD MEMBER,Food & Dining
+swiggy,Food & Dining
+SWIGGY*DELIVERY,Food & Dining
+SWIGGY ORDER MUMBAI,Food & Dining
+SWG*SWIGGY FOOD,Food & Dining
+SWIGGY_DINEOUT,Food & Dining
+dominos,Food & Dining
+DOMINOS PIZZA ORDER,Food & Dining
+DOMINOS*ONLINE,Food & Dining
+DMP*DOMINOS PIZZA,Food & Dining
+mcdonalds,Food & Dining
+MCDONALDS REST,Food & Dining
+MCD*MCDONALDS,Food & Dining
+MCDONALDS DRIVE THRU,Food & Dining
+kfc,Food & Dining
+KFC RESTAURANT,Food & Dining
+KFC*ORDER ONLINE,Food & Dining
+pizza hut,Food & Dining
+PIZZA HUT DELIVERY,Food & Dining
+PHD*PIZZA HUT,Food & Dining
+burger king,Food & Dining
+BURGER KING REST,Food & Dining
+BK*BURGER KING,Food & Dining
+subway,Food & Dining
+SUBWAY SANDWICH,Food & Dining
+SUB*SUBWAY REST,Food & Dining
+starbucks,Food & Dining
+STARBUCKS COFFEE,Food & Dining
+SBUX*STARBUCKS,Food & Dining
+STARBUCKS STORE 4521,Food & Dining
+cafe coffee day,Food & Dining
+CAFE COFFEE DAY MG ROAD,Food & Dining
+CCD*CAFE COFFEE DAY,Food & Dining
+haldirams,Food & Dining
+HALDIRAMS RESTAURANT,Food & Dining
+HALDIRAMS NAGPUR,Food & Dining
+barbeque nation,Food & Dining
+BARBEQUE NATION INDIRANAGAR,Food & Dining
+BBQ*BARBEQUE NATION,Food & Dining
+paradise biryani,Food & Dining
+PARADISE BIRYANI HYD,Food & Dining
+PARADISE*RESTAURANT,Food & Dining
+behrouz biryani,Food & Dining
+BEHROUZ BIRYANI ORDER,Food & Dining
+BHR*BEHROUZ,Food & Dining
+faasos,Food & Dining
+FAASOS WRAPS ORDER,Food & Dining
+FAS*FAASOS,Food & Dining
+box8,Food & Dining
+BOX8 MEALS ORDER,Food & Dining
+BOX8*DELIVERY,Food & Dining
+eatfit,Food & Dining
+EATFIT HEALTHY MEALS,Food & Dining
+EAT*EATFIT ORDER,Food & Dining
+uber eats,Food & Dining
+UBER EATS ORDER,Food & Dining
+UBEREATS*DELIVERY,Food & Dining
+chai point,Food & Dining
+CHAI POINT STORE,Food & Dining
+CHP*CHAI POINT,Food & Dining
+chaayos,Food & Dining
+CHAAYOS TEA CAFE,Food & Dining
+CHY*CHAAYOS,Food & Dining
+third wave coffee,Food & Dining
+THIRD WAVE COFFEE ROASTERS,Food & Dining
+TWC*THIRD WAVE,Food & Dining
+blue tokai,Food & Dining
+BLUE TOKAI COFFEE,Food & Dining
+BLT*BLUE TOKAI,Food & Dining
+chipotle,Food & Dining
+CHIPOTLE MEXICAN GRILL,Food & Dining
+CHP*CHIPOTLE,Food & Dining
+dunkin,Food & Dining
+DUNKIN DONUTS STORE,Food & Dining
+DKN*DUNKIN,Food & Dining
+taco bell,Food & Dining
+TACO BELL RESTAURANT,Food & Dining
+TBL*TACO BELL,Food & Dining
+papa johns,Food & Dining
+PAPA JOHNS PIZZA,Food & Dining
+PJ*PAPA JOHNS,Food & Dining
+bigbasket,Groceries
+BIGBASKET ORDER,Groceries
+BB*BIGBASKET GROCERY,Groceries
+BIGBASKET_DELIVERY_BLR,Groceries
+blinkit,Groceries
+BLINKIT GROCERY ORDER,Groceries
+BLK*BLINKIT,Groceries
+BLINKIT_INSTANT_DEL,Groceries
+zepto,Groceries
+ZEPTO DELIVERY,Groceries
+ZPT*ZEPTO GROCERY,Groceries
+ZEPTO_ORDER_MUM,Groceries
+jiomart,Groceries
+JIOMART GROCERY,Groceries
+JIO*JIOMART ORDER,Groceries
+dmart,Groceries
+DMART SUPERMARKET,Groceries
+DMT*DMART STORE,Groceries
+DMART READY ONLINE,Groceries
+reliance fresh,Groceries
+RELIANCE FRESH STORE,Groceries
+REL*RELIANCE FRESH,Groceries
+more supermarket,Groceries
+MORE SUPERMARKET STORE,Groceries
+MORE*MEGASTORE,Groceries
+spencers,Groceries
+SPENCERS RETAIL STORE,Groceries
+SPC*SPENCERS,Groceries
+natures basket,Groceries
+NATURES BASKET STORE,Groceries
+NB*NATURES BASKET,Groceries
+licious,Groceries
+LICIOUS MEAT ORDER,Groceries
+LCS*LICIOUS FRESH,Groceries
+freshmeat,Groceries
+FRESHMEAT ORDER ONLINE,Groceries
+country delight,Groceries
+COUNTRY DELIGHT MILK,Groceries
+CD*COUNTRY DELIGHT,Groceries
+milkbasket,Groceries
+MILKBASKET DELIVERY,Groceries
+MB*MILKBASKET,Groceries
+amul,Groceries
+AMUL PARLOUR,Groceries
+AMUL*STORE,Groceries
+mother dairy,Groceries
+MOTHER DAIRY BOOTH,Groceries
+MD*MOTHER DAIRY,Groceries
+swiggy instamart,Groceries
+SWIGGY INSTAMART ORDER,Groceries
+SWG*INSTAMART,Groceries
+zepto cafe,Groceries
+ZEPTO CAFE ORDER,Groceries
+walmart,Groceries
+WALMART SUPERCENTER,Groceries
+WMT*WALMART STORE,Groceries
+target,Groceries
+TARGET STORE PURCHASE,Groceries
+TGT*TARGET,Groceries
+costco,Groceries
+COSTCO WHOLESALE,Groceries
+CST*COSTCO,Groceries
+whole foods,Groceries
+WHOLE FOODS MARKET,Groceries
+WFM*WHOLE FOODS,Groceries
+trader joes,Groceries
+TRADER JOES STORE,Groceries
+TJ*TRADER JOES,Groceries
+amazon,Shopping
+AMAZON MARKETPLACE,Shopping
+AMZ*AMAZON PURCHASE,Shopping
+AMAZON.IN ORDER,Shopping
+AMAZON PAY MERCHANT,Shopping
+flipkart,Shopping
+FLIPKART ORDER,Shopping
+FKT*FLIPKART PURCHASE,Shopping
+FLIPKART_INTERNET,Shopping
+myntra,Shopping
+MYNTRA FASHION ORDER,Shopping
+MYN*MYNTRA,Shopping
+MYNTRA_JABONG,Shopping
+ajio,Shopping
+AJIO FASHION ORDER,Shopping
+AJI*AJIO PURCHASE,Shopping
+nykaa,Shopping
+NYKAA BEAUTY ORDER,Shopping
+NYK*NYKAA FASHION,Shopping
+NYKAA_ECOMMERCE,Shopping
+meesho,Shopping
+MEESHO ORDER,Shopping
+MSH*MEESHO,Shopping
+snapdeal,Shopping
+SNAPDEAL ORDER ONLINE,Shopping
+SD*SNAPDEAL,Shopping
+tata cliq,Shopping
+TATA CLIQ PURCHASE,Shopping
+TC*TATA CLIQ,Shopping
+croma,Shopping
+CROMA ELECTRONICS,Shopping
+CRM*CROMA STORE,Shopping
+reliance digital,Shopping
+RELIANCE DIGITAL STORE,Shopping
+RD*RELIANCE DIGITAL,Shopping
+vijay sales,Shopping
+VIJAY SALES ELECTRONICS,Shopping
+VS*VIJAY SALES,Shopping
+decathlon,Shopping
+DECATHLON SPORTS STORE,Shopping
+DCT*DECATHLON,Shopping
+nike,Shopping
+NIKE STORE PURCHASE,Shopping
+NKE*NIKE ONLINE,Shopping
+adidas,Shopping
+ADIDAS STORE,Shopping
+ADI*ADIDAS ONLINE,Shopping
+puma,Shopping
+PUMA STORE PURCHASE,Shopping
+PMA*PUMA,Shopping
+zara,Shopping
+ZARA STORE PURCHASE,Shopping
+ZRA*ZARA FASHION,Shopping
+h&m,Shopping
+H&M FASHION STORE,Shopping
+HM*H AND M,Shopping
+lifestyle,Shopping
+LIFESTYLE STORE,Shopping
+LFS*LIFESTYLE,Shopping
+shoppers stop,Shopping
+SHOPPERS STOP STORE,Shopping
+SS*SHOPPERS STOP,Shopping
+westside,Shopping
+WESTSIDE TATA STORE,Shopping
+WSD*WESTSIDE,Shopping
+pantaloons,Shopping
+PANTALOONS STORE,Shopping
+PNT*PANTALOONS,Shopping
+central,Shopping
+CENTRAL MALL STORE,Shopping
+CTL*CENTRAL,Shopping
+fabindia,Shopping
+FABINDIA STORE,Shopping
+FBI*FABINDIA,Shopping
+tanishq,Shopping
+TANISHQ JEWELLERY,Shopping
+TNQ*TANISHQ STORE,Shopping
+kalyan jewellers,Shopping
+KALYAN JEWELLERS STORE,Shopping
+KJ*KALYAN JEWELLERS,Shopping
+titan,Shopping
+TITAN STORE PURCHASE,Shopping
+TTN*TITAN,Shopping
+reliance trends,Shopping
+RELIANCE TRENDS STORE,Shopping
+RT*RELIANCE TRENDS,Shopping
+ikea,Shopping
+IKEA STORE PURCHASE,Shopping
+IKA*IKEA HOME,Shopping
+pepperfry,Shopping
+PEPPERFRY FURNITURE,Shopping
+PPF*PEPPERFRY ORDER,Shopping
+urban ladder,Shopping
+URBAN LADDER ORDER,Shopping
+UL*URBAN LADDER,Shopping
+home centre,Shopping
+HOME CENTRE STORE,Shopping
+HC*HOME CENTRE,Shopping
+best buy,Shopping
+BEST BUY ELECTRONICS,Shopping
+BBY*BEST BUY,Shopping
+gamestop,Shopping
+GAMESTOP STORE,Shopping
+GS*GAMESTOP,Shopping
+apple store,Shopping
+APPLE STORE PURCHASE,Shopping
+APL*APPLE STORE,Shopping
+google store,Shopping
+GOOGLE STORE ORDER,Shopping
+GGL*GOOGLE STORE,Shopping
+netflix,Subscriptions
+NETFLIX.COM,Subscriptions
+NFLX*NETFLIX MONTHLY,Subscriptions
+NETFLIX SUBSCRIPTION,Subscriptions
+hotstar,Subscriptions
+DISNEY PLUS HOTSTAR,Subscriptions
+HST*HOTSTAR PREMIUM,Subscriptions
+prime video,Subscriptions
+AMAZON PRIME VIDEO,Subscriptions
+APV*PRIME MEMBERSHIP,Subscriptions
+spotify,Subscriptions
+SPOTIFY PREMIUM,Subscriptions
+SPT*SPOTIFY MUSIC,Subscriptions
+SPOTIFY.COM SUBSCRIPTION,Subscriptions
+gaana,Subscriptions
+GAANA PLUS SUBSCRIPTION,Subscriptions
+GNA*GAANA PREMIUM,Subscriptions
+jio cinema,Subscriptions
+JIO CINEMA PREMIUM,Subscriptions
+JC*JIO CINEMA,Subscriptions
+youtube premium,Subscriptions
+YOUTUBE PREMIUM SUBSCRIPTION,Subscriptions
+YT*YOUTUBE PREMIUM,Subscriptions
+GOOGLE*YOUTUBE PREMIUM,Subscriptions
+apple music,Subscriptions
+APPLE MUSIC SUBSCRIPTION,Subscriptions
+APL*APPLE MUSIC,Subscriptions
+sony liv,Subscriptions
+SONY LIV PREMIUM,Subscriptions
+SLV*SONY LIV,Subscriptions
+zee5,Subscriptions
+ZEE5 PREMIUM SUBSCRIPTION,Subscriptions
+Z5*ZEE5,Subscriptions
+hulu,Subscriptions
+HULU SUBSCRIPTION,Subscriptions
+HLU*HULU MONTHLY,Subscriptions
+disney plus,Subscriptions
+DISNEY PLUS SUBSCRIPTION,Subscriptions
+DSN*DISNEY PLUS,Subscriptions
+hbo max,Subscriptions
+HBO MAX SUBSCRIPTION,Subscriptions
+HBO*MAX MONTHLY,Subscriptions
+paramount plus,Subscriptions
+PARAMOUNT PLUS SUB,Subscriptions
+PRM*PARAMOUNT PLUS,Subscriptions
+apple tv,Subscriptions
+APPLE TV PLUS SUB,Subscriptions
+APL*APPLE TV,Subscriptions
+peacock,Subscriptions
+PEACOCK PREMIUM SUB,Subscriptions
+PCK*PEACOCK,Subscriptions
+steam,Subscriptions
+STEAM PURCHASE GAME,Subscriptions
+STM*STEAM STORE,Subscriptions
+playstation,Subscriptions
+PLAYSTATION NETWORK,Subscriptions
+PSN*PLAYSTATION,Subscriptions
+xbox,Subscriptions
+XBOX GAME PASS,Subscriptions
+XBX*XBOX LIVE,Subscriptions
+bookmyshow,Entertainment
+BOOKMYSHOW TICKET,Entertainment
+BMS*BOOKMYSHOW,Entertainment
+BOOKMYSHOW_MOVIE,Entertainment
+pvr,Entertainment
+PVR CINEMAS TICKET,Entertainment
+PVR*INOX MOVIE,Entertainment
+inox,Entertainment
+INOX MOVIES TICKET,Entertainment
+INX*INOX CINEMAS,Entertainment
+planet fitness,Entertainment
+PLANET FITNESS MEMBERSHIP,Entertainment
+PF*PLANET FITNESS,Entertainment
+gold gym,Entertainment
+GOLD GYM MEMBERSHIP,Entertainment
+GG*GOLD GYM,Entertainment
+uber,Transport
+UBER TRIP HELP.UBER,Transport
+UBER*RIDE,Transport
+UBER BV TRIP,Transport
+UBER INDIA TRIP,Transport
+ola,Transport
+OLA RIDE PAYMENT,Transport
+OLA*CAB BOOKING,Transport
+OLA_TRIP_BLR,Transport
+rapido,Transport
+RAPIDO BIKE RIDE,Transport
+RPD*RAPIDO,Transport
+metro,Transport
+METRO CARD RECHARGE,Transport
+DMRC*METRO RECHARGE,Transport
+BMRCL*METRO,Transport
+irctc,Transport
+IRCTC RAIL BOOKING,Transport
+IRCTC*TRAIN TICKET,Transport
+IRCTC_RAILWAY,Transport
+lyft,Transport
+LYFT RIDE PAYMENT,Transport
+LFT*LYFT,Transport
+hertz,Transport
+HERTZ CAR RENTAL,Transport
+HTZ*HERTZ,Transport
+enterprise,Transport
+ENTERPRISE RENT A CAR,Transport
+ENT*ENTERPRISE,Transport
+petrol pump,Transport
+INDIAN OIL PETROL,Transport
+IOCL*PETROL PUMP,Transport
+hp petrol,Transport
+HP PETROL PUMP,Transport
+HPCL*FUEL STATION,Transport
+bharat petroleum,Transport
+BPCL PETROL PUMP,Transport
+BPCL*FUEL,Transport
+fastag,Transport
+FASTAG RECHARGE,Transport
+FASTAG*TOLL,Transport
+NHAI*FASTAG,Transport
+parking,Transport
+PARKING FEE PAYMENT,Transport
+PKG*PARKING CHARGE,Transport
+costco gas,Transport
+COSTCO GAS STATION,Transport
+CST*COSTCO GAS,Transport
+shell,Transport
+SHELL GAS STATION,Transport
+SHL*SHELL FUEL,Transport
+chevron,Transport
+CHEVRON GAS STATION,Transport
+CVN*CHEVRON,Transport
+exxon,Transport
+EXXON MOBIL FUEL,Transport
+EXN*EXXON,Transport
+bp,Transport
+BP GAS STATION,Transport
+BP*FUEL PURCHASE,Transport
+makemytrip,Travel
+MAKEMYTRIP BOOKING,Travel
+MMT*MAKEMYTRIP,Travel
+MAKEMYTRIP_FLIGHT,Travel
+cleartrip,Travel
+CLEARTRIP BOOKING,Travel
+CLR*CLEARTRIP,Travel
+goibibo,Travel
+GOIBIBO BOOKING,Travel
+GIB*GOIBIBO FLIGHT,Travel
+yatra,Travel
+YATRA TRAVEL BOOKING,Travel
+YTR*YATRA,Travel
+southwest airlines,Travel
+SOUTHWEST AIRLINES TICKET,Travel
+SWA*SOUTHWEST,Travel
+delta,Travel
+DELTA AIRLINES TICKET,Travel
+DL*DELTA AIRLINES,Travel
+united airlines,Travel
+UNITED AIRLINES BOOKING,Travel
+UA*UNITED AIRLINES,Travel
+american airlines,Travel
+AMERICAN AIRLINES TICKET,Travel
+AA*AMERICAN AIRLINES,Travel
+airtel,Utilities
+AIRTEL MOBILE RECHARGE,Utilities
+AIRTL*AIRTEL POSTPAID,Utilities
+BHARTI AIRTEL BILL,Utilities
+jio,Utilities
+JIO RECHARGE,Utilities
+JIO*RELIANCE JIO,Utilities
+RELIANCE JIO PREPAID,Utilities
+vi,Utilities
+VI MOBILE RECHARGE,Utilities
+VI*VODAFONE IDEA,Utilities
+bsnl,Utilities
+BSNL RECHARGE,Utilities
+BSNL*LANDLINE BILL,Utilities
+tata play,Utilities
+TATA PLAY RECHARGE,Utilities
+TP*TATA PLAY DTH,Utilities
+electricity board,Utilities
+ELECTRICITY BILL PAYMENT,Utilities
+BESCOM ELECTRICITY BILL,Utilities
+BESCOM*POWER BILL,Utilities
+MSEDCL ELECTRICITY,Utilities
+water board,Utilities
+WATER BILL PAYMENT,Utilities
+BWSSB*WATER BILL,Utilities
+gas bill,Utilities
+GAS BILL PAYMENT,Utilities
+IGL*GAS BILL,Utilities
+PIPED GAS BILL PAY,Utilities
+at&t,Utilities
+AT&T WIRELESS BILL,Utilities
+ATT*AT AND T,Utilities
+verizon,Utilities
+VERIZON WIRELESS PAYMENT,Utilities
+VZN*VERIZON,Utilities
+t-mobile,Utilities
+T-MOBILE BILL PAYMENT,Utilities
+TMB*T MOBILE,Utilities
+comcast,Utilities
+COMCAST CABLE BILL,Utilities
+CMC*COMCAST XFINITY,Utilities
+duke energy,Utilities
+DUKE ENERGY POWER BILL,Utilities
+DKE*DUKE ENERGY,Utilities
+pg&e,Utilities
+PG&E UTILITY BILL,Utilities
+PGE*PG AND E,Utilities
+rent,Rent & Housing
+RENT PAYMENT TRANSFER,Rent & Housing
+RENT*MONTHLY,Rent & Housing
+HOUSE RENT NEFT,Rent & Housing
+maintenance,Rent & Housing
+MAINTENANCE CHARGES SOC,Rent & Housing
+SOCIETY MAINTENANCE FEE,Rent & Housing
+society charges,Rent & Housing
+SOCIETY CHARGES MONTHLY,Rent & Housing
+SOC*MAINTENANCE,Rent & Housing
+apollo pharmacy,Health
+APOLLO PHARMACY STORE,Health
+APL*APOLLO PHARMACY,Health
+APOLLO PHARMACY ONLINE,Health
+medplus,Health
+MEDPLUS PHARMACY,Health
+MDP*MEDPLUS,Health
+netmeds,Health
+NETMEDS ORDER ONLINE,Health
+NTM*NETMEDS,Health
+pharmeasy,Health
+PHARMEASY ORDER,Health
+PE*PHARMEASY,Health
+1mg,Health
+1MG MEDICINES ORDER,Health
+1MG*TATA HEALTH,Health
+practo,Health
+PRACTO CONSULTATION,Health
+PRC*PRACTO DOCTOR,Health
+manipal hospital,Health
+MANIPAL HOSPITAL BILL,Health
+MH*MANIPAL HOSPITAL,Health
+fortis,Health
+FORTIS HOSPITAL BILL,Health
+FRT*FORTIS HEALTHCARE,Health
+max healthcare,Health
+MAX HEALTHCARE BILL,Health
+MAX*HOSPITAL,Health
+cvs pharmacy,Health
+CVS PHARMACY PURCHASE,Health
+CVS*PHARMACY,Health
+walgreens,Health
+WALGREENS PHARMACY,Health
+WAG*WALGREENS,Health
+rite aid,Health
+RITE AID PHARMACY,Health
+RA*RITE AID,Health
+byjus,Education
+BYJUS SUBSCRIPTION,Education
+BYJ*BYJUS LEARNING,Education
+THINK AND LEARN BYJUS,Education
+unacademy,Education
+UNACADEMY SUBSCRIPTION,Education
+UNA*UNACADEMY PLUS,Education
+coursera,Education
+COURSERA COURSE FEE,Education
+CRS*COURSERA,Education
+udemy,Education
+UDEMY COURSE PURCHASE,Education
+UDM*UDEMY,Education
+upgrad,Education
+UPGRAD PROGRAM FEE,Education
+UPG*UPGRAD,Education
+vedantu,Education
+VEDANTU SUBSCRIPTION,Education
+VDT*VEDANTU,Education
+physicswallah,Education
+PHYSICSWALLAH SUBSCRIPTION,Education
+PW*PHYSICSWALLAH,Education
+paytm,Other
+PAYTM PAYMENT,Other
+PTM*PAYTM MERCHANT,Other
+PAYTM_WALLET,Other
+phonepe,Other
+PHONEPE MERCHANT PAY,Other
+PPE*PHONEPE,Other
+google pay,Other
+GOOGLE PAY MERCHANT,Other
+GPAY*PAYMENT,Other
+emi payment,Other
+EMI PAYMENT LOAN,Other
+EMI*MONTHLY DEBIT,Other
+loan emi,Other
+LOAN EMI AUTO DEBIT,Other
+HOME LOAN EMI,Other
+sip investment,Other
+SIP MUTUAL FUND AUTO,Other
+SIP*INVESTMENT,Other
+mutual fund,Other
+MUTUAL FUND PURCHASE,Other
+MF*SBI MUTUAL FUND,Other
+razorpay,Other
+RAZORPAY PAYMENT,Other
+RZP*RAZORPAY,Other
+dunzo,Other
+DUNZO DELIVERY ORDER,Other
+DNZ*DUNZO TASK,Other
+ola money,Other
+OLA MONEY WALLET,Other
+OLM*OLA MONEY,Other
+uber money,Other
+UBER MONEY PAYMENT,Other
+UBR*UBER CASH,Other
