@@ -20,7 +20,7 @@ export default function LoginPage() {
 
       {/* Top Header */}
       <div className="w-full max-w-sm flex justify-between items-center z-10 pt-4">
-        <h1 className="font-display font-medium tracking-widest text-sm text-white/90 uppercase">Smart Expense</h1>
+        <h1 className="font-display font-medium tracking-widest text-sm text-white/90 uppercase">Lumina</h1>
       </div>
 
       {/* Center Graphic */}

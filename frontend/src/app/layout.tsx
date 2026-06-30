@@ -15,13 +15,13 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Expense",
+  title: "Lumina",
   description: "AI-Powered Personal Finance Tracker",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Smart Expense",
+    title: "Lumina",
   },
 };
 

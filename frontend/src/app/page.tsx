@@ -127,8 +127,11 @@ export default function Dashboard() {
         
         <div className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
-          <header className="px-6 py-8 safe-pt bg-gradient-to-b from-primary/10 to-transparent">
-            <div className="flex justify-between items-center mb-6">
+          <header className="px-6 py-8 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2">
+              <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
+            </div>
+            <div className="flex justify-between items-center mb-6 mt-2">
               <div className="flex items-center space-x-3">
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white/10" />

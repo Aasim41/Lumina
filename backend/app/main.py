@@ -12,7 +12,7 @@ async def lifespan(app: FastAPI):
     load_model()
     yield
 
-app = FastAPI(title="Smart Expense API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Lumina API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
