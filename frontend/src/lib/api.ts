@@ -158,3 +158,29 @@ export const getRoast = (data: { amount: number, category: string, merchant: str
   method: 'POST',
   body: JSON.stringify(data),
 });
+
+// Insights
+export const getInsights = () => apiFetch('/api/insights/');
+
+// Wishlist
+export const getWishlist = () => apiFetch('/api/wishlist/');
+export const createWishlistItem = (data: { name: string; price: number; priority: string }) =>
+  apiFetch('/api/wishlist/', { method: 'POST', body: JSON.stringify(data) });
+export const markWishlistPurchased = (id: string) =>
+  apiFetch(`/api/wishlist/${id}`, { method: 'PATCH' });
+export const deleteWishlistItem = (id: string) =>
+  apiFetch(`/api/wishlist/${id}`, { method: 'DELETE' });
+
+// Splits
+export const getSplits = () => apiFetch('/api/splits/');
+export const createSplit = (data: any) =>
+  apiFetch('/api/splits/', { method: 'POST', body: JSON.stringify(data) });
+export const toggleSplitMemberPaid = (billId: string, memberId: string) =>
+  apiFetch(`/api/splits/${billId}/members/${memberId}`, { method: 'PATCH' });
+export const deleteSplit = (id: string) =>
+  apiFetch(`/api/splits/${id}`, { method: 'DELETE' });
+
+// Currency
+export const getCurrencyRates = () => apiFetch('/api/currency/rates');
+export const convertCurrency = (amount: number, from: string) =>
+  apiFetch(`/api/currency/convert?amount=${amount}&from_currency=${from}`);

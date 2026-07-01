@@ -17,7 +17,7 @@ interface ManualEntryFormProps {
 import { useAuth } from '@/hooks/useAuth';
 import { useExpenseData } from '@/hooks/useExpenseData';
 import { useEffect } from 'react';
-import { getRoast } from '@/lib/api';
+import { getRoast, getCurrencyRates } from '@/lib/api';
 import { RoastModal } from './RoastModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,6 +36,14 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
   const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [overdraftWarning, setOverdraftWarning] = useState<number | null>(null);
+
+  const [showCurrency, setShowCurrency] = useState(false);
+  const [currency, setCurrency] = useState('USD');
+  const [rates, setRates] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    getCurrencyRates().then(r => setRates(r.rates)).catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (initialData && isOpen) {
@@ -57,7 +65,7 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
     e.preventDefault();
     if (!amount || !date) return;
     
-    const expenseAmount = parseFloat(amount);
+    const expenseAmount = showCurrency ? parseFloat(amount) * (rates[currency] || 1) : parseFloat(amount);
     const finalCategory = category || 'Miscellaneous';
     const finalMerchant = merchant.trim() || finalCategory;
     
@@ -170,6 +178,24 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
                     />
+                    <div className="flex items-center gap-2 mt-2">
+                      <button type="button" onClick={() => setShowCurrency(!showCurrency)}
+                        className="text-xs text-primary hover:text-primary/80 transition-colors">
+                        💱 {showCurrency ? 'Remove' : 'Add'} Currency Conversion
+                      </button>
+                    </div>
+                    {showCurrency && (
+                      <div className="flex gap-2 items-center mt-2 p-3 bg-white/5 rounded-xl border border-white/10">
+                        <select value={currency} onChange={e => setCurrency(e.target.value)}
+                          className="bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs">
+                          {Object.keys(rates).map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <span className="text-xs text-text-secondary">×</span>
+                        <span className="text-xs text-text-secondary">{rates[currency] || '?'}</span>
+                        <span className="text-xs text-text-secondary">=</span>
+                        <span className="text-xs font-bold text-primary">₹{amount ? (parseFloat(amount) * (rates[currency] || 1)).toFixed(0) : '0'}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div>

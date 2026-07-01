@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from sqlalchemy import Column, String, Float, Date, DateTime, ForeignKey, Enum, Uuid, Integer
+from sqlalchemy import Column, String, Float, Date, DateTime, ForeignKey, Enum, Uuid, Integer, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 from sqlalchemy.sql import func
@@ -49,3 +49,46 @@ class Subscription(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="subscriptions")
+
+class WishlistItem(Base):
+    __tablename__ = "wishlist_items"
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    name = Column(String, nullable=False)
+    price = Column(Float, nullable=False)
+    priority = Column(String, default="medium")  # high, medium, low
+    is_purchased = Column(String, default="false")  # "true" or "false"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
+
+class SplitBill(Base):
+    __tablename__ = "split_bills"
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    title = Column(String, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    date = Column(Date, nullable=False)
+    category = Column(String, default="Miscellaneous")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
+    members = relationship("SplitMember", back_populates="bill", cascade="all, delete-orphan")
+
+class SplitMember(Base):
+    __tablename__ = "split_members"
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    bill_id = Column(Uuid, ForeignKey("split_bills.id", ondelete="CASCADE"), index=True, nullable=False)
+    name = Column(String, nullable=False)
+    share_amount = Column(Float, nullable=False)
+    is_paid = Column(String, default="false")  # "true" or "false"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    bill = relationship("SplitBill", back_populates="members")
+
+class ForecastSnapshot(Base):
+    __tablename__ = "forecast_snapshots"
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    month = Column(Date, nullable=False)  # first of month
+    predicted_amount = Column(Float, nullable=False)
+    actual_amount = Column(Float, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")

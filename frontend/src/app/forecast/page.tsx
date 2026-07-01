@@ -26,6 +26,27 @@ export default function ForecastPage() {
             </div>
           ) : forecast ? (
             <>
+              {forecast?.last_month_predicted && forecast?.last_month_actual && (
+                <div className="glass p-5 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 mb-6">
+                  <h3 className="text-sm font-display font-semibold text-emerald-300 mb-3">📊 Last Month's Accuracy</h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <p className="text-xs text-text-secondary">Predicted</p>
+                      <p className="text-lg font-bold text-white">{formatCurrency(forecast.last_month_predicted)}</p>
+                    </div>
+                    <div className="text-2xl">→</div>
+                    <div>
+                      <p className="text-xs text-text-secondary">Actual</p>
+                      <p className="text-lg font-bold text-white">{formatCurrency(forecast.last_month_actual)}</p>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-black/40 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(forecast.accuracy_percent, 100)}%` }} />
+                  </div>
+                  <p className="text-center mt-2 text-sm font-bold text-emerald-400">{forecast.accuracy_percent}% accurate</p>
+                </div>
+              )}
+
               <Card className="p-6 bg-gradient-to-br from-purple-500/30 to-purple-500/5 border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
                 <h3 className="text-sm font-medium text-text-secondary mb-1">Predicted Next Month</h3>
                 <div className="text-4xl font-display font-bold text-text-primary mb-2">

@@ -15,8 +15,8 @@ import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank } from 'lucide-react';
-import { deleteSubscription, apiFetch } from '@/lib/api';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb } from 'lucide-react';
+import { deleteSubscription, apiFetch, getInsights } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
@@ -42,7 +42,13 @@ export default function Dashboard() {
   
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [insights, setInsights] = useState<any[]>([]);
 
+  useEffect(() => {
+    if (user) {
+      getInsights().then(setInsights).catch(console.error);
+    }
+  }, [user]);
   const handleDeleteSubscription = async (id: string) => {
     try {
       await deleteSubscription(id);
@@ -192,6 +198,20 @@ export default function Dashboard() {
               </div>
             )}
             
+            {summary?.current_streak > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-4 flex items-center gap-3 px-4 py-3 bg-orange-500/10 border border-orange-500/20 rounded-2xl"
+              >
+                <div className="text-2xl">🔥</div>
+                <div>
+                  <p className="text-sm font-bold text-orange-400">{summary.current_streak} day streak!</p>
+                  <p className="text-[11px] text-text-secondary">Best: {summary.best_streak} days</p>
+                </div>
+              </motion.div>
+            )}
+
             <div className="glass p-5 rounded-3xl border border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.15)] relative overflow-hidden bg-indigo-500/10">
               <div className="flex justify-between items-end mb-2">
                 <div>
@@ -244,6 +264,26 @@ export default function Dashboard() {
             className="px-4 space-y-6 pb-24 -mt-2"
           >
             <MiniCalendar />
+
+            {insights.length > 0 && (
+              <div className="mb-2">
+                <h3 className="text-sm font-display font-semibold text-white/80 mb-3 flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4 text-yellow-400" /> Smart Insights
+                </h3>
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                  {insights.map((insight: any, i: number) => (
+                    <div key={i} className={`flex-shrink-0 w-64 p-4 rounded-2xl border ${
+                      insight.type === 'warning' ? 'bg-red-500/10 border-red-500/20' :
+                      insight.type === 'positive' ? 'bg-emerald-500/10 border-emerald-500/20' :
+                      'bg-blue-500/10 border-blue-500/20'
+                    }`}>
+                      <span className="text-lg mb-2 block">{insight.icon}</span>
+                      <p className="text-xs text-white/80 leading-relaxed">{insight.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {loading ? (
               <div className="flex justify-center p-12">

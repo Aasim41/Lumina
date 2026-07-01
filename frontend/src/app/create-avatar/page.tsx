@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { updateUserProfile } from '@/lib/api';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 
 const MALE_SEEDS = ['Felix', 'Marcus', 'Leo', 'Aiden', 'Ravi', 'Omar', 'James', 'Max', 'Ryan', 'Kai', 'Sam', 'Dante'];
 const FEMALE_SEEDS = ['Sophia', 'Maya', 'Zara', 'Luna', 'Aria', 'Priya', 'Emma', 'Lily', 'Nova', 'Ruby', 'Mia', 'Ella'];
@@ -142,12 +142,19 @@ const CLOTHING_COLORS = [
 
 type Mode = 'preset' | 'custom';
 
+// How many pills to show before "Show More"
+const PILL_LIMIT = 6;
+
 export default function CreateAvatarPage() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const [saving, setSaving] = useState(false);
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [mode, setMode] = useState<Mode>('preset');
+
+  // Track which sections are expanded
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggleExpand = (key: string) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
   // Preset mode state
   const [selectedSeed, setSelectedSeed] = useState('Felix');
@@ -177,21 +184,21 @@ export default function CreateAvatarPage() {
       skinColor, top: hairStyle, hairColor,
       eyes, mouth, clothing, clothesColor: clothingColor,
     };
-    
+
     if (facialHair !== 'blank') {
       p.facialHair = facialHair;
       p.facialHairProbability = '100';
     } else {
       p.facialHairProbability = '0';
     }
-    
+
     if (accessories !== 'blank') {
       p.accessories = accessories;
       p.accessoriesProbability = '100';
     } else {
       p.accessoriesProbability = '0';
     }
-    
+
     return `https://api.dicebear.com/9.x/avataaars/svg?${new URLSearchParams(p).toString()}`;
   }, [skinColor, hairStyle, hairColor, facialHair, accessories, eyes, mouth, clothing, clothingColor]);
 
@@ -226,6 +233,57 @@ export default function CreateAvatarPage() {
       {label}
     </button>
   );
+
+  // Renders a pill section with "Show More" for long lists
+  const PillSection = ({ title, sectionKey, items, selectedValue, onSelect }: {
+    title: string;
+    sectionKey: string;
+    items: { name: string; value: string }[];
+    selectedValue: string;
+    onSelect: (v: string) => void;
+  }) => {
+    const isExpanded = expanded[sectionKey];
+    const needsExpand = items.length > PILL_LIMIT;
+    const visible = needsExpand && !isExpanded ? items.slice(0, PILL_LIMIT) : items;
+    // If the selected item is hidden, always show it
+    const selectedHidden = needsExpand && !isExpanded && !visible.find(i => i.value === selectedValue);
+    const selectedItem = items.find(i => i.value === selectedValue);
+
+    return (
+      <div className="mb-5">
+        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3 px-1">{title}</p>
+        <div className="flex gap-2 flex-wrap">
+          {visible.map(i => (
+            <Pill key={i.value} label={i.name} selected={selectedValue === i.value} onClick={() => onSelect(i.value)} />
+          ))}
+          {selectedHidden && selectedItem && (
+            <Pill label={selectedItem.name} selected={true} onClick={() => {}} />
+          )}
+          {needsExpand && (
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="w-full flex gap-2 flex-wrap"
+                />
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+        {needsExpand && (
+          <button
+            onClick={() => toggleExpand(sectionKey)}
+            className="mt-2 flex items-center gap-1 text-xs text-primary/70 hover:text-primary transition-colors px-1"
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            {isExpanded ? 'Show Less' : `Show ${items.length - PILL_LIMIT} More`}
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="mb-5">
@@ -282,7 +340,6 @@ export default function CreateAvatarPage() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-5 pb-32">
           {mode === 'preset' ? (
-            /* ---- PRESET MODE ---- */
             <div>
               <Section title="Choose Your Look">
                 <div className="grid grid-cols-4 gap-3">
@@ -300,7 +357,6 @@ export default function CreateAvatarPage() {
               </Section>
             </div>
           ) : (
-            /* ---- CUSTOM MODE ---- */
             <div>
               <Section title="Skin Tone">
                 <div className="flex gap-3 flex-wrap">
@@ -308,11 +364,7 @@ export default function CreateAvatarPage() {
                 </div>
               </Section>
 
-              <Section title="Hair Style">
-                <div className="flex gap-2 flex-wrap">
-                  {HAIR_STYLES.map(h => <Pill key={h.value} label={h.name} selected={hairStyle === h.value} onClick={() => setHairStyle(h.value)} />)}
-                </div>
-              </Section>
+              <PillSection title="Hair Style" sectionKey="hair" items={HAIR_STYLES} selectedValue={hairStyle} onSelect={setHairStyle} />
 
               <Section title="Hair Color">
                 <div className="flex gap-3 flex-wrap">
@@ -320,35 +372,15 @@ export default function CreateAvatarPage() {
                 </div>
               </Section>
 
-              <Section title="Facial Hair">
-                <div className="flex gap-2 flex-wrap">
-                  {FACIAL_HAIR.map(f => <Pill key={f.value} label={f.name} selected={facialHair === f.value} onClick={() => setFacialHair(f.value)} />)}
-                </div>
-              </Section>
+              <PillSection title="Facial Hair" sectionKey="facial" items={FACIAL_HAIR} selectedValue={facialHair} onSelect={setFacialHair} />
 
-              <Section title="Eyes">
-                <div className="flex gap-2 flex-wrap">
-                  {EYES.map(e => <Pill key={e.value} label={e.name} selected={eyes === e.value} onClick={() => setEyes(e.value)} />)}
-                </div>
-              </Section>
+              <PillSection title="Eyes" sectionKey="eyes" items={EYES} selectedValue={eyes} onSelect={setEyes} />
 
-              <Section title="Mouth">
-                <div className="flex gap-2 flex-wrap">
-                  {MOUTH.map(m => <Pill key={m.value} label={m.name} selected={mouth === m.value} onClick={() => setMouth(m.value)} />)}
-                </div>
-              </Section>
+              <PillSection title="Mouth" sectionKey="mouth" items={MOUTH} selectedValue={mouth} onSelect={setMouth} />
 
-              <Section title="Accessories">
-                <div className="flex gap-2 flex-wrap">
-                  {ACCESSORIES.map(a => <Pill key={a.value} label={a.name} selected={accessories === a.value} onClick={() => setAccessories(a.value)} />)}
-                </div>
-              </Section>
+              <PillSection title="Accessories" sectionKey="acc" items={ACCESSORIES} selectedValue={accessories} onSelect={setAccessories} />
 
-              <Section title="Clothing">
-                <div className="flex gap-2 flex-wrap">
-                  {CLOTHING.map(c => <Pill key={c.value} label={c.name} selected={clothing === c.value} onClick={() => setClothing(c.value)} />)}
-                </div>
-              </Section>
+              <PillSection title="Clothing" sectionKey="cloth" items={CLOTHING} selectedValue={clothing} onSelect={setClothing} />
 
               <Section title="Clothing Color">
                 <div className="flex gap-3 flex-wrap">

@@ -88,6 +88,54 @@ async def get_summary(
         else:
             next_badge_target = "Incredible! You've unlocked all badges for this month!"
 
+    # Streak Calculation
+    current_streak = 0
+    best_streak = 0
+    streak_status = "on_track"
+    
+    if budget > 0:
+        import calendar
+        days_in_month_val = calendar.monthrange(today.year, today.month)[1]
+        daily_budget = budget / days_in_month_val
+        
+        # Group transactions by date
+        from collections import defaultdict
+        daily_totals = defaultdict(float)
+        for t in transactions:
+            if t.category not in ["Savings", "SecretVault", "SecretVault_Processed"]:
+                daily_totals[t.date] += t.amount
+        
+        # Count streak backwards from today
+        temp_streak = 0
+        check_date = today.date()
+        for i in range(90):  # Check last 90 days
+            d = check_date - timedelta(days=i)
+            spent = daily_totals.get(d, 0)
+            if spent <= daily_budget:
+                temp_streak += 1
+            else:
+                break
+        current_streak = temp_streak
+        
+        # Best streak (scan all days)
+        all_dates = sorted(daily_totals.keys())
+        if all_dates:
+            temp = 0
+            first_date = all_dates[0]
+            last_date = today.date()
+            d = first_date
+            while d <= last_date:
+                if daily_totals.get(d, 0) <= daily_budget:
+                    temp += 1
+                    best_streak = max(best_streak, temp)
+                else:
+                    temp = 0
+                d += timedelta(days=1)
+        
+        # Today's status
+        today_spent = daily_totals.get(today.date(), 0)
+        streak_status = "on_track" if today_spent <= daily_budget else "broken"
+
     return SummaryResponse(
         total_this_month=total_this_month,
         total_saved_this_month=total_saved_this_month,
@@ -100,7 +148,10 @@ async def get_summary(
         daily_average=daily_average,
         vault_balance=current_user.vault_balance or 0.0,
         badges=badges,
-        next_badge_target=next_badge_target
+        next_badge_target=next_badge_target,
+        current_streak=current_streak,
+        best_streak=best_streak,
+        streak_status=streak_status
     )
 
 @router.get("/categories", response_model=List[CategoryBreakdown])

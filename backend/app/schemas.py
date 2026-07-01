@@ -44,6 +44,9 @@ class SummaryResponse(BaseModel):
     vault_balance: float
     badges: List[str]
     next_badge_target: Optional[str] = None
+    current_streak: int = 0
+    best_streak: int = 0
+    streak_status: str = "on_track"
 
 class SubscriptionCreate(BaseModel):
     merchant: str
@@ -76,6 +79,9 @@ class ForecastResponse(BaseModel):
     per_category: List[dict]
     historical: List[MonthlyTrend]
     projected: List[MonthlyTrend]
+    last_month_predicted: Optional[float] = None
+    last_month_actual: Optional[float] = None
+    accuracy_percent: Optional[float] = None
 
 class GoogleAuthRequest(BaseModel):
     id_token: str
@@ -108,3 +114,61 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+# Insights
+class InsightItem(BaseModel):
+    message: str
+    type: str  # "warning", "positive", "info"
+    icon: str  # emoji
+
+# Wishlist
+class WishlistCreate(BaseModel):
+    name: str
+    price: float
+    priority: str = "medium"
+
+class WishlistResponse(BaseModel):
+    id: UUID
+    name: str
+    price: float
+    priority: str
+    is_purchased: str
+    days_to_save: Optional[int] = None
+    progress_percent: Optional[float] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+# Split Bills
+class SplitMemberCreate(BaseModel):
+    name: str
+    share_amount: float
+
+class SplitMemberResponse(BaseModel):
+    id: UUID
+    name: str
+    share_amount: float
+    is_paid: str
+    model_config = ConfigDict(from_attributes=True)
+
+class SplitBillCreate(BaseModel):
+    title: str
+    total_amount: float
+    date: date
+    category: str = "Miscellaneous"
+    members: List[SplitMemberCreate]
+
+class SplitBillResponse(BaseModel):
+    id: UUID
+    title: str
+    total_amount: float
+    date: date
+    category: str
+    members: List[SplitMemberResponse]
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+# Streaks
+class StreakInfo(BaseModel):
+    current_streak: int
+    best_streak: int
+    streak_status: str  # "on_track" or "broken"
