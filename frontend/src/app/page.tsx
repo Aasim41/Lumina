@@ -35,7 +35,7 @@ export default function Dashboard() {
     toast.success(`${count} new transaction${count > 1 ? 's' : ''} synced from SMS!`, { icon: '📱' });
     refresh(); // refresh dashboard data
   }, [refresh]);
-  useSMSSync(handleSMSSyncComplete);
+  const { syncNow } = useSMSSync(handleSMSSyncComplete);
 
   const totalSpent = summary?.total_this_month || 0;
   const totalSaved = summary?.total_saved_this_month || 0;
@@ -167,6 +167,13 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center space-x-2">
+                <button 
+                  onClick={syncNow}
+                  className="p-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                  title="Sync SMS"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                </button>
                 <button 
                   onClick={logout}
                   className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-error transition-colors"
