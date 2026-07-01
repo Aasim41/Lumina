@@ -65,36 +65,35 @@ function setLastSyncTime(time: number) {
 }
 
 async function readSMSMessages(): Promise<Array<{ body: string; sender: string; date: string }>> {
-  try {
-    const { Capacitor, Plugins } = await import('@capacitor/core');
-    if (!Capacitor.isNativePlatform()) return [];
-
-    const NativeSms = Plugins.NativeSms as any;
-    if (!NativeSms) return [];
-
-    // Read SMS from the last 7 days
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-    const lastSync = getLastSyncTime();
-    const since = Math.max(sevenDaysAgo, lastSync);
-
-    const result = await NativeSms.getSms();
-    if (!result.smsList) return [];
-
-    // Filter to messages since last sync and map to our format
-    return result.smsList
-      .filter((sms: any) => {
-        const smsTime = parseInt(sms.date || '0');
-        return smsTime >= since;
-      })
-      .map((sms: any) => ({
-        body: sms.body || '',
-        sender: sms.address || '',
-        date: new Date(parseInt(sms.date || Date.now())).toISOString().split('T')[0],
-      }));
-  } catch (e) {
-    console.log('SMS reading not available (web or permission denied):', e);
-    return [];
+  const { Capacitor, Plugins } = await import('@capacitor/core');
+  if (!Capacitor.isNativePlatform()) {
+    throw new Error('Not running on native Android device');
   }
+
+  const NativeSms = Plugins.NativeSms as any;
+  if (!NativeSms) {
+    throw new Error('NativeSms plugin not found');
+  }
+
+  // Read SMS from the last 7 days
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const lastSync = getLastSyncTime();
+  const since = Math.max(sevenDaysAgo, lastSync);
+
+  const result = await NativeSms.getSms();
+  if (!result.smsList) return [];
+
+  // Filter to messages since last sync and map to our format
+  return result.smsList
+    .filter((sms: any) => {
+      const smsTime = parseInt(sms.date || '0');
+      return smsTime >= since;
+    })
+    .map((sms: any) => ({
+      body: sms.body || '',
+      sender: sms.address || '',
+      date: new Date(parseInt(sms.date || Date.now())).toISOString().split('T')[0],
+    }));
 }
 
 async function syncTransactions(parsed: ParsedTransaction[]): Promise<number> {
@@ -136,6 +135,8 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<number> {
   return synced;
 }
 
+import toast from 'react-hot-toast';
+
 export function useSMSSync(onSyncComplete?: (count: number) => void) {
   const isSyncing = useRef(false);
 
@@ -150,12 +151,14 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
     try {
       const messages = await readSMSMessages();
       if (messages.length === 0) {
+        toast('No recent messages found (or permission denied)', { icon: 'ℹ️' });
         isSyncing.current = false;
         return;
       }
 
       const parsed = parseMultipleSMS(messages);
       if (parsed.length === 0) {
+        toast(`Read ${messages.length} SMS, but none matched transaction formats`, { icon: 'ℹ️' });
         isSyncing.current = false;
         return;
       }
@@ -163,8 +166,11 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
       const count = await syncTransactions(parsed);
       if (count > 0 && onSyncComplete) {
         onSyncComplete(count);
+      } else if (count === 0) {
+        toast(`Found ${parsed.length} transactions, but they were already synced`, { icon: 'ℹ️' });
       }
-    } catch (e) {
+    } catch (e: any) {
+      toast.error('SMS sync error: ' + (e?.message || 'Unknown error'));
       console.error('SMS sync error:', e);
     } finally {
       isSyncing.current = false;
