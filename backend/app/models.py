@@ -14,6 +14,7 @@ class User(Base):
     name = Column(String, nullable=False)
     avatar_url = Column(String, nullable=True)
     age = Column(Integer, nullable=True)
+    dob = Column(Date, nullable=True)
     monthly_budget = Column(Float, nullable=True)
     last_budget_update = Column(Date, nullable=True)
     vault_balance = Column(Float, default=0.0)

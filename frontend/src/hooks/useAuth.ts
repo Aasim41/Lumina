@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { getUserProfile, loginWithGoogle } from '@/lib/api';
+import { getUserProfile, guestLogin } from '@/lib/api';
 import { getToken, setToken, removeToken, isAuthenticated as isAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
@@ -30,14 +30,12 @@ export function useAuth() {
     fetchUser();
   }, [fetchUser]);
 
-  const login = useCallback(async (token?: string) => {
+  const login = useCallback(async (data: { name: string, age: number, dob: string, monthly_budget: number }) => {
     try {
       setLoading(true);
-      const res = await loginWithGoogle(token || 'dev-mode');
+      const res = await guestLogin(data);
       setToken(res.access_token);
       await fetchUser();
-      // Only redirect if they have a name set (not the default dev-mode one which needs onboarding)
-      // Actually we will let OnboardingModal handle them if they don't have budget/age set.
       router.push('/');
     } catch (e) {
       console.error('Login failed', e);

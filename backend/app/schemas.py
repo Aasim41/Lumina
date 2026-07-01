@@ -80,6 +80,12 @@ class ForecastResponse(BaseModel):
 class GoogleAuthRequest(BaseModel):
     id_token: str
 
+class GuestAuthRequest(BaseModel):
+    name: str
+    age: int
+    dob: date
+    monthly_budget: float
+
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     age: Optional[int] = None
@@ -91,6 +97,7 @@ class UserResponse(BaseModel):
     name: str
     avatar_url: Optional[str] = None
     age: Optional[int] = None
+    dob: Optional[date] = None
     monthly_budget: Optional[float] = None
     last_budget_update: Optional[date] = None
     

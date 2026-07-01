@@ -41,10 +41,10 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   return data;
 }
 
-export const loginWithGoogle = (idToken: string) => 
-  apiFetch('/api/auth/google', {
+export const guestLogin = (data: { name: string, age: number, dob: string, monthly_budget: number }) => 
+  apiFetch('/api/auth/guest', {
     method: 'POST',
-    body: JSON.stringify({ id_token: idToken })
+    body: JSON.stringify(data)
   });
 
 export const uploadCSV = (file: File) => {
