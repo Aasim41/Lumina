@@ -81,25 +81,25 @@ export default function TransactionsPage() {
           <div>
             <h1 className="text-3xl font-display font-bold">Transactions</h1>
           </div>
-          <div className="flex space-x-3 items-center">
+          <div className="flex space-x-2 items-center">
             <button 
               onClick={() => setIsUploadOpen(true)}
-              className="px-3 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center hover:bg-amber-500/30 transition-colors"
+              className="px-2 sm:px-3 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center hover:bg-amber-500/30 transition-colors shrink-0"
             >
-              <Upload className="w-4 h-4 mr-1.5" />
-              <span className="text-sm font-medium">Upload Bill</span>
+              <Upload className="w-4 h-4 sm:mr-1.5" />
+              <span className="text-sm font-medium hidden sm:inline">Upload</span>
             </button>
             <button 
               onClick={handleExport}
               disabled={exporting}
-              className="px-3 h-10 rounded-full bg-white/5 flex items-center justify-center text-text-secondary hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+              className="px-2 sm:px-3 h-10 rounded-full bg-white/5 flex items-center justify-center text-text-secondary hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 shrink-0"
             >
-              <Download className="w-4 h-4 mr-1.5" />
-              <span className="text-sm font-medium">PDF</span>
+              <Download className="w-4 h-4 sm:mr-1.5" />
+              <span className="text-sm font-medium hidden sm:inline">PDF</span>
             </button>
             <button 
               onClick={() => setIsFormOpen(true)}
-              className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center text-background shadow-lg shadow-[#10b981]/20 hover:bg-[#10b981]/90 transition-colors"
+              className="w-10 h-10 shrink-0 rounded-full bg-[#10b981] flex items-center justify-center text-background shadow-lg shadow-[#10b981]/20 hover:bg-[#10b981]/90 transition-colors"
             >
               <Plus className="w-5 h-5" />
             </button>

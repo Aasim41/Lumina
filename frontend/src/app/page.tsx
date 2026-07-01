@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { useExpenseData } from '@/hooks/useExpenseData';
 import { useAuth } from '@/hooks/useAuth';
 import { MetricCard } from '@/components/MetricCard';
@@ -139,13 +140,18 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between items-center mb-6 mt-2">
               <div className="flex items-center space-x-3">
-                {user?.avatar_url && user.avatar_url.length > 0 ? (
-                  <img src={user.avatar_url} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white/10" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                <Link href="/create-avatar" className="relative group cursor-pointer">
+                  {user?.avatar_url && user.avatar_url.length > 0 ? (
+                    <img src={user.avatar_url} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white/10" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] font-bold text-white">Edit</span>
                   </div>
-                )}
+                </Link>
                 <div>
                   <p className="text-xs text-text-secondary">Welcome back,</p>
                   <p className="font-medium text-text-primary">{user?.name?.split(' ')[0]}</p>
