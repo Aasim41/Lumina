@@ -66,27 +66,18 @@ function setLastSyncTime(time: number) {
 
 async function readSMSMessages(): Promise<Array<{ body: string; sender: string; date: string }>> {
   try {
-    // Dynamically import the Capacitor SMS plugin
-    const { CapacitorSmsReader } = await import('@solimanware/capacitor-sms-reader');
+    const { Capacitor, Plugins } = await import('@capacitor/core');
+    if (!Capacitor.isNativePlatform()) return [];
 
-    // Request permission first
-    const permResult = await CapacitorSmsReader.requestPermission();
-    if (!permResult.granted) {
-      console.log('SMS permission denied');
-      return [];
-    }
+    const NativeSms = Plugins.NativeSms as any;
+    if (!NativeSms) return [];
 
     // Read SMS from the last 7 days
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
     const lastSync = getLastSyncTime();
     const since = Math.max(sevenDaysAgo, lastSync);
 
-    const result = await CapacitorSmsReader.getSMSList({
-      filter: '',
-      maxCount: 200,
-      // Read inbox messages since last sync
-    });
-
+    const result = await NativeSms.getSms();
     if (!result.smsList) return [];
 
     // Filter to messages since last sync and map to our format
