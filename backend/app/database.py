@@ -28,3 +28,10 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Auto-migrate: Add dob column if it doesn't exist
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("ALTER TABLE users ADD COLUMN dob DATE;"))
+        except Exception as e:
+            pass # Column likely already exists
