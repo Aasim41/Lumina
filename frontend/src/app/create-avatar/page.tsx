@@ -1,11 +1,22 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { updateUserProfile } from '@/lib/api';
 import { AuthGuard } from '@/components/AuthGuard';
+import { useAuth } from '@/hooks/useAuth';
 import { ChevronRight } from 'lucide-react';
+
+const MALE_SEEDS = [
+  'Felix', 'Marcus', 'Leo', 'Aiden', 'Ravi', 'Omar',
+  'James', 'Max', 'Ryan', 'Kai', 'Sam', 'Dante',
+];
+
+const FEMALE_SEEDS = [
+  'Sophia', 'Maya', 'Zara', 'Luna', 'Aria', 'Priya',
+  'Emma', 'Lily', 'Nova', 'Ruby', 'Mia', 'Ella',
+];
 
 const SKIN_TONES = [
   { name: 'Light', hex: 'ffdbb4' },
@@ -16,166 +27,61 @@ const SKIN_TONES = [
   { name: 'Dark', hex: '614335' },
 ];
 
-const HAIR_STYLES = [
-  { name: 'Short Flat', value: 'shortFlat' },
-  { name: 'Short Waved', value: 'shortWaved' },
-  { name: 'Short Curly', value: 'shortCurly' },
-  { name: 'Caesar', value: 'theCaesar' },
-  { name: 'Dreads', value: 'dreads01' },
-  { name: 'Frizzle', value: 'frizzle' },
-  { name: 'Shaggy', value: 'shaggy' },
-  { name: 'Bob', value: 'bob' },
-  { name: 'Long', value: 'longButNotToo' },
-  { name: 'Curvy', value: 'curvy' },
-  { name: 'Straight', value: 'straight01' },
-  { name: 'Bun', value: 'bun' },
-  { name: 'Fro', value: 'fro' },
-  { name: 'Mia Wallace', value: 'miaWallace' },
-  { name: 'Turban', value: 'turban' },
-  { name: 'Hijab', value: 'hijab' },
-];
-
-const HAIR_COLORS = [
-  { name: 'Black', hex: '2c1b18' },
-  { name: 'Dark Brown', hex: '4a312c' },
-  { name: 'Brown', hex: '724133' },
-  { name: 'Auburn', hex: 'a55728' },
-  { name: 'Blonde', hex: 'b58143' },
-  { name: 'Platinum', hex: 'ecdcbf' },
-  { name: 'Red', hex: 'c93305' },
-  { name: 'Gray', hex: 'b1b1b1' },
-];
-
-const FACIAL_HAIR = [
-  { name: 'None', value: 'blank' },
-  { name: 'Light Beard', value: 'beardLight' },
-  { name: 'Medium Beard', value: 'beardMedium' },
-  { name: 'Majestic', value: 'beardMajestic' },
-  { name: 'Fancy Stache', value: 'moustacheFancy' },
-  { name: 'Magnum', value: 'moustacheMagnum' },
-];
-
-const ACCESSORIES = [
-  { name: 'None', value: 'blank' },
-  { name: 'Round', value: 'round' },
-  { name: 'Prescription', value: 'prescription01' },
-  { name: 'Wayfarers', value: 'wayfarers' },
-  { name: 'Sunglasses', value: 'sunglasses' },
-  { name: 'Kurt', value: 'kurt' },
-];
-
-const EYES = [
-  { name: 'Default', value: 'default' },
-  { name: 'Happy', value: 'happy' },
-  { name: 'Wink', value: 'wink' },
-  { name: 'Squint', value: 'squint' },
-  { name: 'Hearts', value: 'hearts' },
-  { name: 'Side', value: 'side' },
-];
-
-const MOUTH = [
-  { name: 'Smile', value: 'smile' },
-  { name: 'Default', value: 'default' },
-  { name: 'Twinkle', value: 'twinkle' },
-  { name: 'Tongue', value: 'tongue' },
-  { name: 'Serious', value: 'serious' },
-];
-
-const CLOTHING = [
-  { name: 'Hoodie', value: 'hoodie' },
-  { name: 'Crew Neck', value: 'shirtCrewNeck' },
-  { name: 'V Neck', value: 'shirtVNeck' },
-  { name: 'Blazer', value: 'blazerAndShirt' },
-  { name: 'Collar Sweater', value: 'collarAndSweater' },
-  { name: 'Overall', value: 'overall' },
-];
-
-const CLOTHING_COLORS = [
-  { name: 'Black', hex: '262e33' },
-  { name: 'Blue', hex: '65c9ff' },
-  { name: 'Navy', hex: '25557c' },
-  { name: 'Gray', hex: '929598' },
-  { name: 'Heather', hex: '3c4f5c' },
-  { name: 'Pink', hex: 'ff488e' },
-  { name: 'Red', hex: 'ff5c5c' },
-  { name: 'Green', hex: 'a7ffc4' },
-];
+function buildAvatarUrl(seed: string, skinColor?: string) {
+  let url = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+  if (skinColor) {
+    url += `&skinColor=${skinColor}`;
+  }
+  return url;
+}
 
 export default function CreateAvatarPage() {
   const router = useRouter();
+  const { user, refreshUser } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [selectedSeed, setSelectedSeed] = useState('Felix');
+  const [skinColor, setSkinColor] = useState('');
+  const [loadErrors, setLoadErrors] = useState<Set<string>>(new Set());
 
-  const [skinColor, setSkinColor] = useState('edb98a');
-  const [hairStyle, setHairStyle] = useState('shortFlat');
-  const [hairColor, setHairColor] = useState('2c1b18');
-  const [facialHair, setFacialHair] = useState('blank');
-  const [accessories, setAccessories] = useState('blank');
-  const [eyes, setEyes] = useState('default');
-  const [mouth, setMouth] = useState('smile');
-  const [clothing, setClothing] = useState('hoodie');
-  const [clothingColor, setClothingColor] = useState('262e33');
+  const seeds = gender === 'male' ? MALE_SEEDS : FEMALE_SEEDS;
+  const selectedUrl = buildAvatarUrl(selectedSeed, skinColor || undefined);
 
-  const avatarUrl = useMemo(() => {
-    const params = new URLSearchParams({
-      skinColor: skinColor,
-      top: hairStyle,
-      hairColor: hairColor,
-      facialHair: facialHair,
-      facialHairProbability: facialHair === 'blank' ? '0' : '100',
-      accessories: accessories,
-      accessoriesProbability: accessories === 'blank' ? '0' : '100',
-      eyes: eyes,
-      mouth: mouth,
-      clothing: clothing,
-      clothingColor: clothingColor,
-    });
-    return `https://api.dicebear.com/7.x/avataaars/svg?${params.toString()}`;
-  }, [skinColor, hairStyle, hairColor, facialHair, accessories, eyes, mouth, clothing, clothingColor]);
+  useEffect(() => {
+    setSelectedSeed(seeds[0]);
+    setLoadErrors(new Set());
+  }, [gender]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateUserProfile({ avatar_url: avatarUrl });
+      await updateUserProfile({ avatar_url: selectedUrl });
+      await refreshUser();
       router.push('/');
     } catch (e) {
       console.error('Failed to save avatar', e);
       router.push('/');
-    } finally {
-      setSaving(false);
     }
   };
 
-  const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <div className="mb-5">
-      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3 px-1">{title}</p>
-      {children}
-    </div>
-  );
-
-  const ColorSwatch = ({ hex, selected, onClick }: { hex: string, selected: boolean, onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      className={`w-10 h-10 rounded-full border-2 transition-all active:scale-90 ${selected ? 'border-primary scale-110 shadow-[0_0_12px_rgba(124,197,68,0.5)]' : 'border-white/10 hover:border-white/30'}`}
-      style={{ backgroundColor: `#${hex}` }}
-    />
-  );
-
-  const OptionPill = ({ label, selected, onClick }: { label: string, selected: boolean, onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${selected ? 'bg-primary text-black shadow-[0_0_12px_rgba(124,197,68,0.4)]' : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'}`}
-    >
-      {label}
-    </button>
-  );
+  const handleSkip = async () => {
+    // Clear avatar so dashboard shows name initial
+    try {
+      await updateUserProfile({ avatar_url: '' });
+      await refreshUser();
+    } catch (e) {
+      // ignore
+    }
+    router.push('/');
+  };
 
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#0B1021] flex flex-col">
         {/* Header */}
-        <div className="px-6 pt-8 pb-4 safe-pt relative">
-          <button 
-            onClick={() => router.push('/')}
+        <div className="px-6 pt-8 pb-2 safe-pt relative">
+          <button
+            onClick={handleSkip}
             className="absolute right-6 top-8 text-sm text-text-secondary hover:text-white transition-colors"
           >
             Skip →
@@ -183,96 +89,96 @@ export default function CreateAvatarPage() {
           <div className="text-center">
             <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
             <h1 className="text-2xl font-display font-bold text-white mt-3">Create Your Avatar</h1>
-            <p className="text-sm text-text-secondary mt-1">Make it yours!</p>
+            <p className="text-sm text-text-secondary mt-1">Pick one that looks like you!</p>
           </div>
         </div>
 
         {/* Avatar Preview */}
         <div className="flex justify-center py-4">
           <motion.div
-            key={avatarUrl}
-            initial={{ scale: 0.9, opacity: 0.5 }}
+            key={selectedUrl}
+            initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 border-2 border-primary/30 shadow-[0_0_40px_rgba(124,197,68,0.2)] overflow-hidden flex items-center justify-center"
+            transition={{ duration: 0.25 }}
+            className="w-28 h-28 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 border-2 border-primary/30 shadow-[0_0_40px_rgba(124,197,68,0.2)] overflow-hidden flex items-center justify-center"
           >
-            <img src={avatarUrl} alt="Your Avatar" className="w-28 h-28" />
+            <img
+              src={selectedUrl}
+              alt="Selected Avatar"
+              className="w-24 h-24"
+              onError={() => setLoadErrors(prev => new Set(prev).add(selectedSeed))}
+            />
           </motion.div>
         </div>
 
-        {/* Customization Options */}
+        {/* Gender Tabs */}
+        <div className="flex justify-center gap-3 px-6 mb-4">
+          <button
+            onClick={() => setGender('male')}
+            className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all ${gender === 'male' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-white/5 text-text-secondary border border-white/10'}`}
+          >
+            👨 Male
+          </button>
+          <button
+            onClick={() => setGender('female')}
+            className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all ${gender === 'female' ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-white/5 text-text-secondary border border-white/10'}`}
+          >
+            👩 Female
+          </button>
+        </div>
+
+        {/* Content */}
         <div className="flex-1 overflow-y-auto px-5 pb-32">
-          <Section title="Skin Tone">
+          {/* Skin Tone */}
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3 px-1">Skin Tone</p>
             <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={() => setSkinColor('')}
+                className={`w-10 h-10 rounded-full border-2 transition-all text-xs font-bold ${!skinColor ? 'border-primary scale-110 shadow-[0_0_12px_rgba(124,197,68,0.5)]' : 'border-white/10'} bg-white/10 text-text-secondary`}
+              >
+                Auto
+              </button>
               {SKIN_TONES.map(s => (
-                <ColorSwatch key={s.hex} hex={s.hex} selected={skinColor === s.hex} onClick={() => setSkinColor(s.hex)} />
+                <button
+                  key={s.hex}
+                  onClick={() => setSkinColor(s.hex)}
+                  className={`w-10 h-10 rounded-full border-2 transition-all active:scale-90 ${skinColor === s.hex ? 'border-primary scale-110 shadow-[0_0_12px_rgba(124,197,68,0.5)]' : 'border-white/10 hover:border-white/30'}`}
+                  style={{ backgroundColor: `#${s.hex}` }}
+                />
               ))}
             </div>
-          </Section>
+          </div>
 
-          <Section title="Hair Style">
-            <div className="flex gap-2 flex-wrap">
-              {HAIR_STYLES.map(h => (
-                <OptionPill key={h.value} label={h.name} selected={hairStyle === h.value} onClick={() => setHairStyle(h.value)} />
-              ))}
+          {/* Avatar Grid */}
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3 px-1">Choose Your Look</p>
+            <div className="grid grid-cols-4 gap-3">
+              {seeds.map(seed => {
+                const url = buildAvatarUrl(seed, skinColor || undefined);
+                const isSelected = selectedSeed === seed;
+                return (
+                  <motion.button
+                    key={seed}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSelectedSeed(seed)}
+                    className={`aspect-square rounded-2xl overflow-hidden flex items-center justify-center transition-all ${isSelected ? 'border-2 border-primary bg-primary/10 shadow-[0_0_20px_rgba(124,197,68,0.3)] scale-105' : 'border border-white/10 bg-white/5 hover:bg-white/10'}`}
+                  >
+                    {loadErrors.has(seed) ? (
+                      <span className="text-2xl font-bold text-primary">{seed.charAt(0)}</span>
+                    ) : (
+                      <img
+                        src={url}
+                        alt={seed}
+                        className="w-full h-full p-1"
+                        onError={() => setLoadErrors(prev => new Set(prev).add(seed))}
+                      />
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
-          </Section>
-
-          <Section title="Hair Color">
-            <div className="flex gap-3 flex-wrap">
-              {HAIR_COLORS.map(c => (
-                <ColorSwatch key={c.hex} hex={c.hex} selected={hairColor === c.hex} onClick={() => setHairColor(c.hex)} />
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Facial Hair">
-            <div className="flex gap-2 flex-wrap">
-              {FACIAL_HAIR.map(f => (
-                <OptionPill key={f.value} label={f.name} selected={facialHair === f.value} onClick={() => setFacialHair(f.value)} />
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Eyes">
-            <div className="flex gap-2 flex-wrap">
-              {EYES.map(e => (
-                <OptionPill key={e.value} label={e.name} selected={eyes === e.value} onClick={() => setEyes(e.value)} />
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Mouth">
-            <div className="flex gap-2 flex-wrap">
-              {MOUTH.map(m => (
-                <OptionPill key={m.value} label={m.name} selected={mouth === m.value} onClick={() => setMouth(m.value)} />
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Accessories">
-            <div className="flex gap-2 flex-wrap">
-              {ACCESSORIES.map(a => (
-                <OptionPill key={a.value} label={a.name} selected={accessories === a.value} onClick={() => setAccessories(a.value)} />
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Clothing">
-            <div className="flex gap-2 flex-wrap">
-              {CLOTHING.map(c => (
-                <OptionPill key={c.value} label={c.name} selected={clothing === c.value} onClick={() => setClothing(c.value)} />
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Clothing Color">
-            <div className="flex gap-3 flex-wrap">
-              {CLOTHING_COLORS.map(c => (
-                <ColorSwatch key={c.hex} hex={c.hex} selected={clothingColor === c.hex} onClick={() => setClothingColor(c.hex)} />
-              ))}
-            </div>
-          </Section>
+          </div>
         </div>
 
         {/* Save Button */}

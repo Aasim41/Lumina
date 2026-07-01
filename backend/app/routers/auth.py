@@ -59,7 +59,6 @@ async def auth_guest(request: GuestAuthRequest, db: AsyncSession = Depends(get_d
         dob=request.dob,
         monthly_budget=request.monthly_budget,
         last_budget_update=datetime.date.today(),
-        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=" + request.name
     )
     
     db.add(user)
