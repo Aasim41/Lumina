@@ -16,7 +16,7 @@ import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -169,10 +169,10 @@ export default function Dashboard() {
               <div className="flex items-center space-x-2">
                 <button 
                   onClick={syncNow}
-                  className="p-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-primary transition-colors"
                   title="Sync SMS"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <RefreshCw className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={logout}
