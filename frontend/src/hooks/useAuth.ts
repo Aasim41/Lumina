@@ -36,9 +36,10 @@ export function useAuth() {
       const res = await guestLogin(data);
       setToken(res.access_token);
       await fetchUser();
-      router.push('/create-avatar');
-    } catch (e) {
+      window.location.href = '/create-avatar';
+    } catch (e: any) {
       console.error('Login failed', e);
+      alert('Login error: ' + (e.message || String(e)));
     } finally {
       setLoading(false);
     }

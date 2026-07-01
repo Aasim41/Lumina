@@ -209,16 +209,17 @@ export default function CreateAvatarPage() {
     try {
       await updateUserProfile({ avatar_url: activeUrl });
       await refreshUser();
-      router.push('/');
-    } catch (e) {
+      window.location.href = '/';
+    } catch (e: any) {
       console.error('Failed to save avatar', e);
-      router.push('/');
+      alert('Error saving avatar: ' + (e.message || String(e)));
+      window.location.href = '/';
     }
   };
 
   const handleSkip = async () => {
     try { await updateUserProfile({ avatar_url: '' }); await refreshUser(); } catch {}
-    router.push('/');
+    window.location.href = '/';
   };
 
   const ColorSwatch = ({ hex, selected, onClick }: { hex: string; selected: boolean; onClick: () => void }) => (
