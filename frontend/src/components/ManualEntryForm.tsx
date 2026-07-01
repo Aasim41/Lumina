@@ -143,13 +143,13 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
               onClick={onClose}
             />
             
-            <div className="fixed inset-0 z-[999] flex items-start justify-center p-4 pt-12 pb-32 overflow-y-auto pointer-events-none">
+            <div className="fixed inset-0 z-[999] flex items-end justify-center pointer-events-none">
               <motion.div 
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 100 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="w-full max-w-md glass p-6 rounded-3xl border border-white/10 shadow-2xl shadow-primary/20 pointer-events-auto"
+                className="w-full max-w-md glass p-6 pt-5 rounded-t-3xl border border-white/10 border-b-0 shadow-2xl shadow-primary/20 pointer-events-auto max-h-[85vh] overflow-y-auto"
               >
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-display font-bold">Add Expense</h2>
@@ -182,29 +182,27 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                     />
                   </div>
 
-                  <div className="w-full flex gap-4">
-                    <div className="flex-1">
-                      <label>Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                      />
-                    </div>
+                  <div>
+                    <label>Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                    />
+                  </div>
 
-                    <div className="flex-1">
-                      <label>Category (Optional)</label>
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                      >
-                        <option value="">Auto-predict</option>
-                        {Object.keys(CATEGORY_COLORS).map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div>
+                    <label>Category (Optional)</label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                    >
+                      <option value="">Auto-predict</option>
+                      {Object.keys(CATEGORY_COLORS).map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="separator">

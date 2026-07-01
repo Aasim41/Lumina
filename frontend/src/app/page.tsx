@@ -258,24 +258,28 @@ export default function Dashboard() {
                       value={formatCurrency(summary.daily_average)}
                       icon={<Activity className="w-5 h-5 text-error" />}
                       theme="red"
+                      onClick={() => showInfoToast("Spent / Day", "How much you're spending on average each day this month.", <Activity className="w-6 h-6 text-error" />)}
                     />
                     <MetricCard
                       title="Safe to Spend / Day"
                       value={formatCurrency(dailyAllowed)}
                       icon={<PiggyBank className="w-5 h-5 text-success" />}
                       theme="green"
+                      onClick={() => showInfoToast("Safe to Spend / Day", "The amount you can safely spend each day for the rest of the month without going over budget.", <PiggyBank className="w-6 h-6 text-success" />)}
                     />
                     <MetricCard
                       title="Top Category"
                       value={summary.top_category || 'None'}
                       icon={<Target className="w-5 h-5 text-primary" />}
                       theme="purple"
+                      onClick={() => showInfoToast("Top Category", "The category where you spend the most money this month.", <Target className="w-6 h-6 text-primary" />)}
                     />
                     <MetricCard
                       title="Transactions"
                       value={summary.transaction_count?.toString() || '0'}
                       icon={<Activity className="w-5 h-5 text-purple-500" />}
                       theme="blue"
+                      onClick={() => showInfoToast("Transactions", "Total number of expenses you've recorded this month.", <Activity className="w-6 h-6 text-purple-500" />)}
                     />
                     <MetricCard
                       title="Secret Vault"
@@ -284,7 +288,7 @@ export default function Dashboard() {
                       theme="green"
                       onClick={() => showInfoToast(
                         "Secret Vault", 
-                        "The Secret Vault securely holds your stealth savings. These funds are automatically deducted and hidden to prevent impulsive spending, helping you reach your financial goals faster!", 
+                        "Your hidden piggy bank! Small amounts are automatically saved here without you noticing, so you build up savings effortlessly.", 
                         <Trophy className="w-6 h-6 text-yellow-400" />
                       )}
                     />

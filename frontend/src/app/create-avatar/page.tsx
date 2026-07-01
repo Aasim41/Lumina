@@ -24,19 +24,33 @@ const HAIR_STYLES = [
   { name: 'Short Flat', value: 'shortFlat' },
   { name: 'Short Waved', value: 'shortWaved' },
   { name: 'Short Curly', value: 'shortCurly' },
+  { name: 'Short Round', value: 'shortRound' },
   { name: 'Caesar', value: 'theCaesar' },
-  { name: 'Dreads', value: 'dreads01' },
+  { name: 'Caesar + Part', value: 'theCaesarAndSidePart' },
+  { name: 'Sides', value: 'sides' },
+  { name: 'Shaved Sides', value: 'shavedSides' },
+  { name: 'Dreads 1', value: 'dreads01' },
+  { name: 'Dreads 2', value: 'dreads02' },
   { name: 'Frizzle', value: 'frizzle' },
   { name: 'Shaggy', value: 'shaggy' },
+  { name: 'Shaggy Mullet', value: 'shaggyMullet' },
   { name: 'Bob', value: 'bob' },
   { name: 'Long', value: 'longButNotToo' },
   { name: 'Curvy', value: 'curvy' },
-  { name: 'Straight', value: 'straight01' },
+  { name: 'Straight 1', value: 'straight01' },
+  { name: 'Straight 2', value: 'straight02' },
+  { name: 'Straight & Strand', value: 'straightAndStrand' },
   { name: 'Bun', value: 'bun' },
+  { name: 'Big Hair', value: 'bigHair' },
   { name: 'Fro', value: 'fro' },
+  { name: 'Fro + Band', value: 'froAndBand' },
   { name: 'Mia Wallace', value: 'miaWallace' },
+  { name: 'Frida', value: 'frida' },
   { name: 'Turban', value: 'turban' },
   { name: 'Hijab', value: 'hijab' },
+  { name: 'Winter Hat', value: 'winterHat02' },
+  { name: 'Cap', value: 'hat' },
+  { name: 'No Hair', value: 'noHair' },
 ];
 
 const HAIR_COLORS = [
@@ -62,9 +76,11 @@ const FACIAL_HAIR = [
 const ACCESSORIES = [
   { name: 'None', value: 'blank' },
   { name: 'Round', value: 'round' },
-  { name: 'Prescription', value: 'prescription01' },
+  { name: 'Prescription 01', value: 'prescription01' },
+  { name: 'Prescription 02', value: 'prescription02' },
   { name: 'Wayfarers', value: 'wayfarers' },
   { name: 'Sunglasses', value: 'sunglasses' },
+  { name: 'Kurt', value: 'kurt' },
 ];
 
 const EYES = [
@@ -74,6 +90,12 @@ const EYES = [
   { name: 'Squint', value: 'squint' },
   { name: 'Hearts', value: 'hearts' },
   { name: 'Side', value: 'side' },
+  { name: 'Surprised', value: 'surprised' },
+  { name: 'Dizzy', value: 'dizzy' },
+  { name: 'Wink Wacky', value: 'winkWacky' },
+  { name: 'Cry', value: 'cry' },
+  { name: 'Closed', value: 'close' },
+  { name: 'Roll', value: 'eyeRoll' },
 ];
 
 const MOUTH = [
@@ -82,14 +104,24 @@ const MOUTH = [
   { name: 'Twinkle', value: 'twinkle' },
   { name: 'Tongue', value: 'tongue' },
   { name: 'Serious', value: 'serious' },
+  { name: 'Eating', value: 'eating' },
+  { name: 'Grimace', value: 'grimace' },
+  { name: 'Sad', value: 'sad' },
+  { name: 'Scream', value: 'screamOpen' },
+  { name: 'Disbelief', value: 'disbelief' },
+  { name: 'Concerned', value: 'concerned' },
+  { name: 'Vomit', value: 'vomit' },
 ];
 
 const CLOTHING = [
   { name: 'Hoodie', value: 'hoodie' },
   { name: 'Crew Neck', value: 'shirtCrewNeck' },
+  { name: 'Scoop Neck', value: 'shirtScoopNeck' },
   { name: 'V Neck', value: 'shirtVNeck' },
-  { name: 'Blazer', value: 'blazerAndShirt' },
-  { name: 'Sweater', value: 'collarAndSweater' },
+  { name: 'Blazer + Shirt', value: 'blazerAndShirt' },
+  { name: 'Blazer + Sweater', value: 'blazerAndSweater' },
+  { name: 'Collar + Sweater', value: 'collarAndSweater' },
+  { name: 'Graphic Shirt', value: 'graphicShirt' },
   { name: 'Overall', value: 'overall' },
 ];
 
@@ -98,9 +130,14 @@ const CLOTHING_COLORS = [
   { name: 'Blue', hex: '65c9ff' },
   { name: 'Navy', hex: '25557c' },
   { name: 'Gray', hex: '929598' },
+  { name: 'Heather', hex: '3c4f5c' },
+  { name: 'Pastel Blue', hex: 'b1e2ff' },
   { name: 'Pink', hex: 'ff488e' },
   { name: 'Red', hex: 'ff5c5c' },
+  { name: 'White', hex: 'ffffff' },
   { name: 'Green', hex: 'a7ffc4' },
+  { name: 'Yellow', hex: 'ffd93d' },
+  { name: 'Purple', hex: 'c17aff' },
 ];
 
 type Mode = 'preset' | 'custom';
@@ -138,7 +175,7 @@ export default function CreateAvatarPage() {
     const p: Record<string, string> = {
       seed: 'custom-avatar',
       skinColor, top: hairStyle, hairColor,
-      eyes, mouth, clothing, clothingColor,
+      eyes, mouth, clothing, clothesColor: clothingColor,
     };
     
     if (facialHair !== 'blank') {
