@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
@@ -24,10 +24,18 @@ import { Spinner } from '@/components/ui/Spinner';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { getCategoryColor } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useSMSSync } from '@/hooks/useSMSSync';
 
 export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
   const { summary, categories, trends, subscriptions, loading, refresh } = useExpenseData();
+
+  // SMS auto-sync: syncs on open, every 15 min, and on foreground resume
+  const handleSMSSyncComplete = useCallback((count: number) => {
+    toast.success(`${count} new transaction${count > 1 ? 's' : ''} synced from SMS!`, { icon: '📱' });
+    refresh(); // refresh dashboard data
+  }, [refresh]);
+  useSMSSync(handleSMSSyncComplete);
 
   const totalSpent = summary?.total_this_month || 0;
   const totalSaved = summary?.total_saved_this_month || 0;
@@ -140,7 +148,7 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between items-center mb-6 mt-2">
               <div className="flex items-center space-x-3">
-                <button onClick={() => router.push('/create-avatar/')} className="relative group cursor-pointer z-10 block">
+                <button onClick={() => { window.location.href = '/create-avatar/index.html'; }} className="relative group cursor-pointer z-10 block">
                   {user?.avatar_url && user.avatar_url.length > 0 ? (
                     <img src={user.avatar_url} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white/10" />
                   ) : (

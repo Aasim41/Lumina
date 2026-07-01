@@ -1,25 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import { Spinner } from './ui/Spinner';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    // Basic auth check using local token
     if (!isAuthenticated()) {
-      if (pathname !== '/login') {
-        router.replace('/login');
+      if (pathname !== '/login' && pathname !== '/login/') {
+        window.location.replace('/login/index.html');
       }
     } else {
       setAuthorized(true);
     }
-  }, [pathname, router]);
+  }, [pathname]);
 
   if (!authorized) {
     return (

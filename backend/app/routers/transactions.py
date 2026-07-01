@@ -52,6 +52,23 @@ async def create_transaction(
     clean_merchant = clean_merchant_name(txn.merchant)
     category = txn.category or predict(clean_merchant)
     
+    # Duplicate check: same user, date, amount, and merchant
+    from sqlalchemy import and_, func
+    dup_check = await db.execute(
+        select(Transaction).where(
+            and_(
+                Transaction.user_id == current_user.id,
+                Transaction.date == txn.date,
+                Transaction.amount == txn.amount,
+                Transaction.merchant_raw == txn.merchant,
+            )
+        )
+    )
+    existing = dup_check.scalar_one_or_none()
+    if existing:
+        # Return the existing transaction instead of creating a duplicate
+        return TransactionResponse.model_validate(existing)
+    
     new_txn = Transaction(
         user_id=current_user.id,
         date=txn.date,

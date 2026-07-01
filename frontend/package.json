@@ -25,7 +25,8 @@
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.5",
     "react-hot-toast": "^2.4.1",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "@solimanware/capacitor-sms-reader": "^1.0.0"
   },
   "devDependencies": {
     "@capacitor/android": "^8.4.1",

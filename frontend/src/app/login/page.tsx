@@ -18,12 +18,17 @@ export default function LoginPage() {
     e.preventDefault();
     if (!name || !age || !dob || !budget) return;
     setSubmitting(true);
-    await login({
+    const success = await login({
       name,
       age: parseInt(age),
       dob,
       monthly_budget: parseFloat(budget)
     });
+    if (success) {
+      // Force navigate with explicit file path for Capacitor
+      window.location.replace('/create-avatar/index.html');
+      return; // stop all further execution
+    }
     setSubmitting(false);
   };
 

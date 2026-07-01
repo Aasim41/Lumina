@@ -20,7 +20,6 @@ export function useAuth() {
       setUser(data);
     } catch (e) {
       console.error("Failed to load user profile", e);
-      // If unauthorized, token is cleared by api Fetch
     } finally {
       setLoading(false);
     }
@@ -30,26 +29,28 @@ export function useAuth() {
     fetchUser();
   }, [fetchUser]);
 
-  const login = useCallback(async (data: { name: string, age: number, dob: string, monthly_budget: number }) => {
+  // login now returns true/false so the caller controls the redirect
+  const login = useCallback(async (data: { name: string, age: number, dob: string, monthly_budget: number }): Promise<boolean> => {
     try {
       setLoading(true);
       const res = await guestLogin(data);
       setToken(res.access_token);
       await fetchUser();
-      window.location.href = '/create-avatar/';
+      return true;
     } catch (e: any) {
       console.error('Login failed', e);
       alert('Login error: ' + (e.message || String(e)));
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [fetchUser, router]);
+  }, [fetchUser]);
 
   const handleLogout = useCallback(() => {
     removeToken();
     setUser(null);
-    router.push('/login');
-  }, [router]);
+    window.location.replace('/login/index.html');
+  }, []);
 
   return {
     user,

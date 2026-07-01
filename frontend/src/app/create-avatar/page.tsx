@@ -209,17 +209,16 @@ export default function CreateAvatarPage() {
     try {
       await updateUserProfile({ avatar_url: activeUrl });
       await refreshUser();
-      window.location.href = '/';
     } catch (e: any) {
       console.error('Failed to save avatar', e);
-      alert('Error saving avatar: ' + (e.message || String(e)));
-      window.location.href = '/';
     }
+    // Always navigate to dashboard with explicit file path
+    window.location.replace('/index.html');
   };
 
   const handleSkip = async () => {
     try { await updateUserProfile({ avatar_url: '' }); await refreshUser(); } catch {}
-    window.location.href = '/';
+    window.location.replace('/index.html');
   };
 
   const ColorSwatch = ({ hex, selected, onClick }: { hex: string; selected: boolean; onClick: () => void }) => (

@@ -48,6 +48,6 @@ export const logout = () => {
   removeToken();
   if (typeof window !== 'undefined') {
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.replace('/login/index.html');
   }
 };
