@@ -25,10 +25,11 @@ export function formatDate(dateStr: string): string {
 export function formatMonth(monthStr: string): string {
   // expects "YYYY-MM"
   const [year, month] = monthStr.split('-');
-  const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+  const date = new Date(Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, 1));
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'UTC'
   }).format(date);
 }
 

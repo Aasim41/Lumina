@@ -175,67 +175,72 @@ export default function WishlistPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[999]"
             />
-            <motion.div
-              initial={{ opacity: 0, y: '100%' }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-[#12081C] rounded-t-3xl border-t border-white/10 p-6 z-[101] max-h-[85vh] overflow-y-auto"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-display font-bold text-white">Add to Wishlist</h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+            
+            <div className="fixed inset-0 z-[999] flex items-end justify-center pointer-events-none">
+              <motion.div 
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 100 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="w-full max-w-md glass p-6 pt-5 rounded-t-3xl border border-white/10 border-b-0 shadow-2xl shadow-primary/20 pointer-events-auto max-h-[85vh] overflow-y-auto"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-display font-bold">Add to Wishlist</h2>
+                  <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-text-secondary transition-colors active:scale-90">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Item Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. AirPods Pro"
-                    value={newItem.name}
-                    onChange={e => setNewItem({...newItem, name: e.target.value})}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Target Price (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="25000"
-                    value={newItem.price}
-                    onChange={e => setNewItem({...newItem, price: e.target.value})}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Priority</label>
-                  <select
-                    value={newItem.priority}
-                    onChange={e => setNewItem({...newItem, priority: e.target.value})}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none"
+                <form onSubmit={handleCreate} className="custom-form">
+                  <p className="title">New Goal <span>Track items you're saving for</span></p>
+                  
+                  <div>
+                    <label>Item Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. AirPods Pro"
+                      value={newItem.name}
+                      onChange={e => setNewItem({...newItem, name: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label>Target Price (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      placeholder="25000"
+                      value={newItem.price}
+                      onChange={e => setNewItem({...newItem, price: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label>Priority</label>
+                    <select
+                      value={newItem.priority}
+                      onChange={e => setNewItem({...newItem, priority: e.target.value})}
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="oauthButton"
                   >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-4 bg-primary text-black font-bold rounded-xl shadow-[0_0_20px_rgba(124,197,68,0.3)] disabled:opacity-50 mt-4"
-                >
-                  {isSubmitting ? 'Adding...' : 'Add Item'}
-                </button>
-              </form>
-            </motion.div>
+                    {isSubmitting ? 'Adding...' : 'Add Item'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

@@ -143,58 +143,58 @@ export default function SplitsPage() {
                   key={split.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="glass p-5 rounded-3xl border border-white/5"
+                  className="bg-[#f4f4f0] text-black p-5 border-4 border-black shadow-[6px_6px_0px_0px_rgba(16,185,129,1)] relative font-mono mb-6"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg">{split.title}</h3>
-                      <p className="text-xs text-text-secondary">{split.date}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-display font-bold text-primary">{formatCurrency(split.total_amount)}</p>
-                      <button 
-                        onClick={() => handleDelete(split.id)}
-                        className="text-xs text-red-400 mt-1 hover:text-red-300 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  <div className="absolute top-0 right-0 bg-black text-white px-2 py-1 text-xs font-bold border-b-4 border-l-4 border-black">
+                    BILL #{split.id.substring(0, 4).toUpperCase()}
+                  </div>
+                  <div className="border-b-4 border-black pb-4 mb-4 mt-2">
+                    <h3 className="font-black text-2xl uppercase tracking-tighter">{split.title}</h3>
+                    <p className="text-sm font-bold">{split.date}</p>
                   </div>
                   
-                  <div className="mb-4 flex justify-between items-center text-xs text-text-secondary">
-                    <span>{paidCount} of {totalMembers} paid</span>
+                  <div className="mb-4 flex justify-between items-center text-sm font-bold border-4 border-black p-2 bg-white">
+                    <span>{paidCount}/{totalMembers} PAID</span>
                     <span>{Math.round(progress)}%</span>
                   </div>
-                  <div className="h-1.5 bg-black/30 rounded-full overflow-hidden mb-5">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progress}%` }} />
-                  </div>
                   
-                  <div className="space-y-2">
-                    {split.members.map((member: any) => (
+                  <div className="space-y-0 border-4 border-black bg-white">
+                    {split.members.map((member: any, i: number) => (
                       <div 
                         key={member.id} 
                         onClick={() => togglePaid(split.id, member.id)}
-                        className={`flex justify-between items-center p-3 rounded-xl cursor-pointer transition-colors border ${
-                          member.is_paid === 'true' 
-                            ? 'bg-[#10b981]/10 border-[#10b981]/20' 
-                            : 'bg-black/20 border-white/5 hover:border-white/10'
+                        className={`flex justify-between items-center p-3 cursor-pointer border-b-4 border-black last:border-b-0 hover:bg-gray-100 transition-colors ${
+                          member.is_paid === 'true' ? 'bg-[#10b981] hover:bg-[#10b981]/90' : ''
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            member.is_paid === 'true' ? 'bg-[#10b981]/20 text-[#10b981]' : 'bg-white/10 text-white/40'
+                          <div className={`w-6 h-6 border-2 border-black flex items-center justify-center ${
+                            member.is_paid === 'true' ? 'bg-black text-[#10b981]' : 'bg-white'
                           }`}>
-                            <Check className="w-3.5 h-3.5" />
+                            {member.is_paid === 'true' && <Check className="w-4 h-4 font-bold" />}
                           </div>
-                          <span className={member.is_paid === 'true' ? 'text-white/80' : 'text-white'}>
+                          <span className={`font-bold ${member.is_paid === 'true' ? 'line-through opacity-70 text-black' : 'text-black'}`}>
                             {member.name}
                           </span>
                         </div>
-                        <span className={`font-medium ${member.is_paid === 'true' ? 'text-white/50' : 'text-primary'}`}>
+                        <span className="font-black text-lg">
                           {formatCurrency(member.share_amount)}
                         </span>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="mt-4 flex justify-between items-end border-t-4 border-black pt-4">
+                    <button 
+                      onClick={() => handleDelete(split.id)}
+                      className="text-xs font-bold uppercase bg-red-500 text-black border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+                    >
+                      Trash
+                    </button>
+                    <div className="text-right">
+                      <p className="text-sm font-bold uppercase">Total Due</p>
+                      <p className="text-3xl font-black tracking-tighter">{formatCurrency(split.total_amount)}</p>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -213,109 +213,111 @@ export default function SplitsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[999]"
             />
-            <motion.div
-              initial={{ opacity: 0, y: '100%' }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-[#12081C] rounded-t-3xl border-t border-white/10 p-6 z-[101] max-h-[85vh] flex flex-col"
-            >
-              <div className="flex justify-between items-center mb-6 shrink-0">
-                <h2 className="text-xl font-display font-bold text-white">New Split Bill</h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="overflow-y-auto pr-2 pb-4 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-text-secondary mb-1">What was this for?</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Dinner at Mama's"
-                      value={title}
-                      onChange={e => setTitle(e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">Total (₹)</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      placeholder="0"
-                      value={totalAmount}
-                      onChange={e => setTotalAmount(e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={date}
-                      onChange={e => setDate(e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors"
-                    />
-                  </div>
-                </div>
-                
-                <div className="pt-2">
-                  <div className="flex justify-between items-center mb-3">
-                    <label className="block text-xs font-medium text-text-secondary">Who's paying?</label>
-                    <button type="button" onClick={splitEqually} className="text-xs text-primary hover:text-primary/80 transition-colors">
-                      Split Equally
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {members.map((member, i) => (
-                      <div key={i} className="flex gap-2">
-                        <input
-                          type="text"
-                          required
-                          placeholder="Name"
-                          value={member.name}
-                          onChange={e => handleMemberChange(i, 'name', e.target.value)}
-                          className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-primary/50"
-                        />
-                        <input
-                          type="number"
-                          required
-                          placeholder="₹0"
-                          value={member.share_amount}
-                          onChange={e => handleMemberChange(i, 'share_amount', e.target.value)}
-                          className="w-24 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-primary/50"
-                        />
-                        {members.length > 1 && (
-                          <button type="button" onClick={() => handleRemoveMember(i)} className="p-2 text-red-400 bg-red-500/10 rounded-xl">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <button type="button" onClick={handleAddMember} className="w-full mt-3 py-2 border border-dashed border-white/20 rounded-xl text-sm text-text-secondary hover:text-white hover:border-white/40 transition-colors">
-                    + Add Person
+            
+            <div className="fixed inset-0 z-[999] flex items-end justify-center pointer-events-none">
+              <motion.div 
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 100 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="w-full max-w-md glass p-6 pt-5 rounded-t-3xl border border-white/10 border-b-0 shadow-2xl shadow-primary/20 pointer-events-auto max-h-[85vh] flex flex-col"
+              >
+                <div className="flex justify-between items-center mb-6 shrink-0">
+                  <h2 className="text-xl font-display font-bold">New Split Bill</h2>
+                  <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-text-secondary transition-colors active:scale-90">
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-4 bg-primary text-black font-bold rounded-xl shadow-[0_0_20px_rgba(124,197,68,0.3)] disabled:opacity-50 mt-4 shrink-0"
-                >
-                  {isSubmitting ? 'Creating...' : 'Create Split Bill'}
-                </button>
-              </form>
-            </motion.div>
+                <form onSubmit={handleSubmit} className="custom-form overflow-y-auto pr-2 pb-4">
+                  <p className="title">Split Bill <span>Share expenses with friends</span></p>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="col-span-2">
+                      <label>What was this for?</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Dinner at Mama's"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label>Total (₹)</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        placeholder="0"
+                        value={totalAmount}
+                        onChange={e => setTotalAmount(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label>Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={date}
+                        onChange={e => setDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <div className="flex justify-between items-center mb-3">
+                      <label className="text-sm font-semibold text-white">Who's paying?</label>
+                      <button type="button" onClick={splitEqually} className="text-xs font-bold text-primary hover:text-primary/80 transition-colors uppercase">
+                        Split Equally
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {members.map((member, i) => (
+                        <div key={i} className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            required
+                            placeholder="Name"
+                            value={member.name}
+                            onChange={e => handleMemberChange(i, 'name', e.target.value)}
+                            className="flex-1 bg-black/50 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+                          />
+                          <input
+                            type="number"
+                            required
+                            placeholder="₹0"
+                            value={member.share_amount}
+                            onChange={e => handleMemberChange(i, 'share_amount', e.target.value)}
+                            className="w-24 bg-black/50 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+                          />
+                          {members.length > 1 && (
+                            <button type="button" onClick={() => handleRemoveMember(i)} className="p-2 text-red-400 bg-red-500/10 rounded-lg">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <button type="button" onClick={handleAddMember} className="w-full mt-3 py-3 border border-dashed border-white/20 rounded-xl text-sm font-semibold text-text-secondary hover:text-white hover:border-white/40 hover:bg-white/5 transition-colors">
+                      + Add Person
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="oauthButton mt-6"
+                  >
+                    {isSubmitting ? 'Creating...' : 'Create Split Bill'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
