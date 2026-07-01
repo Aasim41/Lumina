@@ -36,7 +36,7 @@ export function useAuth() {
       const res = await guestLogin(data);
       setToken(res.access_token);
       await fetchUser();
-      window.location.href = '/create-avatar';
+      window.location.href = '/create-avatar/';
     } catch (e: any) {
       console.error('Login failed', e);
       alert('Login error: ' + (e.message || String(e)));

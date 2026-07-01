@@ -140,7 +140,7 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between items-center mb-6 mt-2">
               <div className="flex items-center space-x-3">
-                <button onClick={() => router.push('/create-avatar')} className="relative group cursor-pointer z-10 block">
+                <button onClick={() => router.push('/create-avatar/')} className="relative group cursor-pointer z-10 block">
                   {user?.avatar_url && user.avatar_url.length > 0 ? (
                     <img src={user.avatar_url} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white/10" />
                   ) : (
