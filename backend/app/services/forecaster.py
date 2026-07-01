@@ -26,9 +26,18 @@ def forecast_spending(transactions: list) -> dict:
 
     # Sort months chronologically
     sorted_months = sorted(monthly_totals.keys())
+    
+    # We train the model ONLY on the historical months in the dataset.
     historical_data = [{"month": m, "amount": monthly_totals[m]} for m in sorted_months]
     
-    next_month_date = datetime.strptime(sorted_months[-1], "%Y-%m") + relativedelta(months=1)
+    # Check if the current month is in the historical data, if not, append it with 0 amount
+    # This ensures the graph always reaches the current month on the X axis.
+    current_month_str = datetime.today().strftime("%Y-%m")
+    if current_month_str not in monthly_totals:
+        historical_data.append({"month": current_month_str, "amount": 0.0})
+    
+    # Predict based on the current month, regardless of whether there's data for it yet
+    next_month_date = datetime.strptime(current_month_str, "%Y-%m") + relativedelta(months=1)
     next_month_str = next_month_date.strftime("%Y-%m")
     
     predicted_total = 0.0
