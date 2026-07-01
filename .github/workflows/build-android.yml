@@ -24,6 +24,9 @@ jobs:
 
     - name: Build Next.js
       working-directory: ./frontend
+      env:
+        NEXT_PUBLIC_API_URL: https://smart-expense-api-rrzq.onrender.com
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: 715706806723-7quvnuboongsi6de300cpdd6gfummr98.apps.googleusercontent.com
       run: npm run build
 
     - name: Setup Java 21
