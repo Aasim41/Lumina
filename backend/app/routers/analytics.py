@@ -63,7 +63,7 @@ async def get_summary(
     next_badge_target = None
     budget = current_user.monthly_budget or 0
     
-    if len(transactions) > 0:
+    if len([t for t in transactions if t.category not in ["SecretVault", "SecretVault_Processed", "Savings"]]) > 0:
         badges.append("First Steps")
         
     if budget > 0:

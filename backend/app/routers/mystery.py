@@ -17,6 +17,15 @@ async def auto_deduct_savings(
 ):
     today = date.today()
     
+    # Only auto-deduct if user has real transactions (not stealth ones)
+    real_txns = await db.execute(
+        select(Transaction)
+        .where(Transaction.user_id == current_user.id)
+        .where(Transaction.category.notin_(["SecretVault", "SecretVault_Processed", "Savings"]))
+    )
+    if not real_txns.scalars().first():
+        return {"status": "no_transactions"}
+    
     # Check if already deducted today
     try:
         existing = await db.execute(
