@@ -84,22 +84,23 @@ export default function TransactionsPage() {
           <div className="flex space-x-2 items-center">
             <button 
               onClick={() => setIsUploadOpen(true)}
-              className="px-2 sm:px-3 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center hover:bg-amber-500/30 transition-colors shrink-0"
+              className="w-10 h-10 shrink-0 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center hover:bg-amber-500/30 transition-colors"
+              title="Upload Bill"
             >
-              <Upload className="w-4 h-4 sm:mr-1.5" />
-              <span className="text-sm font-medium hidden sm:inline">Upload</span>
+              <Upload className="w-5 h-5" />
             </button>
             <button 
               onClick={handleExport}
               disabled={exporting}
-              className="px-2 sm:px-3 h-10 rounded-full bg-white/5 flex items-center justify-center text-text-secondary hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 shrink-0"
+              className="w-10 h-10 shrink-0 rounded-full bg-white/5 flex items-center justify-center text-text-secondary hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+              title="Download PDF"
             >
-              <Download className="w-4 h-4 sm:mr-1.5" />
-              <span className="text-sm font-medium hidden sm:inline">PDF</span>
+              <Download className="w-5 h-5" />
             </button>
             <button 
               onClick={() => setIsFormOpen(true)}
               className="w-10 h-10 shrink-0 rounded-full bg-[#10b981] flex items-center justify-center text-background shadow-lg shadow-[#10b981]/20 hover:bg-[#10b981]/90 transition-colors"
+              title="Add Transaction"
             >
               <Plus className="w-5 h-5" />
             </button>
