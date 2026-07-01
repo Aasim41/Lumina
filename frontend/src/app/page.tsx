@@ -25,7 +25,7 @@ import { getCategoryColor } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function Dashboard() {
-  const { user, refreshUser } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const { summary, categories, trends, subscriptions, loading, refresh } = useExpenseData();
 
   const totalSpent = summary?.total_this_month || 0;
@@ -146,13 +146,22 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <button 
-                onClick={() => setIsSaveModalOpen(true)}
-                className="px-4 py-2 bg-[#10b981]/20 text-[#10b981] rounded-full text-sm font-medium flex items-center space-x-1.5 hover:bg-[#10b981]/30 transition-colors"
-              >
-                <PiggyBank className="w-4 h-4" />
-                <span>Save</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={logout}
+                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-error transition-colors"
+                  title="Log out"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+                <button 
+                  onClick={() => setIsSaveModalOpen(true)}
+                  className="px-4 py-2 bg-[#10b981]/20 text-[#10b981] rounded-full text-sm font-medium flex items-center space-x-1.5 hover:bg-[#10b981]/30 transition-colors"
+                >
+                  <PiggyBank className="w-4 h-4" />
+                  <span>Save</span>
+                </button>
+              </div>
             </div>
 
             {summary && summary.badges && summary.badges.length > 0 && (
