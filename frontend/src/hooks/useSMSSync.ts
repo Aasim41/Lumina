@@ -65,15 +65,12 @@ function setLastSyncTime(time: number) {
 }
 
 async function readSMSMessages(): Promise<Array<{ body: string; sender: string; date: string }>> {
-  const { Capacitor, Plugins } = await import('@capacitor/core');
+  const { Capacitor, registerPlugin } = await import('@capacitor/core');
   if (!Capacitor.isNativePlatform()) {
     throw new Error('Not running on native Android device');
   }
 
-  const NativeSms = Plugins.NativeSms as any;
-  if (!NativeSms) {
-    throw new Error('NativeSms plugin not found');
-  }
+  const NativeSms = registerPlugin<any>('NativeSms');
 
   // Read SMS from the last 7 days
   const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
