@@ -90,6 +90,7 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     age: Optional[int] = None
     monthly_budget: Optional[float] = None
+    avatar_url: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: UUID

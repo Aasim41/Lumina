@@ -36,7 +36,7 @@ export function useAuth() {
       const res = await guestLogin(data);
       setToken(res.access_token);
       await fetchUser();
-      router.push('/');
+      router.push('/create-avatar');
     } catch (e) {
       console.error('Login failed', e);
     } finally {

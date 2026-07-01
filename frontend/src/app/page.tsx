@@ -227,11 +227,10 @@ export default function Dashboard() {
               </div>
               
               {/* Legend for other categories */}
-              {(totalSubscriptions > 0 || totalSaved > 0) && (
+              {totalSubscriptions > 0 && (
                 <div className="flex justify-between mt-4 text-[10px] bg-black/20 p-2 rounded-xl">
                   <span className="text-indigo-400">{formatCurrency(totalSpent)} spent</span>
-                  {totalSubscriptions > 0 && <span className="text-purple-400 font-medium">{formatCurrency(totalSubscriptions)} subs</span>}
-                  {totalSaved > 0 && <span className="text-[#10b981] font-medium">{formatCurrency(totalSaved)} saved</span>}
+                  <span className="text-purple-400 font-medium">{formatCurrency(totalSubscriptions)} subs</span>
                 </div>
               )}
             </div>

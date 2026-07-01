@@ -21,6 +21,8 @@ async def update_me(
         current_user.name = user_update.name
     if user_update.age is not None:
         current_user.age = user_update.age
+    if user_update.avatar_url is not None:
+        current_user.avatar_url = user_update.avatar_url
     if user_update.monthly_budget is not None:
         current_user.monthly_budget = user_update.monthly_budget
         import datetime
