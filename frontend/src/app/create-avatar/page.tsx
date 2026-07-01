@@ -138,10 +138,23 @@ export default function CreateAvatarPage() {
     const p: Record<string, string> = {
       seed: 'custom-avatar',
       skinColor, top: hairStyle, hairColor,
-      facialHair, facialHairProbability: facialHair === 'blank' ? '0' : '100',
-      accessories, accessoriesProbability: accessories === 'blank' ? '0' : '100',
       eyes, mouth, clothing, clothingColor,
     };
+    
+    if (facialHair !== 'blank') {
+      p.facialHair = facialHair;
+      p.facialHairProbability = '100';
+    } else {
+      p.facialHairProbability = '0';
+    }
+    
+    if (accessories !== 'blank') {
+      p.accessories = accessories;
+      p.accessoriesProbability = '100';
+    } else {
+      p.accessoriesProbability = '0';
+    }
+    
     return `https://api.dicebear.com/9.x/avataaars/svg?${new URLSearchParams(p).toString()}`;
   }, [skinColor, hairStyle, hairColor, facialHair, accessories, eyes, mouth, clothing, clothingColor]);
 
