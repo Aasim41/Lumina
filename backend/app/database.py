@@ -8,6 +8,10 @@ if db_url.startswith("postgres://"):
 elif db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+# asyncpg uses ssl= not sslmode=
+if "asyncpg" in db_url and "sslmode=" in db_url:
+    db_url = db_url.replace("sslmode=", "ssl=")
+
 engine = create_async_engine(
     db_url,
     echo=False
@@ -28,10 +32,11 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        
-        # Auto-migrate: Add dob column if it doesn't exist
-        try:
+    
+    # Auto-migrate in a separate transaction so errors don't break startup
+    try:
+        async with engine.begin() as conn:
             from sqlalchemy import text
-            await conn.execute(text("ALTER TABLE users ADD COLUMN dob DATE;"))
-        except Exception as e:
-            pass # Column likely already exists
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;"))
+    except Exception:
+        pass  # Column already exists or DB doesn't support IF NOT EXISTS
