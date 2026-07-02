@@ -1,19 +1,48 @@
 package com.lumina.smartexpense;
 
+import android.Manifest;
 import android.database.Cursor;
 import android.net.Uri;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
-@CapacitorPlugin(name = "NativeSms")
+@CapacitorPlugin(
+    name = "NativeSms",
+    permissions = {
+        @Permission(
+            alias = "sms",
+            strings = { Manifest.permission.READ_SMS }
+        )
+    }
+)
 public class NativeSmsPlugin extends Plugin {
 
     @PluginMethod
     public void getSms(PluginCall call) {
+        if (getPermissionState("sms") != PermissionState.GRANTED) {
+            requestPermissionForAlias("sms", call, "smsPermsCallback");
+        } else {
+            readSmsAndResolve(call);
+        }
+    }
+
+    @PermissionCallback
+    private void smsPermsCallback(PluginCall call) {
+        if (getPermissionState("sms") == PermissionState.GRANTED) {
+            readSmsAndResolve(call);
+        } else {
+            call.reject("Permission is required to read SMS");
+        }
+    }
+
+    private void readSmsAndResolve(PluginCall call) {
         JSArray smsList = new JSArray();
         try {
             Uri uri = Uri.parse("content://sms/inbox");
