@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = "dev-mode"
     JWT_SECRET: str = "dev-jwt-secret"
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRY_HOURS: int = 24
+    JWT_EXPIRY_HOURS: int = 8760
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
