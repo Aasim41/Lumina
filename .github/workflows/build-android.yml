@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout repository
@@ -45,8 +47,18 @@ jobs:
         chmod +x ./gradlew
         ./gradlew assembleDebug
 
-    - name: Upload APK to GitHub
+    - name: Upload APK to GitHub Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: smart-expense-app
         path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+
+    - name: Publish Automated Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cp frontend/android/app/build/outputs/apk/debug/app-debug.apk LUMINA.apk
+        # Delete old release if it exists to keep 'latest' tag fresh
+        gh release delete latest --cleanup-tag -y || true
+        # Create new release and upload the APK
+        gh release create latest LUMINA.apk --title "Latest Automated Build" --notes "This APK is automatically generated from the latest code."

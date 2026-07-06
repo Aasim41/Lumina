@@ -6,8 +6,13 @@ from pathlib import Path
 # Initialize Firebase on module load
 try:
     cred_path = Path(__file__).parent.parent.parent / "firebase-adminsdk.json"
+    cred_path_alt = Path(__file__).parent.parent.parent / "firebase-adminsdk.json.json"
+    
     if cred_path.exists():
         cred = credentials.Certificate(str(cred_path))
+        firebase_admin.initialize_app(cred)
+    elif cred_path_alt.exists():
+        cred = credentials.Certificate(str(cred_path_alt))
         firebase_admin.initialize_app(cred)
     else:
         print("Warning: firebase-adminsdk.json not found. Push notifications will be disabled.")
