@@ -18,6 +18,7 @@ class User(Base):
     monthly_budget = Column(Float, nullable=True)
     last_budget_update = Column(Date, nullable=True)
     vault_balance = Column(Float, default=0.0)
+    fcm_token = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")

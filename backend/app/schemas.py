@@ -87,6 +87,12 @@ class ForecastResponse(BaseModel):
     last_month_actual: Optional[float] = None
     accuracy_percent: Optional[float] = None
 
+class UpdateBudgetRequest(BaseModel):
+    monthly_budget: float
+
+class FCMTokenRequest(BaseModel):
+    fcm_token: str
+
 class GoogleAuthRequest(BaseModel):
     id_token: str
 

@@ -25,10 +25,12 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { getCategoryColor } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useSMSSync } from '@/hooks/useSMSSync';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Preferences } from '@capacitor/preferences';
 
 export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
+  usePushNotifications();
   const { summary, categories, trends, subscriptions, loading, refresh } = useExpenseData();
 
   // SMS auto-sync: syncs on open, every 15 min, and on foreground resume

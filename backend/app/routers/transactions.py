@@ -85,6 +85,20 @@ async def create_transaction(
     await db.commit()
     await db.refresh(new_txn)
     
+    # Send Push Notification
+    if current_user.fcm_token:
+        from app.services.firebase import send_push_notification
+        import threading
+        # Send async so it doesn't block the API response
+        threading.Thread(
+            target=send_push_notification,
+            args=(
+                current_user.fcm_token,
+                "New Expense Tracked",
+                f"You spent ₹{txn.amount} at {clean_merchant}"
+            )
+        ).start()
+    
     return TransactionResponse.model_validate(new_txn)
 
 @router.patch("/{txn_id}", response_model=TransactionResponse)

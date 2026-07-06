@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "169571190711",
+    "project_id": "lumina-6b9e7",
+    "storage_bucket": "lumina-6b9e7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:169571190711:android:29eee92955176b1ba98a32",
+        "android_client_info": {
+          "package_name": "com.lumina.smartexpense"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqwF38Zl5PACJAIGrAhgqEIx3wpZ-fqXk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

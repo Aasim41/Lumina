@@ -20,6 +20,11 @@ try:
 except sqlite3.OperationalError as e:
     print("Column original_amount already exists or error:", e)
 
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN fcm_token VARCHAR;")
+except sqlite3.OperationalError as e:
+    print("Column fcm_token already exists or error:", e)
+
 conn.commit()
 conn.close()
 print("Migration completed.")
