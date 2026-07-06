@@ -29,6 +29,10 @@ const PREDEFINED_PLANS = [
   { id: 'yt-stu', name: 'YouTube Premium - Student', merchant: 'YouTube', amount: '79' },
   { id: 'yt-ind', name: 'YouTube Premium - Individual', merchant: 'YouTube', amount: '129' },
   { id: 'yt-fam', name: 'YouTube Premium - Family', merchant: 'YouTube', amount: '189' },
+  // YouTube Music
+  { id: 'ytm-stu', name: 'YouTube Music - Student', merchant: 'YouTube Music', amount: '49' },
+  { id: 'ytm-ind', name: 'YouTube Music - Individual', merchant: 'YouTube Music', amount: '99' },
+  { id: 'ytm-fam', name: 'YouTube Music - Family', merchant: 'YouTube Music', amount: '149' },
   // Apple Music
   { id: 'am-stu', name: 'Apple Music - Student', merchant: 'Apple Music', amount: '59' },
   { id: 'am-ind', name: 'Apple Music - Individual', merchant: 'Apple Music', amount: '99' },

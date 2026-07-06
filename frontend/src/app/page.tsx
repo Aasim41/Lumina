@@ -25,6 +25,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { getCategoryColor } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useSMSSync } from '@/hooks/useSMSSync';
+import { Preferences } from '@capacitor/preferences';
 
 export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
@@ -43,6 +44,15 @@ export default function Dashboard() {
   const budget = user?.monthly_budget || 0;
   const remaining = budget - totalSpent - totalSubscriptions;
   const progressPercent = budget > 0 ? Math.min(((totalSpent + totalSubscriptions) / budget) * 100, 100) : 0;
+  
+  useEffect(() => {
+    if (remaining !== undefined) {
+      Preferences.set({
+        key: 'remaining_budget',
+        value: remaining.toString()
+      }).catch(console.error);
+    }
+  }, [remaining]);
   
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();

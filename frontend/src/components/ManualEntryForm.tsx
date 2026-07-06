@@ -92,6 +92,8 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
         date,
         merchant: finalMerchant,
         amount: expenseAmount,
+        currency: showCurrency ? currency : 'INR',
+        original_amount: showCurrency ? parseFloat(amount) : null,
         category: finalCategory
       });
       

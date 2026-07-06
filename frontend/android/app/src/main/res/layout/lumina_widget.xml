@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1A1D24"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lumina Budget"
+        android:textColor="#A0AEC0"
+        android:textSize="12sp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:id="@+id/widget_budget_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="₹--"
+        android:textColor="#10B981"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_below="@id/widget_title"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/widget_add_button"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:text="+ Add Expense"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#059669"
+        android:textSize="12sp"
+        android:layout_below="@id/widget_budget_text"
+        android:layout_marginTop="16dp" />
+</RelativeLayout>

@@ -10,6 +10,16 @@ try:
 except sqlite3.OperationalError as e:
     print("Column last_budget_update already exists or error:", e)
 
+try:
+    cursor.execute("ALTER TABLE transactions ADD COLUMN currency VARCHAR DEFAULT 'INR';")
+except sqlite3.OperationalError as e:
+    print("Column currency already exists or error:", e)
+
+try:
+    cursor.execute("ALTER TABLE transactions ADD COLUMN original_amount FLOAT;")
+except sqlite3.OperationalError as e:
+    print("Column original_amount already exists or error:", e)
+
 conn.commit()
 conn.close()
 print("Migration completed.")

@@ -8,6 +8,8 @@ class TransactionCreate(BaseModel):
     merchant: str
     amount: float
     category: Optional[str] = None
+    currency: Optional[str] = "INR"
+    original_amount: Optional[float] = None
 
 class TransactionUpdate(BaseModel):
     category: Optional[str] = None
@@ -19,6 +21,8 @@ class TransactionResponse(BaseModel):
     merchant_raw: str
     merchant_clean: str
     amount: float
+    currency: str
+    original_amount: Optional[float]
     category: str
     source: str
     created_at: datetime

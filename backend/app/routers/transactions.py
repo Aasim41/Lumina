@@ -75,6 +75,8 @@ async def create_transaction(
         merchant_raw=txn.merchant,
         merchant_clean=clean_merchant,
         amount=txn.amount,
+        currency=txn.currency,
+        original_amount=txn.original_amount,
         category=category,
         source="manual_entry"
     )

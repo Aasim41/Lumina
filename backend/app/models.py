@@ -32,6 +32,8 @@ class Transaction(Base):
     merchant_raw = Column(String, nullable=False)
     merchant_clean = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
+    currency = Column(String, default="INR")
+    original_amount = Column(Float, nullable=True)
     category = Column(String, nullable=False)
     source = Column(String, nullable=False) # 'csv_upload' or 'manual_entry'
     created_at = Column(DateTime(timezone=True), server_default=func.now())
