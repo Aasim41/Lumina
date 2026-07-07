@@ -38,5 +38,9 @@ async def init_db():
         async with engine.begin() as conn:
             from sqlalchemy import text
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_budget_update DATE;"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR;"))
+            await conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR;"))
+            await conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS original_amount FLOAT;"))
     except Exception:
         pass  # Column already exists or DB doesn't support IF NOT EXISTS
