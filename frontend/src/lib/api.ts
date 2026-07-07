@@ -164,9 +164,7 @@ export const getInsights = () => {
   return apiFetch('/api/insights/');
 };
 
-export const getTransactions = () => {
-  return apiFetch('/api/transactions/');
-};
+
 // Wishlist
 export const getWishlist = () => apiFetch('/api/wishlist/');
 export const createWishlistItem = (data: { name: string; price: number; priority: string }) =>
