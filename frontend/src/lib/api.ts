@@ -160,8 +160,13 @@ export const getRoast = (data: { amount: number, category: string, merchant: str
 });
 
 // Insights
-export const getInsights = () => apiFetch('/api/insights/');
+export const getInsights = () => {
+  return apiFetch('/api/insights/');
+};
 
+export const getTransactions = () => {
+  return apiFetch('/api/transactions/');
+};
 // Wishlist
 export const getWishlist = () => apiFetch('/api/wishlist/');
 export const createWishlistItem = (data: { name: string; price: number; priority: string }) =>

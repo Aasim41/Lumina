@@ -93,17 +93,17 @@ async function readSMSMessages(): Promise<Array<{ body: string; sender: string; 
     }));
 }
 
-async function syncTransactions(parsed: ParsedTransaction[]): Promise<number> {
+async function syncTransactions(parsed: ParsedTransaction[]): Promise<{count: number, totalAmount: number}> {
   const syncedHashes = getSyncedHashes();
   const newTransactions = parsed.filter(t => !syncedHashes.has(t.smsHash));
 
-  if (newTransactions.length === 0) return 0;
+  if (newTransactions.length === 0) return { count: 0, totalAmount: 0 };
 
   let synced = 0;
+  let totalAmount = 0;
   const newHashes: string[] = [];
 
   for (const txn of newTransactions) {
-    // Only sync debits as expenses (credits are income, handled differently)
     if (txn.type === 'credit') {
       newHashes.push(txn.smsHash);
       continue;
@@ -119,6 +119,7 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<number> {
       });
       newHashes.push(txn.smsHash);
       synced++;
+      totalAmount += txn.amount;
     } catch (e) {
       console.error('Failed to sync transaction:', e);
     }
@@ -129,7 +130,7 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<number> {
   }
 
   setLastSyncTime(Date.now());
-  return synced;
+  return { count: synced, totalAmount };
 }
 
 import toast from 'react-hot-toast';
@@ -148,26 +149,43 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
     try {
       const messages = await readSMSMessages();
       if (messages.length === 0) {
-        toast('No recent messages found (or permission denied)', { icon: 'ℹ️' });
         isSyncing.current = false;
         return;
       }
 
       const parsed = parseMultipleSMS(messages);
       if (parsed.length === 0) {
-        toast(`Read ${messages.length} SMS, but none matched transaction formats`, { icon: 'ℹ️' });
         isSyncing.current = false;
         return;
       }
 
-      const count = await syncTransactions(parsed);
-      if (count > 0 && onSyncComplete) {
-        onSyncComplete(count);
-      } else if (count === 0) {
-        toast(`Found ${parsed.length} transactions, but they were already synced`, { icon: 'ℹ️' });
+      const { count, totalAmount } = await syncTransactions(parsed);
+      if (count > 0) {
+        toast.custom((t) => (
+          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-[#111] shadow-2xl rounded-2xl border border-[#7cc544]/30 pointer-events-auto flex ring-1 ring-black/5`}>
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 pt-0.5">
+                  <div className="h-10 w-10 rounded-full bg-[#7cc544]/20 flex items-center justify-center">
+                    <span className="text-xl">💰</span>
+                  </div>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-white">
+                    Smart Expense Tracked!
+                  </p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    ₹{totalAmount.toFixed(2)} added from {count} new transaction{count > 1 ? 's' : ''}.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ), { duration: 4000 });
+        
+        if (onSyncComplete) onSyncComplete(count);
       }
     } catch (e: any) {
-      toast.error('SMS sync error: ' + (e?.message || 'Unknown error'));
       console.error('SMS sync error:', e);
     } finally {
       isSyncing.current = false;

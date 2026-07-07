@@ -5,11 +5,13 @@ from app.routers import auth, upload, transactions, analytics, forecast, users, 
 from app.services.categorizer import load_model
 
 from contextlib import asynccontextmanager
+from app.scheduler import start_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     load_model()
+    start_scheduler()
     yield
 
 app = FastAPI(title="Lumina API", version="1.0.0", lifespan=lifespan)

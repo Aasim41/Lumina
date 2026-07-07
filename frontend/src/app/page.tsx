@@ -16,10 +16,11 @@ import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw } from 'lucide-react';
-import { deleteSubscription, apiFetch, getInsights } from '@/lib/api';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download } from 'lucide-react';
+import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
+import { generateMonthlyStatement } from '@/lib/PDFGenerator';
 import { Spinner } from '@/components/ui/Spinner';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { getCategoryColor } from '@/lib/utils';
@@ -92,6 +93,28 @@ export default function Dashboard() {
         .catch(console.error);
     }
   }, [user]);
+
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (!user) return;
+    try {
+      setIsGeneratingPDF(true);
+      const toastId = toast.loading('Generating PDF Statement...', { icon: '📄' });
+      
+      const transactions = await getTransactions();
+      const monthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+      
+      generateMonthlyStatement(user, transactions, monthName, totalSpent);
+      
+      toast.success('Statement Downloaded!', { id: toastId });
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   const getBadgeConfig = (badge: string) => {
     switch (badge) {
@@ -192,6 +215,14 @@ export default function Dashboard() {
                   title="Log out"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+                <button 
+                  onClick={handleDownloadPDF}
+                  disabled={isGeneratingPDF}
+                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-white transition-colors"
+                  title="Download Statement"
+                >
+                  {isGeneratingPDF ? <Spinner className="w-4 h-4 text-white" /> : <Download className="w-4 h-4" />}
                 </button>
                 <button 
                   onClick={() => setIsSaveModalOpen(true)}
