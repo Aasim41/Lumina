@@ -105,7 +105,7 @@ export default function Dashboard() {
       const transactions = await getTransactions();
       const monthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
       
-      generateMonthlyStatement(user, transactions, monthName, totalSpent);
+      await generateMonthlyStatement(user, transactions, monthName, totalSpent);
       
       toast.success('Statement Downloaded!', { id: toastId });
     } catch (e) {

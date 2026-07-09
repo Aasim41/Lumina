@@ -1,15 +1,19 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 export interface Transaction {
   id: string;
   date: string;
-  merchant: string;
+  merchant_clean: string;
+  merchant_raw: string;
   category: string;
   amount: number;
 }
 
-export function generateMonthlyStatement(
+export async function generateMonthlyStatement(
   user: any,
   transactions: Transaction[],
   monthName: string,
@@ -45,15 +49,15 @@ export function generateMonthlyStatement(
 
   // Table Data
   const tableColumn = ["Date", "Merchant", "Category", "Amount"];
-  const tableRows = [];
+  const tableRows: any[] = [];
 
   // Sort transactions by date (oldest to newest)
   const sortedTxns = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  sortedTxns.forEach(txn => {
+  sortedTxns.forEach((txn: any) => {
     const txnData = [
       txn.date,
-      txn.merchant,
+      txn.merchant_clean || txn.merchant_raw || 'Unknown Merchant',
       txn.category,
       `₹${txn.amount.toFixed(2)}`
     ];
@@ -84,6 +88,31 @@ export function generateMonthlyStatement(
     );
   }
 
-  // Download PDF
-  doc.save(`Lumina_Statement_${monthName.replace(/\s+/g, '_')}.pdf`);
+  const fileName = `Lumina_Statement_${monthName.replace(/\s+/g, '_')}.pdf`;
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Get PDF as base64 string
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: pdfBase64,
+        directory: Directory.Cache
+      });
+      
+      await Share.share({
+        title: 'Monthly Statement',
+        text: `Here is your Lumina monthly statement for ${monthName}`,
+        url: savedFile.uri,
+        dialogTitle: 'Share PDF'
+      });
+    } catch (e) {
+      console.error('Error saving/sharing PDF natively:', e);
+      throw e;
+    }
+  } else {
+    // Download PDF normally on web
+    doc.save(fileName);
+  }
 }

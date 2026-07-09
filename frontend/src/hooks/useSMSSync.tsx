@@ -2,6 +2,9 @@ import { useEffect, useRef, useCallback } from 'react';
 import { parseMultipleSMS, ParsedTransaction } from '@/lib/smsParser';
 import { createTransaction } from '@/lib/api';
 import { getToken } from '@/lib/auth';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import toast from 'react-hot-toast';
 
 // Category mapping based on merchant/description keywords
 const CATEGORY_MAP: [RegExp, string][] = [
@@ -133,8 +136,6 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{count: nu
   return { count: synced, totalAmount };
 }
 
-import toast from 'react-hot-toast';
-
 export function useSMSSync(onSyncComplete?: (count: number) => void) {
   const isSyncing = useRef(false);
 
@@ -182,6 +183,24 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
             </div>
           </div>
         ), { duration: 4000 });
+        
+        if (Capacitor.isNativePlatform()) {
+          try {
+            await LocalNotifications.requestPermissions();
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  title: "Smart Expense Tracked! 💰",
+                  body: `₹${totalAmount.toFixed(2)} added from ${count} new transaction${count > 1 ? 's' : ''}.`,
+                  id: new Date().getTime(),
+                  schedule: { at: new Date(Date.now() + 1000) },
+                }
+              ]
+            });
+          } catch (e) {
+            console.error("Local notification error", e);
+          }
+        }
         
         if (onSyncComplete) onSyncComplete(count);
       }
