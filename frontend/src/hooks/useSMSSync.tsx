@@ -192,8 +192,7 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
                 {
                   title: "Smart Expense Tracked! 💰",
                   body: `₹${totalAmount.toFixed(2)} added from ${count} new transaction${count > 1 ? 's' : ''}.`,
-                  id: new Date().getTime(),
-                  schedule: { at: new Date(Date.now() + 1000) },
+                  id: Math.floor(Math.random() * 2000000000),
                 }
               ]
             });
