@@ -131,7 +131,7 @@ export default function Dashboard() {
         return { 
           icon: <Trophy className="w-3.5 h-3.5 mr-1.5 text-yellow-400" />, 
           classes: 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 shadow-[0_0_12px_rgba(16,185,129,0.4)]',
-          description: "Awarded for saving more than 20% of your monthly budget in the Secret Vault."
+          description: "Awarded for saving more than 20% of your monthly budget in your Savings."
         };
       case 'On Track':
         return { 

@@ -96,7 +96,7 @@ export function RolloverModal({ onSuccess }: { onSuccess: () => void }) {
                 disabled={processing}
               >
                 <PiggyBank className="w-5 h-5" />
-                <span>Lock in Vault</span>
+                <span>Add to Savings</span>
               </button>
             </div>
             

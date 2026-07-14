@@ -206,20 +206,6 @@ export default function LoginPage() {
           )}
         </div>
         
-        {/* Installation Guide */}
-        <div className="mt-12 text-sm text-white/70 bg-white/5 rounded-2xl p-6 border border-white/10">
-          <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-            App Installation Guide
-          </h3>
-          <ol className="list-decimal pl-4 space-y-2 text-xs">
-            <li>Open Google Play Store, tap your profile icon &gt; Play Protect &gt; Settings (gear icon) and turn off "Scan apps with Play Protect".</li>
-            <li>Open this URL on your phone's browser.</li>
-            <li>Tap the browser menu (⋮ on Chrome, □↑ on Safari).</li>
-            <li>Select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.</li>
-            <li>The app will run full-screen like a native app!</li>
-          </ol>
-        </div>
 
       </div>
     </div>
