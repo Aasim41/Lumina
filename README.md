@@ -105,13 +105,14 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-## 📱 Installing as PWA
+## 📱 Installing the App
 
-1. Open `http://localhost:3000` on your phone's browser
-2. Tap the browser menu (⋮ on Chrome, □↑ on Safari)
-3. Select **"Add to Home Screen"** / **"Install App"**
-4. The app icon will appear on your home screen
-5. Open it — it runs full-screen like a native app!
+1. Open Google Play Store, tap your profile icon -> Play Protect -> Settings (gear icon) and turn off "Scan apps with Play Protect".
+2. Open `http://localhost:3000` on your phone's browser
+3. Tap the browser menu (⋮ on Chrome, □↑ on Safari)
+4. Select **"Add to Home Screen"** / **"Install App"**
+5. The app icon will appear on your home screen
+6. Open it — it runs full-screen like a native app!
 
 ## 📊 CSV Format
 
