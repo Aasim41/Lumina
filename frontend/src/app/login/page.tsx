@@ -91,12 +91,23 @@ export default function LoginPage() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-4xl sm:text-5xl font-display font-medium leading-[1.1] mb-12 tracking-tight"
+          className="text-4xl sm:text-5xl font-display font-medium leading-[1.1] mb-6 tracking-tight"
         >
           YOUR <br />
           FINANCIAL <br />
           CO-PILOT
         </motion.h2>
+
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="flex gap-2 flex-wrap mb-8"
+        >
+          <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-white/80">✨ AI Chatbot</span>
+          <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs text-purple-300">🎯 Envelope Budgets</span>
+          <span className="px-3 py-1 bg-sky-500/20 border border-sky-500/30 rounded-full text-xs text-sky-300">🔄 Subscriptions</span>
+        </motion.div>
 
         <div className="min-h-[64px] flex flex-col justify-end">
           {loading ? (
