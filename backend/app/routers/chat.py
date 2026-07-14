@@ -6,17 +6,14 @@ from app.database import get_db
 from app.models import Transaction, User
 from app.dependencies import get_current_user
 from app.schemas import ChatRequest
-import google.generativeai as genai
+from groq import Groq
 import os
 import json
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-# Try configuring Gemini if key exists
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 @router.post("")
 async def chat_with_advisor(
@@ -63,22 +60,32 @@ async def chat_with_advisor(
     Keep your response under 150 words and use markdown formatting (like bolding key numbers).
     """
 
-    if not GEMINI_API_KEY:
+    if not GROQ_API_KEY:
         # Fallback if no API key is provided
-        fallback_msg = f"Hey {current_user.name}! I see you've spent ₹{total_spent} in the last 30 days. Your top spending is in your tracked categories. (Note: To get true AI insights, please add your GEMINI_API_KEY to the backend .env file!)"
+        fallback_msg = f"Hey {current_user.name}! I see you've spent ₹{total_spent} in the last 30 days. Your top spending is in your tracked categories. (Note: To get true AI insights, please add your GROQ_API_KEY to the backend .env file!)"
         return {"response": fallback_msg}
         
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(
-            system_prompt + "\n\nUser Question: " + user_message
+        client = Groq(api_key=GROQ_API_KEY)
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                },
+                {
+                    "role": "user",
+                    "content": user_message,
+                }
+            ],
+            model="llama-3.1-8b-instant",
         )
-        return {"response": response.text}
+        return {"response": chat_completion.choices[0].message.content}
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print("Gemini API Error:", e)
+        print("Groq API Error:", e)
         error_msg = str(e).lower()
-        if "api_key" in error_msg or "api key" in error_msg or "403" in error_msg or "400" in error_msg or "unauthorized" in error_msg or "defaultcredentials" in error_msg:
-            return {"response": "Oops! It looks like your Gemini API Key is invalid. Please double-check your `GEMINI_API_KEY` in the backend `.env` file (it should usually start with `AIza`)."}
+        if "api_key" in error_msg or "api key" in error_msg or "403" in error_msg or "401" in error_msg:
+            return {"response": "Oops! It looks like your Groq API Key is invalid. Please double-check your `GROQ_API_KEY` in the backend `.env` file (it should usually start with `gsk_`)."}
         return {"response": f"I'm having trouble analyzing your finances right now. Debug Error: {str(e)}"}
