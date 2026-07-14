@@ -16,7 +16,12 @@ def forecast_spending(transactions: list) -> dict:
     monthly_totals = {}
     category_monthly_totals = {}
     
+    excluded_categories = ["Savings", "SecretVault", "SecretVault_Processed"]
+    
     for t in transactions:
+        if t.category in excluded_categories:
+            continue
+            
         month_str = t.date.strftime("%Y-%m")
         monthly_totals[month_str] = monthly_totals.get(month_str, 0) + t.amount
         
