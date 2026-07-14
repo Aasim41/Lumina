@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Bot, User, Sparkles } from 'lucide-react';
 import { Button } from './ui/Button';
 import ReactMarkdown from 'react-markdown';
-import api from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,7 +42,10 @@ export function ChatModal({ isOpen, onClose }: ChatModalProps) {
     setIsLoading(true);
 
     try {
-      const { data } = await api.post('/chat', { message: userMessage });
+      const data = await apiFetch('/api/chat', { 
+        method: 'POST', 
+        body: JSON.stringify({ message: userMessage }) 
+      });
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error connecting to my servers. Please try again later.' }]);
