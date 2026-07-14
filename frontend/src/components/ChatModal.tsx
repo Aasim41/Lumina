@@ -90,9 +90,9 @@ export function ChatModal({ isOpen, onClose }: ChatModalProps) {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-primary/20 text-primary ml-2' : 'bg-emerald-500/20 text-emerald-400 mr-2'}`}>
                       {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                     </div>
-                    <div className={`p-3 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-sm' : 'bg-white/10 text-text-primary rounded-tl-sm'}`}>
+                    <div className={`p-3 rounded-2xl ${msg.role === 'user' ? 'bg-white text-black rounded-tr-sm' : 'bg-white/10 text-text-primary rounded-tl-sm'}`}>
                       {msg.role === 'user' ? (
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-sm font-medium whitespace-pre-wrap">{msg.content}</p>
                       ) : (
                         <div className="text-sm prose prose-invert prose-sm max-w-none">
                           <ReactMarkdown>{msg.content}</ReactMarkdown>

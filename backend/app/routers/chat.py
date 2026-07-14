@@ -69,11 +69,14 @@ async def chat_with_advisor(
         return {"response": fallback_msg}
         
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(
             system_prompt + "\n\nUser Question: " + user_message
         )
         return {"response": response.text}
     except Exception as e:
         print("Gemini API Error:", e)
+        error_msg = str(e).lower()
+        if "api_key" in error_msg or "api key" in error_msg or "403" in error_msg or "400" in error_msg or "unauthorized" in error_msg or "defaultcredentials" in error_msg:
+            return {"response": "Oops! It looks like your Gemini API Key is invalid. Please double-check your `GEMINI_API_KEY` in the backend `.env` file (it should usually start with `AIza`)."}
         return {"response": "I'm having trouble analyzing your finances right now. Please try again later."}
