@@ -11,12 +11,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { MetricCard } from '@/components/MetricCard';
 import { CategoryDonutChart } from '@/components/CategoryDonutChart';
 import { SpendingLineChart } from '@/components/SpendingLineChart';
+import { ChatModal } from '@/components/ChatModal';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -64,6 +65,7 @@ export default function Dashboard() {
   
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [insights, setInsights] = useState<any[]>([]);
 
   useEffect(() => {
@@ -174,6 +176,7 @@ export default function Dashboard() {
           onSuccess={refresh}
         />
         <RolloverModal onSuccess={refresh} />
+        <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
         
         <div className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
@@ -318,6 +321,18 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+            
+            <div className="px-6 py-6 space-y-8">
+            <div className="bg-primary/20 border border-primary/30 rounded-2xl p-4 flex items-start space-x-3">
+              <div className="bg-primary/30 p-2 rounded-full mt-1">
+                <Sparkles className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-white">Review your transactions</h4>
+                <p className="text-sm text-text-secondary mt-1">Tap on a transaction's category tag in the Transactions tab to edit it. This drastically improves your AI insights and charts!</p>
+              </div>
+            </div>
+            </div>
           </header>
 
           {/* Content */}
@@ -458,6 +473,17 @@ export default function Dashboard() {
             )}
           </motion.div>
         </div>
+
+        {/* Floating AI Advisor Button */}
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 transition-all z-40"
+        >
+          <Sparkles className="w-6 h-6" />
+        </button>
+
+        <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+
         <BottomNav />
       </AuthGuard>
     </ErrorBoundary>
