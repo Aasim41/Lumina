@@ -8,11 +8,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function LoginPage() {
   const { login, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+  const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [dob, setDob] = useState('');
   const [budget, setBudget] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const nextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep(s => s + 1);
+  };
+  
+  const prevStep = () => {
+    setStep(s => Math.max(1, s - 1));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +40,12 @@ export default function LoginPage() {
       return; // stop all further execution
     }
     setSubmitting(false);
+  };
+
+  const variants = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 }
   };
 
   return (
@@ -109,7 +125,7 @@ export default function LoginPage() {
           <span className="px-3 py-1 bg-sky-500/20 border border-sky-500/30 rounded-full text-xs text-sky-300">🔄 Subscriptions</span>
         </motion.div>
 
-        <div className="min-h-[64px] flex flex-col justify-end">
+        <div className="min-h-[120px] flex flex-col justify-end">
           {loading ? (
             <div className="flex justify-center items-center h-14">
               <Spinner className="w-6 h-6 text-[#7cc544]" />
@@ -128,35 +144,61 @@ export default function LoginPage() {
                   Get Started!
                 </motion.button>
               ) : (
-                <motion.form
-                  key="login-options"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  onSubmit={handleSubmit}
-                  className="flex flex-col gap-4 w-full bg-surface/80 backdrop-blur-md border border-white/10 p-6 rounded-3xl"
-                >
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Your Name</label>
-                    <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="John Doe" />
+                <div className="w-full bg-surface/80 backdrop-blur-md border border-white/10 p-6 rounded-3xl overflow-hidden relative">
+                  
+                  {/* Progress Dots */}
+                  <div className="flex justify-center gap-2 mb-6">
+                    {[1, 2, 3].map((s) => (
+                      <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s === step ? 'w-6 bg-[#7cc544]' : 'w-1.5 bg-white/20'}`} />
+                    ))}
                   </div>
-                  <div className="flex gap-4">
-                    <div className="w-1/3">
-                      <label className="block text-sm font-medium text-text-secondary mb-1">Age</label>
-                      <input type="number" required min="13" max="120" value={age} onChange={e => setAge(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="25" />
-                    </div>
-                    <div className="w-2/3">
-                      <label className="block text-sm font-medium text-text-secondary mb-1">Date of Birth</label>
-                      <input type="date" required value={dob} onChange={e => setDob(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Monthly Budget (₹)</label>
-                    <input type="number" required step="1" min="0" value={budget} onChange={e => setBudget(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="50000" />
-                  </div>
-                  <button type="submit" disabled={submitting} className="w-full h-12 mt-2 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors active:scale-95 disabled:opacity-50 flex items-center justify-center">
-                    {submitting ? <Spinner className="w-5 h-5 text-black" /> : 'Enter Lumina'}
-                  </button>
-                </motion.form>
+
+                  <AnimatePresence mode="wait">
+                    {step === 1 && (
+                      <motion.form key="step1" variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} onSubmit={nextStep} className="flex flex-col gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-text-secondary mb-1">What should we call you?</label>
+                          <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="John Doe" />
+                        </div>
+                        <button type="submit" className="w-full h-12 mt-2 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors active:scale-95">Next</button>
+                      </motion.form>
+                    )}
+
+                    {step === 2 && (
+                      <motion.form key="step2" variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} onSubmit={nextStep} className="flex flex-col gap-4">
+                        <div className="flex gap-4">
+                          <div className="w-1/3">
+                            <label className="block text-sm font-medium text-text-secondary mb-1">Age</label>
+                            <input type="number" required min="13" max="120" value={age} onChange={e => setAge(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="25" />
+                          </div>
+                          <div className="w-2/3">
+                            <label className="block text-sm font-medium text-text-secondary mb-1">Date of Birth</label>
+                            <input type="date" required value={dob} onChange={e => setDob(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" />
+                          </div>
+                        </div>
+                        <div className="flex gap-3 mt-2">
+                          <button type="button" onClick={prevStep} className="w-1/3 h-12 bg-white/5 hover:bg-white/10 text-white font-semibold text-lg rounded-full transition-colors active:scale-95">Back</button>
+                          <button type="submit" className="w-2/3 h-12 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors active:scale-95">Next</button>
+                        </div>
+                      </motion.form>
+                    )}
+
+                    {step === 3 && (
+                      <motion.form key="step3" variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-text-secondary mb-1">What's your monthly budget (₹)?</label>
+                          <input type="number" required step="1" min="0" value={budget} onChange={e => setBudget(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="50000" />
+                        </div>
+                        <div className="flex gap-3 mt-2">
+                          <button type="button" onClick={prevStep} disabled={submitting} className="w-1/3 h-12 bg-white/5 hover:bg-white/10 text-white font-semibold text-lg rounded-full transition-colors active:scale-95 disabled:opacity-50">Back</button>
+                          <button type="submit" disabled={submitting} className="w-2/3 h-12 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors active:scale-95 disabled:opacity-50 flex items-center justify-center">
+                            {submitting ? <Spinner className="w-5 h-5 text-black" /> : 'Enter Lumina'}
+                          </button>
+                        </div>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
             </AnimatePresence>
           )}
