@@ -75,8 +75,10 @@ async def chat_with_advisor(
         )
         return {"response": response.text}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print("Gemini API Error:", e)
         error_msg = str(e).lower()
         if "api_key" in error_msg or "api key" in error_msg or "403" in error_msg or "400" in error_msg or "unauthorized" in error_msg or "defaultcredentials" in error_msg:
             return {"response": "Oops! It looks like your Gemini API Key is invalid. Please double-check your `GEMINI_API_KEY` in the backend `.env` file (it should usually start with `AIza`)."}
-        return {"response": "I'm having trouble analyzing your finances right now. Please try again later."}
+        return {"response": f"I'm having trouble analyzing your finances right now. Debug Error: {str(e)}"}
