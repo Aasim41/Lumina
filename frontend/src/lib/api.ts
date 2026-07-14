@@ -145,6 +145,8 @@ export const deleteTransaction = (id: string) =>
 export const getSummary = () => apiFetch('/api/analytics/summary');
 export const getCategories = () => apiFetch('/api/analytics/categories');
 export const getTrends = () => apiFetch('/api/analytics/trends');
+export const getHeatmap = () => apiFetch('/api/analytics/heatmap');
+export const getTopMerchants = () => apiFetch('/api/analytics/top-merchants');
 export const getForecast = () => apiFetch('/api/forecast/');
 export const getUserProfile = () => apiFetch('/api/users/me');
 export const updateUserProfile = (data: any) => apiFetch('/api/users/me', {

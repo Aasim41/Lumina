@@ -70,11 +70,16 @@ export function SubscriptionModal({ isOpen, onClose, onSuccess }: SubscriptionMo
     
     setLoading(true);
     try {
-      await createSubscription({
+      const res = await createSubscription({
         merchant,
         amount: parseFloat(amount),
         billing_day: parseInt(billingDay)
       });
+      
+      import('@/lib/notifications').then(({ scheduleSubscriptionNotification }) => {
+        scheduleSubscriptionNotification(merchant, parseFloat(amount), parseInt(billingDay), res.id || String(Date.now()));
+      });
+
       toast.success('Subscription tracked successfully!');
       setSelectedPlanId('');
       setMerchant('');

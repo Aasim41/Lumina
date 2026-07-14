@@ -66,6 +66,16 @@ class SubscriptionResponse(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
+# Advanced Analytics
+class WeekdaySpend(BaseModel):
+    day: str
+    amount: float
+
+class TopMerchant(BaseModel):
+    merchant: str
+    amount: float
+    count: int
+
 class CategoryBreakdown(BaseModel):
     category: str
     amount: float

@@ -220,6 +220,62 @@ async def get_trends(
     trends = [MonthlyTrend(month=k, amount=v) for k, v in trend_map.items()]
     return trends
 
+from app.schemas import WeekdaySpend, TopMerchant
+from collections import defaultdict
+
+@router.get("/heatmap", response_model=List[WeekdaySpend])
+async def get_heatmap(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    today = datetime.today()
+    start_this_month = today.replace(day=1).date()
+    
+    result = await db.execute(
+        select(Transaction).where(Transaction.user_id == current_user.id, Transaction.date >= start_this_month)
+    )
+    transactions = result.scalars().all()
+    
+    day_map = {
+        0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"
+    }
+    
+    totals = {day: 0.0 for day in day_map.values()}
+    
+    for t in transactions:
+        if t.category in ["Savings", "SecretVault"]:
+            continue
+        day_idx = t.date.weekday()
+        day_name = day_map[day_idx]
+        totals[day_name] += t.amount
+        
+    heatmap = [WeekdaySpend(day=d, amount=a) for d, a in totals.items()]
+    return heatmap
+
+@router.get("/top-merchants", response_model=List[TopMerchant])
+async def get_top_merchants(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Transaction).where(Transaction.user_id == current_user.id)
+    )
+    transactions = result.scalars().all()
+    
+    merchant_map = defaultdict(lambda: {"amount": 0.0, "count": 0})
+    for t in transactions:
+        if t.category in ["Savings", "SecretVault"]:
+            continue
+        merchant_map[t.merchant_clean]["amount"] += t.amount
+        merchant_map[t.merchant_clean]["count"] += 1
+        
+    top_merchants = []
+    for m, data in merchant_map.items():
+        top_merchants.append(TopMerchant(merchant=m, amount=data["amount"], count=data["count"]))
+        
+    top_merchants.sort(key=lambda x: x.amount, reverse=True)
+    return top_merchants[:10]
+
 from fpdf import FPDF
 
 @router.get("/export/pdf")

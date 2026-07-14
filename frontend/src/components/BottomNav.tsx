@@ -14,7 +14,7 @@ export function BottomNav() {
     { name: 'Budget', href: '/budget', icon: Target },
     { name: 'Splits', href: '/splits', icon: Users },
     { name: 'Wishlist', href: '/wishlist', icon: Heart },
-    { name: 'Forecast', href: '/forecast', icon: TrendingUp },
+    { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   ];
 
   return (

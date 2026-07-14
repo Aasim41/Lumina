@@ -129,6 +129,11 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
       setCategory('');
       setOverdraftWarning(null);
       
+      // Check budgets
+      import('@/lib/notifications').then(({ checkBudgetsAndNotify }) => {
+        checkBudgetsAndNotify();
+      });
+
       // If no roast was triggered by the smart backend, close immediately
       if (!gotRoast) {
         onClose();

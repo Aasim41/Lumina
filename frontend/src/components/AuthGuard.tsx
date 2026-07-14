@@ -16,6 +16,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       }
     } else {
       setAuthorized(true);
+      import('@/lib/notifications').then(({ requestNotificationPermissions, scheduleRecurringNotifications }) => {
+        requestNotificationPermissions().then(() => scheduleRecurringNotifications());
+      });
     }
   }, [pathname]);
 
