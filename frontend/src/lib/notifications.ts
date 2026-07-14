@@ -106,7 +106,7 @@ export async function scheduleRecurringNotifications() {
         },
         {
           title: 'New Month, Fresh Budget!',
-          body: 'It\\'s the 1st of the month! Time to review your envelope budgets.',
+          body: "It's the 1st of the month! Time to review your envelope budgets.",
           id: 1003,
           schedule: { at: monthlyDate, repeats: true, every: 'month' },
         }
