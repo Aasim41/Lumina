@@ -123,6 +123,8 @@ export default function LoginPage() {
           <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-white/80">✨ AI Chatbot</span>
           <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs text-purple-300">🎯 Envelope Budgets</span>
           <span className="px-3 py-1 bg-sky-500/20 border border-sky-500/30 rounded-full text-xs text-sky-300">🔄 Subscriptions</span>
+          <span className="px-3 py-1 bg-orange-500/20 border border-orange-500/30 rounded-full text-xs text-orange-300">📊 Advanced Analytics</span>
+          <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-xs text-emerald-300">🔔 Smart Notifications</span>
         </motion.div>
 
         <div className="min-h-[120px] flex flex-col justify-end">
