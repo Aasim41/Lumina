@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
-from app.routers import auth, upload, transactions, analytics, forecast, users, subscriptions, roast, mystery, insights, wishlist, splits, currency, chat
+from app.routers import auth, upload, transactions, analytics, forecast, users, subscriptions, roast, mystery, insights, wishlist, splits, currency, chat, budgets
 from app.services.categorizer import load_model
 
 from contextlib import asynccontextmanager
@@ -38,6 +38,7 @@ app.include_router(wishlist.router)
 app.include_router(splits.router)
 app.include_router(currency.router)
 app.include_router(chat.router)
+app.include_router(budgets.router)
 
 @app.get("/")
 @app.get("/api/health")

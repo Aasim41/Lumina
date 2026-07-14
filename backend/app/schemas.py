@@ -185,3 +185,24 @@ class StreakInfo(BaseModel):
     current_streak: int
     best_streak: int
     streak_status: str  # "on_track" or "broken"
+
+# Budgets
+class CategoryBudgetCreate(BaseModel):
+    category: str
+    amount: float
+
+class CategoryBudgetUpdate(BaseModel):
+    amount: float
+
+class CategoryBudgetResponse(BaseModel):
+    id: UUID
+    category: str
+    amount: float
+    rollover_balance: float
+    month_updated: Optional[date] = None
+    created_at: datetime
+    
+    # Computed fields dynamically added by the backend
+    spent_this_month: Optional[float] = 0.0
+    
+    model_config = ConfigDict(from_attributes=True)

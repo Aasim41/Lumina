@@ -23,6 +23,7 @@ class User(Base):
 
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
     subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
+    category_budgets = relationship("CategoryBudget", back_populates="user", cascade="all, delete-orphan")
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -95,3 +96,16 @@ class ForecastSnapshot(Base):
     actual_amount = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
+
+class CategoryBudget(Base):
+    __tablename__ = "category_budgets"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    category = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    rollover_balance = Column(Float, default=0.0)
+    month_updated = Column(Date, nullable=True) # Tracks the month this rollover was last updated
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="category_budgets")

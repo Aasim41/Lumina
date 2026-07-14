@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Receipt, TrendingUp, Users, Heart } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, Users, Heart, Target } from 'lucide-react';
 import { Fragment } from 'react';
 import Link from 'next/link';
 
@@ -11,6 +11,7 @@ export function BottomNav() {
   const navItems = [
     { name: 'Home', href: '/', icon: LayoutDashboard },
     { name: 'Expenses', href: '/transactions', icon: Receipt },
+    { name: 'Budget', href: '/budget', icon: Target },
     { name: 'Splits', href: '/splits', icon: Users },
     { name: 'Wishlist', href: '/wishlist', icon: Heart },
     { name: 'Forecast', href: '/forecast', icon: TrendingUp },

@@ -187,3 +187,12 @@ export const deleteSplit = (id: string) =>
 export const getCurrencyRates = () => apiFetch('/api/currency/rates');
 export const convertCurrency = (amount: number, from: string) =>
   apiFetch(`/api/currency/convert?amount=${amount}&from_currency=${from}`);
+
+// Budgets
+export const getCategoryBudgets = () => apiFetch('/api/budgets/');
+export const createCategoryBudget = (data: { category: string, amount: number }) => 
+  apiFetch('/api/budgets/', { method: 'POST', body: JSON.stringify(data) });
+export const updateCategoryBudget = (id: string, data: { amount: number }) =>
+  apiFetch(`/api/budgets/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteCategoryBudget = (id: string) =>
+  apiFetch(`/api/budgets/${id}`, { method: 'DELETE' });
