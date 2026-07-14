@@ -17,7 +17,7 @@ import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showReviewBanner, setShowReviewBanner] = useState(true);
   const [insights, setInsights] = useState<any[]>([]);
 
   useEffect(() => {
@@ -323,15 +324,28 @@ export default function Dashboard() {
             </div>
             
             <div className="px-6 py-6 space-y-8">
-            <div className="bg-primary/20 border border-primary/30 rounded-2xl p-4 flex items-start space-x-3">
-              <div className="bg-primary/30 p-2 rounded-full mt-1">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white">Review your transactions</h4>
-                <p className="text-sm text-text-secondary mt-1">Tap on a transaction's category tag in the Transactions tab to edit it. This drastically improves your AI insights and charts!</p>
-              </div>
-            </div>
+              {showReviewBanner && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-primary/20 border border-primary/30 rounded-2xl p-4 flex items-start space-x-3 relative overflow-hidden"
+                >
+                  <div className="bg-primary/30 p-2 rounded-full mt-1 shrink-0">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 pr-6">
+                    <h4 className="font-semibold text-white">Review your transactions</h4>
+                    <p className="text-sm text-text-secondary mt-1">Tap on a transaction's category tag in the Transactions tab to edit it. This drastically improves your AI insights and charts!</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowReviewBanner(false)}
+                    className="absolute top-3 right-3 p-1.5 bg-black/20 text-white/70 hover:text-white rounded-full hover:bg-black/40 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
             </div>
           </header>
 
@@ -477,9 +491,16 @@ export default function Dashboard() {
         {/* Floating AI Advisor Button */}
         <button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 transition-all z-40"
+          className="fixed bottom-24 right-6 px-5 h-14 bg-gradient-to-tr from-purple-600 to-indigo-500 text-white rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.6)] hover:scale-105 active:scale-95 transition-all z-[60] overflow-hidden group"
         >
-          <Sparkles className="w-6 h-6" />
+          <div className="absolute inset-0 bg-white/20 rounded-full animate-ping opacity-75" />
+          <div className="relative z-10 flex items-center gap-2">
+            <div className="relative">
+              <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+              <Sparkles className="w-3 h-3 absolute -top-1 -right-2 text-yellow-300 animate-pulse" />
+            </div>
+            <span className="font-medium pr-1">Ask AI</span>
+          </div>
         </button>
 
         <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
