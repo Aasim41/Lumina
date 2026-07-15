@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { ForecastChart } from '@/components/ForecastChart';
 import { HeatmapChart } from '@/components/HeatmapChart';
 import { TrendingUp, Activity, Store, TrendingDown, Target, Loader2 } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function AnalyticsDashboard() {
@@ -36,14 +37,12 @@ export default function AnalyticsDashboard() {
     setLoading(false);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
-  };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5 p-4">
+      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5 p-4 pt-14">
         <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Analytics</h1>
         <p className="text-xs text-white/50">Insights & AI Predictions</p>
       </div>

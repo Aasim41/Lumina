@@ -49,13 +49,13 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
           />
           <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
-            className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md w-full bg-surface border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 z-50 flex flex-col shadow-2xl safe-pb"
+            className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md w-full bg-surface border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 z-[100] flex flex-col shadow-2xl pb-safe"
           >
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center space-x-2">

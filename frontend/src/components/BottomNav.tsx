@@ -16,7 +16,8 @@ export function BottomNav() {
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   ];
 
-  const activeIndex = Math.max(0, navItems.findIndex(i => i.href === pathname));
+  const normalizedPath = pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') || '/';
+  const activeIndex = Math.max(0, navItems.findIndex(i => i.href === normalizedPath));
 
   const gliderStyles = [
     // Dashboard - Indigo
@@ -39,7 +40,7 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pt-2" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
       <div className="glass-radio-group mx-auto max-w-md relative">
         {navItems.map((item, i) => {
-          const isActive = pathname === item.href;
+          const isActive = normalizedPath === item.href;
           const Icon = item.icon;
           
           return (
