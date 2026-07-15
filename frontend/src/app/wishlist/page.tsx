@@ -76,7 +76,7 @@ export default function WishlistPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#0B1021] pb-24 text-white">
-        <header className="px-6 py-8 safe-pt bg-gradient-to-b from-primary/10 to-transparent">
+        <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent">
           <div className="flex justify-between items-center mb-2">
             <h1 className="text-2xl font-display font-bold">Wishlist 🎯</h1>
             <button

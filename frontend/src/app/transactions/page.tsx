@@ -85,7 +85,7 @@ export default function TransactionsPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#061813] pb-24">
-        <header className="px-6 py-6 safe-pt sticky top-0 z-20 bg-emerald-500/10 backdrop-blur-xl border-b border-emerald-500/30 flex justify-between items-end shadow-[0_4px_30px_rgba(16,185,129,0.15)]">
+        <header className="px-6 pb-6 pt-14 safe-pt sticky top-0 z-20 bg-emerald-500/10 backdrop-blur-xl border-b border-emerald-500/30 flex justify-between items-end shadow-[0_4px_30px_rgba(16,185,129,0.15)]">
           <div>
             <h1 className="text-3xl font-display font-bold">Transactions</h1>
           </div>

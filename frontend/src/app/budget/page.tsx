@@ -79,7 +79,7 @@ export default function BudgetDashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5 p-4 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5 p-4 pt-14 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Budgets & Subs</h1>
           <p className="text-xs text-white/50">Advanced tracking & limits</p>

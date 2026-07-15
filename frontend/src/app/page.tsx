@@ -169,7 +169,7 @@ export default function Dashboard() {
         
         <div className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
-          <header className="px-6 py-8 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
+          <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
             <div className="absolute top-4 left-1/2 -translate-x-1/2">
               <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
             </div>
