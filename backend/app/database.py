@@ -33,14 +33,20 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    # Auto-migrate in a separate transaction so errors don't break startup
-    try:
-        async with engine.begin() as conn:
-            from sqlalchemy import text
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_budget_update DATE;"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR;"))
-            await conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR;"))
-            await conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS original_amount FLOAT;"))
-    except Exception:
-        pass  # Column already exists or DB doesn't support IF NOT EXISTS
+    # Auto-migrate each column separately so errors in one don't break others (especially on SQLite)
+    auto_migrations = [
+        "ALTER TABLE users ADD COLUMN dob DATE;",
+        "ALTER TABLE users ADD COLUMN last_budget_update DATE;",
+        "ALTER TABLE users ADD COLUMN fcm_token VARCHAR;",
+        "ALTER TABLE users ADD COLUMN preferred_currency VARCHAR;",
+        "ALTER TABLE transactions ADD COLUMN currency VARCHAR;",
+        "ALTER TABLE transactions ADD COLUMN original_amount FLOAT;"
+    ]
+    
+    from sqlalchemy import text
+    for query in auto_migrations:
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text(query))
+        except Exception:
+            pass
