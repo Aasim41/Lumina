@@ -18,7 +18,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 safe-pb pb-4">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pt-2" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
       <div className="glass-radio-group mx-auto max-w-md">
         {navItems.map((item, i) => {
           const isActive = pathname === item.href;

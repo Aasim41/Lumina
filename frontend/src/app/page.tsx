@@ -97,27 +97,6 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-
-  const handleDownloadPDF = async () => {
-    if (!user) return;
-    try {
-      setIsGeneratingPDF(true);
-      const toastId = toast.loading('Generating PDF Statement...', { icon: '📄' });
-      
-      const transactions = await getTransactions();
-      const monthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-      
-      await generateMonthlyStatement(user, transactions, monthName, totalSpent);
-      
-      toast.success('Statement Downloaded!', { id: toastId });
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to generate PDF');
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
 
   const getBadgeConfig = (badge: string) => {
     switch (badge) {
@@ -220,14 +199,7 @@ export default function Dashboard() {
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 </button>
-                <button 
-                  onClick={handleDownloadPDF}
-                  disabled={isGeneratingPDF}
-                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-white transition-colors"
-                  title="Download Statement"
-                >
-                  {isGeneratingPDF ? <Spinner className="w-4 h-4 text-white" /> : <Download className="w-4 h-4" />}
-                </button>
+
                 <button 
                   onClick={() => setIsSaveModalOpen(true)}
                   className="px-4 py-2 bg-[#10b981]/20 text-[#10b981] rounded-full text-sm font-medium flex items-center space-x-1.5 hover:bg-[#10b981]/30 transition-colors"

@@ -13,15 +13,19 @@ import { AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useExpenseData } from '@/hooks/useExpenseData';
 import { motion } from 'framer-motion';
+import { generateMonthlyStatement } from '@/lib/PDFGenerator';
+import { useAuth } from '@/hooks/useAuth';
+import { Spinner } from '@/components/ui/Spinner';
 
 export default function TransactionsPage() {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [scannedReceipt, setScannedReceipt] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
-  const { refresh } = useExpenseData();
+  const { refresh, summary } = useExpenseData();
 
   const fetchTransactions = async () => {
     try {
@@ -61,13 +65,17 @@ export default function TransactionsPage() {
   };
   
   const handleExport = async () => {
+    if (!user) return;
     setExporting(true);
+    const toastId = toast.loading('Generating PDF Statement...', { icon: '📄' });
     try {
-      await exportPDF();
-      toast.success('PDF exported successfully');
+      const monthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+      const totalSpent = summary?.total_this_month || 0;
+      await generateMonthlyStatement(user, transactions, monthName, totalSpent);
+      toast.success('Statement Downloaded!', { id: toastId });
     } catch (error) {
       console.error(error);
-      toast.error('Failed to export PDF');
+      toast.error('Failed to export PDF', { id: toastId });
     } finally {
       setExporting(false);
     }
@@ -93,9 +101,9 @@ export default function TransactionsPage() {
               onClick={handleExport}
               disabled={exporting}
               className="w-10 h-10 shrink-0 rounded-full bg-white/5 flex items-center justify-center text-text-secondary hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
-              title="Download PDF"
+              title="Download Statement"
             >
-              <Download className="w-5 h-5" />
+              {exporting ? <Spinner className="w-5 h-5 text-white" /> : <Download className="w-5 h-5" />}
             </button>
             <button 
               onClick={() => setIsFormOpen(true)}
