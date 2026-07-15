@@ -18,9 +18,6 @@ export function useAuth() {
       setLoading(true);
       const data = await getUserProfile();
       setUser(data);
-      if (typeof window !== 'undefined' && data?.preferred_currency) {
-        localStorage.setItem('preferred_currency', data.preferred_currency);
-      }
     } catch (e) {
       console.error("Failed to load user profile", e);
     } finally {

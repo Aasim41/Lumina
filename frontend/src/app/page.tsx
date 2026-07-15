@@ -17,7 +17,6 @@ import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
-import { SettingsModal } from '@/components/SettingsModal';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -72,7 +71,6 @@ export default function Dashboard() {
   
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showReviewBanner, setShowReviewBanner] = useState(true);
   const [insights, setInsights] = useState<any[]>([]);
@@ -153,7 +151,6 @@ export default function Dashboard() {
     <ErrorBoundary>
       <AuthGuard>
         <OnboardingModal user={user} onComplete={refreshUser} />
-        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         <SaveMoneyModal 
           isOpen={isSaveModalOpen} 
           onClose={() => setIsSaveModalOpen(false)} 
@@ -220,12 +217,6 @@ export default function Dashboard() {
                 >
                   <PiggyBank className="w-4 h-4" />
                   <span className="hidden sm:inline">Save</span>
-                </button>
-                <button 
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="p-2.5 bg-white/5 border border-white/10 rounded-full text-text-secondary hover:text-white hover:bg-white/10 transition-colors shadow-lg ml-2"
-                >
-                  <Settings className="w-5 h-5" />
                 </button>
               </div>
             </div>
