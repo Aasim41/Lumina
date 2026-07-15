@@ -5,10 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-IN', {
+export function formatCurrency(amount: number, currencyCode?: string): string {
+  if (!currencyCode) {
+    if (typeof window !== 'undefined') {
+      currencyCode = localStorage.getItem('preferred_currency') || 'INR';
+    } else {
+      currencyCode = 'INR';
+    }
+  }
+  const locale = currencyCode === 'INR' ? 'en-IN' : (currencyCode === 'EUR' ? 'de-DE' : 'en-US');
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'INR',
+    currency: currencyCode,
     maximumFractionDigits: 0,
   }).format(amount);
 }

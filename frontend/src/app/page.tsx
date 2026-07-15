@@ -17,6 +17,7 @@ import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
+import { SettingsModal } from '@/components/SettingsModal';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -29,7 +30,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useSMSSync } from '@/hooks/useSMSSync';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Preferences } from '@capacitor/preferences';
-
+import { scheduleSubscriptionReminders } from '@/lib/notifications';
 export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
   usePushNotifications();
@@ -57,6 +58,12 @@ export default function Dashboard() {
       }).catch(console.error);
     }
   }, [remaining]);
+
+  useEffect(() => {
+    if (subscriptions && subscriptions.length > 0) {
+      scheduleSubscriptionReminders(subscriptions, formatCurrency);
+    }
+  }, [subscriptions]);
   
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -65,6 +72,7 @@ export default function Dashboard() {
   
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showReviewBanner, setShowReviewBanner] = useState(true);
   const [insights, setInsights] = useState<any[]>([]);
@@ -145,6 +153,7 @@ export default function Dashboard() {
     <ErrorBoundary>
       <AuthGuard>
         <OnboardingModal user={user} onComplete={refreshUser} />
+        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         <SaveMoneyModal 
           isOpen={isSaveModalOpen} 
           onClose={() => setIsSaveModalOpen(false)} 
@@ -165,17 +174,22 @@ export default function Dashboard() {
               <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
             </div>
             <div className="flex justify-between items-center mb-6 mt-2">
-              <div className="flex items-center space-x-3">
-                <button onClick={() => { window.location.href = '/create-avatar/index.html'; }} className="relative group cursor-pointer z-10 block">
-                  {user?.avatar_url && user.avatar_url.length > 0 ? (
-                    <img src={user.avatar_url} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white/10" />
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <button 
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shrink-0 overflow-hidden shadow-[0_0_15px_rgba(52,211,153,0.3)] border border-white/20 relative group cursor-pointer"
+                >
+                  {user?.avatar_url ? (
+                    <img src={user.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    <div className="w-full h-full bg-surface rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+                        {user?.name?.charAt(0).toUpperCase()}
+                      </span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-bold text-white">Edit</span>
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-full transition-opacity">
+                    <span className="text-[10px] text-white font-medium">Settings</span>
                   </div>
                 </button>
                 <div>

@@ -117,6 +117,7 @@ class UserUpdate(BaseModel):
     age: Optional[int] = None
     monthly_budget: Optional[float] = None
     avatar_url: Optional[str] = None
+    preferred_currency: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: UUID
@@ -127,6 +128,7 @@ class UserResponse(BaseModel):
     dob: Optional[date] = None
     monthly_budget: Optional[float] = None
     last_budget_update: Optional[date] = None
+    preferred_currency: str = "INR"
     
     model_config = ConfigDict(from_attributes=True)
 

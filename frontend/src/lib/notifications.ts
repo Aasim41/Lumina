@@ -33,36 +33,49 @@ export async function scheduleImmediateNotification(title: string, body: string,
   }
 }
 
-export async function scheduleSubscriptionNotification(merchant: string, amount: number, billingDay: number, idStr: string) {
+export async function scheduleSubscriptionReminders(subscriptions: any[], currencyFormat: (amt: number) => string) {
   try {
     const { display } = await LocalNotifications.checkPermissions();
     if (display !== 'granted') return;
 
-    const now = new Date();
-    let nextBillingDate = new Date(now.getFullYear(), now.getMonth(), billingDay, 9, 0, 0); // 9:00 AM
-    
-    if (now.getDate() >= billingDay) {
-      nextBillingDate = new Date(now.getFullYear(), now.getMonth() + 1, billingDay, 9, 0, 0);
+    // Clear old subscription notifications (IDs 100000 - 999999 range)
+    // For simplicity, we just schedule them, but in a real app we'd keep track of IDs to clear.
+    const notificationsToSchedule = [];
+
+    for (const sub of subscriptions) {
+      const now = new Date();
+      let nextBillingDate = new Date(now.getFullYear(), now.getMonth(), sub.billing_day, 9, 0, 0); 
+      
+      if (now.getDate() > sub.billing_day - 3) {
+        nextBillingDate = new Date(now.getFullYear(), now.getMonth() + 1, sub.billing_day, 9, 0, 0);
+      }
+
+      const reminderDate = new Date(nextBillingDate);
+      reminderDate.setDate(reminderDate.getDate() - 3);
+
+      let id = 0;
+      const idStr = sub.id || String(Math.random());
+      for (let i = 0; i < idStr.length; i++) {
+        id = (id + idStr.charCodeAt(i)) % 100000;
+      }
+      id += 100000; // Offset for subscription reminders
+
+      notificationsToSchedule.push({
+        title: 'Upcoming Subscription',
+        body: `Your ${sub.merchant} subscription (${currencyFormat(sub.amount)}) is billing in 3 days. Want to cancel it?`,
+        id: id,
+        schedule: { at: reminderDate, repeats: true, every: 'month' },
+        smallIcon: 'ic_stat_icon_config_sample',
+      });
     }
 
-    // Convert UUID string to integer ID for Capacitor
-    let id = 0;
-    for (let i = 0; i < idStr.length; i++) {
-      id = (id + idStr.charCodeAt(i)) % 100000;
+    if (notificationsToSchedule.length > 0) {
+      await LocalNotifications.schedule({
+        notifications: notificationsToSchedule,
+      });
     }
-
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title: 'Subscription Due Today',
-          body: `Your ${merchant} subscription (₹${amount}) is due today!`,
-          id,
-          schedule: { at: nextBillingDate, repeats: true, every: 'month' },
-        },
-      ],
-    });
   } catch (e) {
-    console.log('Notifications not supported');
+    console.log('Notifications not supported', e);
   }
 }
 

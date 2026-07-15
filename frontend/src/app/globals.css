@@ -200,59 +200,7 @@ body {
     box-shadow 0.4s ease-in-out;
 }
 
-/* Dashboard - Primary (Indigo) */
-#nav-0:checked ~ .glass-glider {
-  transform: translateX(0%);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(79, 70, 229, 0.5));
-  box-shadow:
-    0 0 18px rgba(99, 102, 241, 0.4),
-    0 0 10px rgba(165, 180, 252, 0.2) inset;
-}
 
-/* Expenses - Green */
-#nav-1:checked ~ .glass-glider {
-  transform: translateX(100%);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.5));
-  box-shadow:
-    0 0 18px rgba(34, 197, 94, 0.4),
-    0 0 10px rgba(134, 239, 172, 0.2) inset;
-}
-
-/* Budget - Rose/Red */
-#nav-2:checked ~ .glass-glider {
-  transform: translateX(200%);
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.2), rgba(225, 29, 72, 0.5));
-  box-shadow:
-    0 0 18px rgba(244, 63, 94, 0.4),
-    0 0 10px rgba(251, 113, 133, 0.2) inset;
-}
-
-/* Splits - Purple */
-#nav-3:checked ~ .glass-glider {
-  transform: translateX(300%);
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.5));
-  box-shadow:
-    0 0 18px rgba(168, 85, 247, 0.4),
-    0 0 10px rgba(216, 180, 254, 0.2) inset;
-}
-
-/* Wishlist - Cyan */
-#nav-4:checked ~ .glass-glider {
-  transform: translateX(400%);
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(8, 145, 178, 0.5));
-  box-shadow:
-    0 0 18px rgba(6, 182, 212, 0.4),
-    0 0 10px rgba(103, 232, 249, 0.2) inset;
-}
-
-/* Analytics - Orange */
-#nav-5:checked ~ .glass-glider {
-  transform: translateX(500%);
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(234, 88, 12, 0.5));
-  box-shadow:
-    0 0 18px rgba(249, 115, 22, 0.4),
-    0 0 10px rgba(253, 186, 116, 0.2) inset;
-}
 /* Transaction Form */
 .custom-form {
   --background: #d3d3d3;
