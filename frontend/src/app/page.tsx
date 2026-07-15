@@ -18,7 +18,7 @@ import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { SettingsModal } from '@/components/SettingsModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
