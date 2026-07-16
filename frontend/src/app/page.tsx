@@ -17,6 +17,7 @@ import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
+import { AchievementModal } from '@/components/AchievementModal';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -74,6 +75,26 @@ export default function Dashboard() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showReviewBanner, setShowReviewBanner] = useState(true);
   const [insights, setInsights] = useState<any[]>([]);
+  const [unlockedBadge, setUnlockedBadge] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.unlocked_badges) {
+      try {
+        const parsedBadges = JSON.parse(user.unlocked_badges);
+        
+        // Simple check: if local storage doesn't have it, it's new for this session
+        const stored = localStorage.getItem('seen_badges');
+        const seenBadges = stored ? JSON.parse(stored) : [];
+        
+        const newBadge = parsedBadges.find((b: string) => !seenBadges.includes(b));
+        if (newBadge) {
+          setUnlockedBadge(newBadge);
+          seenBadges.push(newBadge);
+          localStorage.setItem('seen_badges', JSON.stringify(seenBadges));
+        }
+      } catch (e) {}
+    }
+  }, [user?.unlocked_badges]);
 
   useEffect(() => {
     if (user) {
@@ -163,6 +184,7 @@ export default function Dashboard() {
         />
         <RolloverModal onSuccess={refresh} />
         <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+        <AchievementModal isOpen={!!unlockedBadge} onClose={() => setUnlockedBadge(null)} badgeId={unlockedBadge || ''} />
         
         <div className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
@@ -193,6 +215,16 @@ export default function Dashboard() {
                   <p className="text-xs text-text-secondary">Welcome back,</p>
                   <p className="font-medium text-text-primary">{user?.name?.split(' ')[0]}</p>
                 </div>
+                
+                {summary && summary.current_streak > 0 && (
+                  <div 
+                    onClick={() => showInfoToast("Current Streak 🔥", `You have logged an expense ${summary.current_streak} day(s) in a row! Keep it up!`, <Flame className="w-5 h-5 text-orange-500" />)}
+                    className="flex items-center ml-2 bg-orange-500/10 px-2.5 py-1 rounded-full border border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.15)] cursor-pointer hover:bg-orange-500/20 transition-colors"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-orange-500 mr-1.5 animate-pulse" />
+                    <span className="text-xs font-bold text-orange-400">{summary.current_streak}</span>
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center space-x-2">
@@ -248,6 +280,25 @@ export default function Dashboard() {
                 <span>{summary.next_badge_target}</span>
               </div>
             )}
+            
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <Link href="/wrap-up">
+                <div className="bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-purple-500/30 p-4 rounded-3xl flex items-center justify-between relative overflow-hidden group cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] transition-all">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-pink-300">Your Monthly Wrap-Up</span>
+                    <span className="text-xs text-text-secondary">Tap to see your financial story</span>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-purple-300" />
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
             
             {summary?.current_streak > 0 && (
               <motion.div

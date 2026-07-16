@@ -129,6 +129,9 @@ class UserResponse(BaseModel):
     monthly_budget: Optional[float] = None
     last_budget_update: Optional[date] = None
     preferred_currency: str = "INR"
+    current_streak: int = 0
+    last_logged_date: Optional[date] = None
+    unlocked_badges: str = "[]"
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -218,3 +221,14 @@ class CategoryBudgetResponse(BaseModel):
     spent_this_month: Optional[float] = 0.0
     
     model_config = ConfigDict(from_attributes=True)
+
+class WrapUpResponse(BaseModel):
+    month: str
+    total_spent: float
+    top_category: str
+    top_category_amount: float
+    top_category_percentage: float
+    biggest_splurge_merchant: str
+    biggest_splurge_amount: float
+    savings_vs_last_month: float
+    is_positive_savings: bool

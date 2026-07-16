@@ -20,6 +20,9 @@ class User(Base):
     vault_balance = Column(Float, default=0.0)
     preferred_currency = Column(String, default="INR")
     fcm_token = Column(String, nullable=True)
+    current_streak = Column(Integer, default=0)
+    last_logged_date = Column(Date, nullable=True)
+    unlocked_badges = Column(String, default="[]")  # Store as JSON string array
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")

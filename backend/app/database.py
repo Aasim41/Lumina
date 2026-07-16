@@ -39,6 +39,9 @@ async def init_db():
         "ALTER TABLE users ADD COLUMN last_budget_update DATE;",
         "ALTER TABLE users ADD COLUMN fcm_token VARCHAR;",
         "ALTER TABLE users ADD COLUMN preferred_currency VARCHAR;",
+        "ALTER TABLE users ADD COLUMN current_streak INTEGER DEFAULT 0;",
+        "ALTER TABLE users ADD COLUMN last_logged_date DATE;",
+        "ALTER TABLE users ADD COLUMN unlocked_badges VARCHAR DEFAULT '[]';",
         "ALTER TABLE transactions ADD COLUMN currency VARCHAR;",
         "ALTER TABLE transactions ADD COLUMN original_amount FLOAT;"
     ]

@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime, timedelta
+import json
 from uuid import UUID
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -82,6 +83,29 @@ async def create_transaction(
     )
     
     db.add(new_txn)
+    
+    # --- GAMIFICATION LOGIC ---
+    today = datetime.utcnow().date()
+    if current_user.last_logged_date:
+        if current_user.last_logged_date == today - timedelta(days=1):
+            current_user.current_streak += 1
+        elif current_user.last_logged_date < today - timedelta(days=1):
+            current_user.current_streak = 1
+    else:
+        current_user.current_streak = 1
+        
+    current_user.last_logged_date = today
+    
+    unlocked_badges = json.loads(current_user.unlocked_badges or "[]")
+    if current_user.current_streak == 3 and "3_day_streak" not in unlocked_badges:
+        unlocked_badges.append("3_day_streak")
+    if current_user.current_streak == 7 and "7_day_streak" not in unlocked_badges:
+        unlocked_badges.append("7_day_streak")
+    if current_user.current_streak == 30 and "30_day_streak" not in unlocked_badges:
+        unlocked_badges.append("30_day_streak")
+        
+    current_user.unlocked_badges = json.dumps(unlocked_badges)
+    
     await db.commit()
     await db.refresh(new_txn)
     

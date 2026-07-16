@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User, Transaction, Subscription
-from app.schemas import SummaryResponse, CategoryBreakdown, MonthlyTrend
+from app.schemas import SummaryResponse, CategoryBreakdown, MonthlyTrend, WrapUpResponse
 import io
 import csv
 from fastapi.responses import StreamingResponse
@@ -420,3 +420,57 @@ async def get_rollover_status(
     total_saved = sum(t.amount for t in last_month_stealth_txns)
     
     return {"has_unprocessed_savings": total_saved > 0, "amount": total_saved}
+
+@router.get("/wrap-up", response_model=WrapUpResponse)
+async def get_wrap_up(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    today = datetime.today()
+    # E.g. generate wrap up for the previous month (or current month if it's the end)
+    # Let's just generate for current month for demo purposes, or maybe the last 30 days.
+    start_this_month = today.replace(day=1).date()
+    start_last_month = (today.replace(day=1) - relativedelta(months=1)).date()
+    
+    result = await db.execute(select(Transaction).where(Transaction.user_id == current_user.id))
+    transactions = result.scalars().all()
+    
+    this_month_txns = [t for t in transactions if t.date >= start_this_month and t.category not in ["Savings", "SecretVault", "SecretVault_Processed"]]
+    last_month_txns = [t for t in transactions if start_last_month <= t.date < start_this_month and t.category not in ["Savings", "SecretVault", "SecretVault_Processed"]]
+    
+    total_this_month = sum(t.amount for t in this_month_txns)
+    total_last_month = sum(t.amount for t in last_month_txns)
+    
+    savings = total_last_month - total_this_month
+    
+    category_totals = {}
+    for t in this_month_txns:
+        category_totals[t.category] = category_totals.get(t.category, 0) + t.amount
+        
+    top_category = "None"
+    top_category_amount = 0.0
+    top_category_percentage = 0.0
+    if category_totals:
+        top_category = max(category_totals, key=category_totals.get)
+        top_category_amount = category_totals[top_category]
+        if total_this_month > 0:
+            top_category_percentage = (top_category_amount / total_this_month) * 100
+            
+    biggest_splurge_merchant = "None"
+    biggest_splurge_amount = 0.0
+    if this_month_txns:
+        biggest_txn = max(this_month_txns, key=lambda t: t.amount)
+        biggest_splurge_merchant = biggest_txn.merchant_clean
+        biggest_splurge_amount = biggest_txn.amount
+
+    return WrapUpResponse(
+        month=today.strftime("%B %Y"),
+        total_spent=total_this_month,
+        top_category=top_category,
+        top_category_amount=top_category_amount,
+        top_category_percentage=top_category_percentage,
+        biggest_splurge_merchant=biggest_splurge_merchant,
+        biggest_splurge_amount=biggest_splurge_amount,
+        savings_vs_last_month=abs(savings),
+        is_positive_savings=(savings >= 0)
+    )
