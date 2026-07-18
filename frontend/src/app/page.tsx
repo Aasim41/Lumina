@@ -358,28 +358,6 @@ export default function Dashboard() {
             </div>
             
             <div className="px-6 py-6 space-y-8">
-              {showReviewBanner && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-primary/20 border border-primary/30 rounded-2xl p-4 flex items-start space-x-3 relative overflow-hidden"
-                >
-                  <div className="bg-primary/30 p-2 rounded-full mt-1 shrink-0">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 pr-6">
-                    <h4 className="font-semibold text-white">Review your transactions</h4>
-                    <p className="text-sm text-text-secondary mt-1">Tap on a transaction's category tag in the Transactions tab to edit it. This drastically improves your AI insights and charts!</p>
-                  </div>
-                  <button 
-                    onClick={() => setShowReviewBanner(false)}
-                    className="absolute top-3 right-3 p-1.5 bg-black/20 text-white/70 hover:text-white rounded-full hover:bg-black/40 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              )}
             </div>
           </header>
 
@@ -513,6 +491,7 @@ export default function Dashboard() {
                 {categories && categories.length > 0 && (
                   <CategoryDonutChart data={categories} />
                 )}
+
 
                 {trends && trends.length > 0 && (
                   <SpendingLineChart data={trends} />

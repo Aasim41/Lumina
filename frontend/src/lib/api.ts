@@ -196,5 +196,16 @@ export const createCategoryBudget = (data: { category: string, amount: number })
   apiFetch('/api/budgets/', { method: 'POST', body: JSON.stringify(data) });
 export const updateCategoryBudget = (id: string, data: { amount: number }) =>
   apiFetch(`/api/budgets/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+// Settings endpoints
+export const updateSettings = async (data: any) => apiFetch('/api/settings', { method: 'PATCH', body: JSON.stringify(data) });
+export const updateBudget = async (monthly_budget: number) => apiFetch('/api/settings/budget', { method: 'PATCH', body: JSON.stringify({ monthly_budget }) });
+
+// Debts endpoints
+export const getDebts = async () => apiFetch('/api/debts');
+export const createDebt = async (data: any) => apiFetch('/api/debts', { method: 'POST', body: JSON.stringify(data) });
+export const updateDebt = async (id: string, data: any) => apiFetch(`/api/debts/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteDebt = async (id: string) => apiFetch(`/api/debts/${id}`, { method: 'DELETE' });
+
 export const deleteCategoryBudget = (id: string) =>
   apiFetch(`/api/budgets/${id}`, { method: 'DELETE' });

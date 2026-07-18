@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Receipt, TrendingUp, Users, Heart, Target } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, Users, Heart, Target, Landmark } from 'lucide-react';
 import Link from 'next/link';
 
 export function BottomNav() {
@@ -12,6 +12,7 @@ export function BottomNav() {
     { name: 'Expenses', href: '/transactions', icon: Receipt },
     { name: 'Budget', href: '/budget', icon: Target },
     { name: 'Splits', href: '/splits', icon: Users },
+    { name: 'Debts', href: '/debts', icon: Landmark },
     { name: 'Wishlist', href: '/wishlist', icon: Heart },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   ];
@@ -28,6 +29,8 @@ export function BottomNav() {
     { bg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.2), rgba(225, 29, 72, 0.5))', shadow: '0 0 18px rgba(244, 63, 94, 0.4), 0 0 10px rgba(251, 113, 133, 0.2) inset' },
     // Splits - Purple
     { bg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.5))', shadow: '0 0 18px rgba(168, 85, 247, 0.4), 0 0 10px rgba(216, 180, 254, 0.2) inset' },
+    // Debts - Blue
+    { bg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.5))', shadow: '0 0 18px rgba(59, 130, 246, 0.4), 0 0 10px rgba(147, 197, 253, 0.2) inset' },
     // Wishlist - Cyan
     { bg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(8, 145, 178, 0.5))', shadow: '0 0 18px rgba(6, 182, 212, 0.4), 0 0 10px rgba(103, 232, 249, 0.2) inset' },
     // Analytics - Orange

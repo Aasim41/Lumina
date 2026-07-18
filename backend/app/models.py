@@ -113,3 +113,15 @@ class CategoryBudget(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="category_budgets")
+
+class Debt(Base):
+    __tablename__ = "debts"
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    name = Column(String, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    paid_amount = Column(Float, default=0.0)
+    interest_rate = Column(Float, nullable=True)
+    next_emi_date = Column(Date, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")

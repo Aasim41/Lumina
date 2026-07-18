@@ -232,3 +232,27 @@ class WrapUpResponse(BaseModel):
     biggest_splurge_amount: float
     savings_vs_last_month: float
     is_positive_savings: bool
+
+class DebtCreate(BaseModel):
+    name: str
+    total_amount: float
+    paid_amount: float = 0.0
+    interest_rate: Optional[float] = None
+    next_emi_date: Optional[date] = None
+
+class DebtUpdate(BaseModel):
+    name: Optional[str] = None
+    total_amount: Optional[float] = None
+    paid_amount: Optional[float] = None
+    interest_rate: Optional[float] = None
+    next_emi_date: Optional[date] = None
+
+class DebtResponse(BaseModel):
+    id: UUID
+    name: str
+    total_amount: float
+    paid_amount: float
+    interest_rate: Optional[float] = None
+    next_emi_date: Optional[date] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
