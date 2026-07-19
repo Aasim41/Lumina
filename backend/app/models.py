@@ -132,8 +132,8 @@ class Debt(Base):
 class Investment(Base):
     __tablename__ = "investments"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String(36), ForeignKey("users.id"), index=True)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid, ForeignKey("users.id"), index=True)
     name = Column(String)
     ticker = Column(String) # e.g. AAPL, RELIANCE.NS
     asset_class = Column(String) # e.g. Stock, Mutual Fund, Crypto
