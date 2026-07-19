@@ -7,7 +7,7 @@ import yfinance as yf
 from app.database import get_db
 from app.models import Investment, User
 from app.schemas import InvestmentCreate, InvestmentUpdate, InvestmentResponse
-from app.routers.auth import get_current_user
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/investments", tags=["Investments"])
 
