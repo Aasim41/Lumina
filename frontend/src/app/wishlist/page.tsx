@@ -8,7 +8,6 @@ import { BottomNav } from '@/components/BottomNav';
 import { getWishlist, createWishlistItem, markWishlistPurchased, deleteWishlistItem } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import Confetti from 'react-confetti';
 
 export default function WishlistPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -21,8 +20,6 @@ export default function WishlistPage() {
   const [priority, setPriority] = useState('medium');
   const [imageUrl, setImageUrl] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
-
-  const [showConfetti, setShowConfetti] = useState(false);
 
   const fetchWishlist = async () => {
     try {
@@ -65,10 +62,8 @@ export default function WishlistPage() {
   const handlePurchase = async (id: string) => {
     try {
       await markWishlistPurchased(id);
-      setShowConfetti(true);
       toast.success('Congratulations on your purchase!', { icon: '🎉' });
       fetchWishlist();
-      setTimeout(() => setShowConfetti(false), 5000);
     } catch (e) {
       toast.error('Failed to mark as purchased');
     }
@@ -86,7 +81,6 @@ export default function WishlistPage() {
 
   return (
     <AuthGuard>
-      {showConfetti && <Confetti recycle={false} numberOfPieces={500} gravity={0.15} />}
       <div className="min-h-screen bg-[#0B1021] pb-24 text-white font-sans">
         <header className="px-6 pb-6 pt-14 safe-pt bg-[#0B1021] sticky top-0 z-10">
           <div className="flex justify-between items-center mb-2">
