@@ -169,7 +169,7 @@ export const getInsights = () => {
 
 // Wishlist
 export const getWishlist = () => apiFetch('/api/wishlist/');
-export const createWishlistItem = (data: { name: string; price: number; priority: string }) =>
+export const createWishlistItem = (data: { name: string; price: number; priority: string; image_url?: string; link_url?: string; }) =>
   apiFetch('/api/wishlist/', { method: 'POST', body: JSON.stringify(data) });
 export const markWishlistPurchased = (id: string) =>
   apiFetch(`/api/wishlist/${id}`, { method: 'PATCH' });
@@ -178,6 +178,7 @@ export const deleteWishlistItem = (id: string) =>
 
 // Splits
 export const getSplits = () => apiFetch('/api/splits/');
+export const getBalances = () => apiFetch('/api/splits/balances');
 export const createSplit = (data: any) =>
   apiFetch('/api/splits/', { method: 'POST', body: JSON.stringify(data) });
 export const toggleSplitMemberPaid = (billId: string, memberId: string) =>
@@ -206,6 +207,12 @@ export const getDebts = async () => apiFetch('/api/debts');
 export const createDebt = async (data: any) => apiFetch('/api/debts', { method: 'POST', body: JSON.stringify(data) });
 export const updateDebt = async (id: string, data: any) => apiFetch(`/api/debts/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const deleteDebt = async (id: string) => apiFetch(`/api/debts/${id}`, { method: 'DELETE' });
+
+// Investments endpoints
+export const getInvestments = async () => apiFetch('/api/investments');
+export const createInvestment = async (data: any) => apiFetch('/api/investments', { method: 'POST', body: JSON.stringify(data) });
+export const updateInvestment = async (id: string, data: any) => apiFetch(`/api/investments/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteInvestment = async (id: string) => apiFetch(`/api/investments/${id}`, { method: 'DELETE' });
 
 export const deleteCategoryBudget = (id: string) =>
   apiFetch(`/api/budgets/${id}`, { method: 'DELETE' });

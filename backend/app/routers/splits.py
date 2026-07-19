@@ -5,8 +5,9 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User, SplitBill, SplitMember
-from app.schemas import SplitBillCreate, SplitBillResponse
+from app.schemas import SplitBillCreate, SplitBillResponse, FriendBalanceResponse
 from typing import List
+from collections import defaultdict
 
 router = APIRouter(prefix="/api/splits", tags=["splits"])
 
@@ -23,6 +24,41 @@ async def get_splits(
     )
     return result.scalars().all()
 
+@router.get("/balances", response_model=List[FriendBalanceResponse])
+async def get_balances(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(SplitBill)
+        .where(SplitBill.user_id == current_user.id)
+        .options(selectinload(SplitBill.members))
+    )
+    bills = result.scalars().all()
+    
+    balances = defaultdict(float)
+    
+    for bill in bills:
+        payer = bill.payer_name
+        for member in bill.members:
+            if member.is_paid == "false":
+                if payer == "You":
+                    # You paid, member owes you (positive balance)
+                    balances[member.name] += member.share_amount
+                elif member.name == "You":
+                    # Payer paid, you owe them (negative balance)
+                    balances[payer] -= member.share_amount
+
+    # Convert to list and filter out exactly zero balances
+    response = []
+    for name, net in balances.items():
+        if abs(net) > 0.01:
+            response.append(FriendBalanceResponse(name=name, net_balance=net))
+            
+    # Sort by absolute balance descending
+    response.sort(key=lambda x: abs(x.net_balance), reverse=True)
+    return response
+
 @router.post("/", response_model=SplitBillResponse)
 async def create_split(
     data: SplitBillCreate,
@@ -35,6 +71,7 @@ async def create_split(
         total_amount=data.total_amount,
         date=data.date,
         category=data.category,
+        payer_name=data.payer_name,
     )
     db.add(bill)
     await db.flush()

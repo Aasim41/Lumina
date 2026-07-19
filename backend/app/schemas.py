@@ -154,6 +154,8 @@ class WishlistCreate(BaseModel):
     name: str
     price: float
     priority: str = "medium"
+    image_url: Optional[str] = None
+    link_url: Optional[str] = None
 
 class WishlistResponse(BaseModel):
     id: UUID
@@ -161,6 +163,8 @@ class WishlistResponse(BaseModel):
     price: float
     priority: str
     is_purchased: str
+    image_url: Optional[str] = None
+    link_url: Optional[str] = None
     days_to_save: Optional[int] = None
     progress_percent: Optional[float] = None
     created_at: datetime
@@ -183,6 +187,7 @@ class SplitBillCreate(BaseModel):
     total_amount: float
     date: date
     category: str = "Miscellaneous"
+    payer_name: str = "You"
     members: List[SplitMemberCreate]
 
 class SplitBillResponse(BaseModel):
@@ -191,9 +196,14 @@ class SplitBillResponse(BaseModel):
     total_amount: float
     date: date
     category: str
+    payer_name: str
     members: List[SplitMemberResponse]
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class FriendBalanceResponse(BaseModel):
+    name: str
+    net_balance: float
 
 # Streaks
 class StreakInfo(BaseModel):
@@ -255,4 +265,35 @@ class DebtResponse(BaseModel):
     interest_rate: Optional[float] = None
     next_emi_date: Optional[date] = None
     created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class InvestmentCreate(BaseModel):
+    name: str
+    ticker: Optional[str] = None
+    asset_class: str
+    quantity: float = 0
+    average_buy_price: float = 0
+    invested_amount: float = 0
+
+class InvestmentUpdate(BaseModel):
+    name: Optional[str] = None
+    ticker: Optional[str] = None
+    asset_class: Optional[str] = None
+    quantity: Optional[float] = None
+    average_buy_price: Optional[float] = None
+    invested_amount: Optional[float] = None
+
+class InvestmentResponse(BaseModel):
+    id: str
+    user_id: str
+    name: str
+    ticker: Optional[str] = None
+    asset_class: str
+    quantity: float
+    average_buy_price: float
+    invested_amount: float
+    current_price: Optional[float] = None
+    current_value: Optional[float] = None
+    created_at: datetime
+    
     model_config = ConfigDict(from_attributes=True)

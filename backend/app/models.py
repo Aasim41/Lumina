@@ -66,6 +66,8 @@ class WishlistItem(Base):
     price = Column(Float, nullable=False)
     priority = Column(String, default="medium")  # high, medium, low
     is_purchased = Column(String, default="false")  # "true" or "false"
+    image_url = Column(String, nullable=True)
+    link_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
 
@@ -77,6 +79,7 @@ class SplitBill(Base):
     total_amount = Column(Float, nullable=False)
     date = Column(Date, nullable=False)
     category = Column(String, default="Miscellaneous")
+    payer_name = Column(String, default="You")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
     members = relationship("SplitMember", back_populates="bill", cascade="all, delete-orphan")
@@ -120,8 +123,22 @@ class Debt(Base):
     user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
     name = Column(String, nullable=False)
     total_amount = Column(Float, nullable=False)
-    paid_amount = Column(Float, default=0.0)
+    paid_amount = Column(Float, default=0)
     interest_rate = Column(Float, nullable=True)
     next_emi_date = Column(Date, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
+
+class Investment(Base):
+    __tablename__ = "investments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), index=True)
+    name = Column(String)
+    ticker = Column(String) # e.g. AAPL, RELIANCE.NS
+    asset_class = Column(String) # e.g. Stock, Mutual Fund, Crypto
+    quantity = Column(Float, default=0)
+    average_buy_price = Column(Float, default=0)
+    invested_amount = Column(Float, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")

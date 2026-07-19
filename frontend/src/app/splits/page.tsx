@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Check, Trash2, X, Receipt } from 'lucide-react';
+import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
-import { getSplits, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
+import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function SplitsPage() {
+  const [activeTab, setActiveTab] = useState<'balances' | 'activity'>('balances');
   const [splits, setSplits] = useState<any[]>([]);
+  const [balances, setBalances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -19,30 +22,32 @@ export default function SplitsPage() {
   const [title, setTitle] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payerName, setPayerName] = useState('You');
   const [members, setMembers] = useState([{ name: '', share_amount: '', percentage: '' }]);
   const [splitMode, setSplitMode] = useState<'amount' | 'percentage'>('amount');
-  const [settleModalOpen, setSettleModalOpen] = useState<string | null>(null);
-  const [settlingAmount, setSettlingAmount] = useState(0);
+  
+  const [settleModalOpen, setSettleModalOpen] = useState<any>(null); // friend name or bill
 
-  const fetchSplits = async () => {
+  const fetchData = async () => {
     try {
-      const data = await getSplits();
-      setSplits(data);
+      const [splitsData, balancesData] = await Promise.all([
+        getSplits(),
+        getBalances().catch(() => []) // fallback if API not migrated yet
+      ]);
+      setSplits(splitsData);
+      setBalances(balancesData);
     } catch (e) {
-      toast.error('Failed to load splits');
+      toast.error('Failed to load splits data');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSplits();
+    fetchData();
   }, []);
 
-  const handleAddMember = () => {
-    setMembers([...members, { name: '', share_amount: '' }]);
-  };
-
+  const handleAddMember = () => setMembers([...members, { name: '', share_amount: '', percentage: '' }]);
   const handleRemoveMember = (index: number) => {
     const newMembers = [...members];
     newMembers.splice(index, 1);
@@ -52,25 +57,17 @@ export default function SplitsPage() {
   const handleMemberChange = (index: number, field: string, value: string) => {
     const newMembers = [...members];
     newMembers[index] = { ...newMembers[index], [field]: value };
-    
-    // Auto-calculate amount if in percentage mode and totalAmount is set
     if (splitMode === 'percentage' && field === 'percentage' && totalAmount) {
       const amt = parseFloat(totalAmount);
       const pct = parseFloat(value);
-      if (!isNaN(amt) && !isNaN(pct)) {
-        newMembers[index].share_amount = ((amt * pct) / 100).toFixed(2);
-      } else {
-        newMembers[index].share_amount = '';
-      }
+      newMembers[index].share_amount = (!isNaN(amt) && !isNaN(pct)) ? ((amt * pct) / 100).toFixed(2) : '';
     }
-    
     setMembers(newMembers);
   };
 
   const splitEqually = () => {
     const amt = parseFloat(totalAmount);
     if (isNaN(amt) || members.length === 0) return;
-    
     if (splitMode === 'amount') {
       const splitAmt = (amt / members.length).toFixed(2);
       setMembers(members.map(m => ({ ...m, share_amount: splitAmt })));
@@ -81,37 +78,25 @@ export default function SplitsPage() {
     }
   };
 
-  const handleSettleUp = (bill: any) => {
-    const unpaidMembers = bill.members.filter((m: any) => m.is_paid === 'false');
-    const remainingAmount = unpaidMembers.reduce((sum: number, m: any) => sum + m.share_amount, 0);
-    setSettlingAmount(remainingAmount);
-    setSettleModalOpen(bill.id);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !totalAmount || members.length === 0) return;
-    
     setIsSubmitting(true);
     try {
       await createSplit({
         title,
         total_amount: parseFloat(totalAmount),
         date,
+        payer_name: payerName || 'You',
         members: members.map(m => ({ name: m.name, share_amount: parseFloat(m.share_amount) }))
       });
-      toast.success('Split created!');
+      toast.success('Split added!');
       setIsModalOpen(false);
-      
-      // Reset form
-      setTitle('');
-      setTotalAmount('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setTitle(''); setTotalAmount(''); setPayerName('You');
       setMembers([{ name: '', share_amount: '', percentage: '' }]);
-      
-      fetchSplits();
+      fetchData();
     } catch (e) {
-      toast.error('Failed to create split');
+      toast.error('Failed to add split');
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +105,7 @@ export default function SplitsPage() {
   const togglePaid = async (billId: string, memberId: string) => {
     try {
       await toggleSplitMemberPaid(billId, memberId);
-      fetchSplits();
+      fetchData();
     } catch (e) {
       toast.error('Failed to update status');
     }
@@ -129,318 +114,209 @@ export default function SplitsPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteSplit(id);
-      toast.success('Split removed');
-      fetchSplits();
+      toast.success('Deleted');
+      fetchData();
     } catch (e) {
-      toast.error('Failed to delete split');
+      toast.error('Failed to delete');
     }
   };
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#0B1021] pb-24 text-white">
-        <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent">
-          <div className="flex justify-between items-center mb-2">
-            <h1 className="text-2xl font-display font-bold">Split Bills 💸</h1>
+      <div className="min-h-screen bg-[#0B1021] pb-24 text-white font-sans">
+        <header className="px-6 pb-4 pt-14 safe-pt bg-[#111827] border-b border-white/5 sticky top-0 z-10 shadow-lg">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-display font-bold">Groups 🍕</h1>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="p-2 bg-primary/20 text-primary rounded-full hover:bg-primary/30 transition-colors"
+              className="p-2 bg-[#5bc5a7]/20 text-[#5bc5a7] rounded-full hover:bg-[#5bc5a7]/30 transition-colors shadow-[0_0_15px_rgba(91,197,167,0.2)]"
             >
               <Plus className="w-6 h-6" />
             </button>
           </div>
-          <p className="text-sm text-text-secondary">Track shared expenses with friends</p>
+          
+          <div className="flex bg-[#1f2937] p-1 rounded-xl">
+            <button 
+              onClick={() => setActiveTab('balances')}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'balances' ? 'bg-[#5bc5a7] text-white shadow-md' : 'text-text-secondary hover:text-white'}`}
+            >
+              Balances
+            </button>
+            <button 
+              onClick={() => setActiveTab('activity')}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'activity' ? 'bg-[#5bc5a7] text-white shadow-md' : 'text-text-secondary hover:text-white'}`}
+            >
+              Activity
+            </button>
+          </div>
         </header>
 
-        <div className="px-4 space-y-6 -mt-4">
+        <div className="px-4 py-6">
           {loading ? (
             <div className="text-center py-10 text-white/50">Loading...</div>
-          ) : splits.length === 0 ? (
-            <div className="text-center py-12 px-4 glass rounded-3xl border border-white/5">
-              <Users className="w-12 h-12 text-primary/40 mx-auto mb-4" />
-              <p className="text-white/80 font-medium">No splits yet</p>
-              <p className="text-sm text-text-secondary mt-1">Split a bill with friends!</p>
+          ) : activeTab === 'balances' ? (
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-widest pl-2 mb-2">Overall Balances</h2>
+              {balances.length === 0 ? (
+                <div className="text-center py-12 px-4 bg-[#1f2937] rounded-3xl border border-white/5">
+                  <div className="w-16 h-16 bg-[#5bc5a7]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-[#5bc5a7]" />
+                  </div>
+                  <p className="text-white/80 font-medium">You're all settled up!</p>
+                  <p className="text-sm text-text-secondary mt-1">Add an expense to split it with friends.</p>
+                </div>
+              ) : (
+                <div className="bg-[#1f2937] rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+                  {balances.map((b: any, idx: number) => (
+                    <div key={idx} className={`flex items-center justify-between p-4 ${idx !== balances.length - 1 ? 'border-b border-white/5' : ''}`}>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                          <UserIcon className="w-5 h-5 text-white/60" />
+                        </div>
+                        <div>
+                          <p className="font-bold">{b.name}</p>
+                          <p className={`text-xs font-semibold ${b.net_balance > 0 ? 'text-[#5bc5a7]' : 'text-[#ff652f]'}`}>
+                            {b.net_balance > 0 ? `owes you ${formatCurrency(b.net_balance)}` : `you owe ${formatCurrency(Math.abs(b.net_balance))}`}
+                          </p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setSettleModalOpen({ name: b.name, amount: b.net_balance })}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold border ${b.net_balance > 0 ? 'border-[#5bc5a7] text-[#5bc5a7] hover:bg-[#5bc5a7]/10' : 'border-[#ff652f] text-[#ff652f] hover:bg-[#ff652f]/10'}`}
+                      >
+                        Settle Up
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
-            splits.map((split) => {
-              const paidCount = split.members.filter((m: any) => m.is_paid === 'true').length;
-              const totalMembers = split.members.length;
-              const progress = totalMembers > 0 ? (paidCount / totalMembers) * 100 : 0;
-              
-              return (
-                <motion.div
-                  key={split.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-[#f4f4f0] text-black p-5 border-4 border-black shadow-[6px_6px_0px_0px_rgba(16,185,129,1)] relative font-mono mb-6 transition-all"
-                >
-                  <div className="absolute top-0 right-0 bg-black text-white px-2 py-1 text-xs font-bold border-b-4 border-l-4 border-black">
-                    BILL #{split.id.substring(0, 4).toUpperCase()}
-                  </div>
-                  <div className="border-b-4 border-black pb-4 mb-4 mt-2">
-                    <h3 className="font-black text-2xl uppercase tracking-tighter">{split.title}</h3>
-                    <p className="text-sm font-bold">{split.date}</p>
-                  </div>
-                  
-                  <div className="mb-4 flex justify-between items-center text-sm font-bold border-4 border-black p-2 bg-white">
-                    <span>{paidCount}/{totalMembers} PAID</span>
-                    <span>{Math.round(progress)}%</span>
-                  </div>
-                  
-                  <div className="space-y-0 border-4 border-black bg-white overflow-hidden">
-                    <AnimatePresence>
-                    {split.members.map((member: any, i: number) => (
-                      <motion.div 
-                        key={member.id} 
-                        layout
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, backgroundColor: member.is_paid === 'true' ? '#10b981' : '#ffffff' }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => togglePaid(split.id, member.id)}
-                        className={`flex justify-between items-center p-3 cursor-pointer border-b-4 border-black last:border-b-0 transition-colors ${
-                          member.is_paid === 'true' ? 'hover:bg-[#10b981]/90' : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 border-2 border-black flex items-center justify-center ${
-                            member.is_paid === 'true' ? 'bg-black text-[#10b981]' : 'bg-white'
-                          }`}>
-                            {member.is_paid === 'true' && <Check className="w-4 h-4 font-bold" />}
-                          </div>
-                          <span className={`font-bold ${member.is_paid === 'true' ? 'line-through opacity-70 text-black' : 'text-black'}`}>
-                            {member.name}
-                          </span>
+            <div className="space-y-4">
+              {splits.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-text-secondary">No activity yet.</p>
+                </div>
+              ) : (
+                splits.map((split) => {
+                  const youPaid = !split.payer_name || split.payer_name === 'You';
+                  return (
+                    <div key={split.id} className="bg-[#1f2937] p-4 rounded-2xl border border-white/5 flex gap-4 items-start relative">
+                      <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center shrink-0">
+                        <Receipt className="w-6 h-6 text-white/50" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="font-bold text-lg">{split.title}</h3>
+                          <button onClick={() => handleDelete(split.id)} className="text-red-400 hover:text-red-300 p-1">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        <span className="font-black text-lg">
-                          {formatCurrency(member.share_amount)}
-                        </span>
-                      </motion.div>
-                    ))}
-                    </AnimatePresence>
-                  </div>
-
-                  <div className="mt-4 flex justify-between items-end border-t-4 border-black pt-4">
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleDelete(split.id)}
-                        className="text-xs font-bold uppercase bg-red-500 text-black border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
-                      >
-                        Trash
-                      </button>
-                      {progress < 100 && (
-                        <button 
-                          onClick={() => handleSettleUp(split)}
-                          className="text-xs font-bold uppercase bg-primary text-white border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
-                        >
-                          Settle Up
-                        </button>
-                      )}
+                        <p className="text-xs text-text-secondary mb-3">{split.payer_name || 'You'} paid {formatCurrency(split.total_amount)}</p>
+                        
+                        <div className="space-y-2 mt-2 border-t border-white/5 pt-3">
+                          {split.members.map((m: any) => (
+                            <div key={m.id} className="flex justify-between items-center text-sm" onClick={() => togglePaid(split.id, m.id)}>
+                              <span className={`cursor-pointer ${m.is_paid === 'true' ? 'line-through text-white/30' : 'text-white/80'}`}>
+                                {m.name} owes {formatCurrency(m.share_amount)}
+                              </span>
+                              {m.is_paid === 'true' ? (
+                                <span className="text-[#5bc5a7] text-xs font-bold bg-[#5bc5a7]/10 px-2 py-0.5 rounded">PAID</span>
+                              ) : (
+                                <span className="text-orange-400 text-xs bg-orange-400/10 px-2 py-0.5 rounded">PENDING</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold uppercase">Total Due</p>
-                      <p className="text-3xl font-black tracking-tighter">{formatCurrency(split.total_amount)}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })
+                  );
+                })
+              )}
+            </div>
           )}
         </div>
       </div>
       <BottomNav />
 
-      {/* Create Modal */}
+      {/* Add Split Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[999]"
-            />
-            
-            <div className="fixed inset-0 z-[999] flex items-end justify-center pointer-events-none">
-              <motion.div 
-                initial={{ opacity: 0, y: 100 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 100 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="w-full max-w-md glass p-6 pt-5 rounded-t-3xl border border-white/10 border-b-0 shadow-2xl shadow-primary/20 pointer-events-auto max-h-[85vh] flex flex-col"
-              >
-                <div className="flex justify-between items-center mb-6 shrink-0">
-                  <h2 className="text-xl font-display font-bold">New Split Bill</h2>
-                  <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-text-secondary transition-colors active:scale-90">
-                    <X className="w-5 h-5" />
-                  </button>
+          <div className="fixed inset-0 z-[999] flex items-end justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div 
+              initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
+              className="w-full bg-[#1f2937] p-6 rounded-t-3xl shadow-2xl relative z-10 max-h-[85vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Add an expense</h2>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={handleSubmit} className="overflow-y-auto pb-6 space-y-4">
+                <div>
+                  <label className="text-xs text-text-secondary uppercase font-bold tracking-wider mb-1 block">Description</label>
+                  <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Dinner, Uber, etc." className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#5bc5a7]" />
+                </div>
+                
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="text-xs text-text-secondary uppercase font-bold tracking-wider mb-1 block">Amount</label>
+                    <input type="number" required value={totalAmount} onChange={e => setTotalAmount(e.target.value)} placeholder="0.00" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#5bc5a7]" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-text-secondary uppercase font-bold tracking-wider mb-1 block">Date</label>
+                    <input type="date" required value={date} onChange={e => setDate(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#5bc5a7]" />
+                  </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="custom-form overflow-y-auto pr-2 pb-4">
-                  <p className="title">Split Bill <span>Share expenses with friends</span></p>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="col-span-2">
-                      <label>What was this for?</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Dinner at Mama's"
-                        value={title}
-                        onChange={e => setTitle(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label>Total (₹)</label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        placeholder="0"
-                        value={totalAmount}
-                        onChange={e => setTotalAmount(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label>Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={date}
-                        onChange={e => setDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <div className="flex justify-between items-center mb-3">
-                      <label className="text-sm font-semibold text-white">Who's paying?</label>
-                      <div className="flex items-center gap-3">
-                        <div className="flex bg-black/40 rounded-lg overflow-hidden border border-white/10 p-0.5">
-                          <button 
-                            type="button" 
-                            onClick={() => setSplitMode('amount')}
-                            className={`px-3 py-1 text-xs font-bold transition-colors rounded-md ${splitMode === 'amount' ? 'bg-primary text-white' : 'text-text-secondary hover:text-white'}`}
-                          >
-                            By Amount
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={() => setSplitMode('percentage')}
-                            className={`px-3 py-1 text-xs font-bold transition-colors rounded-md ${splitMode === 'percentage' ? 'bg-primary text-white' : 'text-text-secondary hover:text-white'}`}
-                          >
-                            By %
-                          </button>
-                        </div>
-                        <button type="button" onClick={splitEqually} className="text-xs font-bold text-primary hover:text-primary/80 transition-colors uppercase">
-                          Split Equally
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {members.map((member, i) => (
-                        <div key={i} className="flex gap-2 items-center">
-                          <input
-                            type="text"
-                            required
-                            placeholder="Name"
-                            value={member.name}
-                            onChange={e => handleMemberChange(i, 'name', e.target.value)}
-                            className="flex-1 bg-black/50 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
-                          />
-                          {splitMode === 'percentage' ? (
-                            <>
-                              <input
-                                type="number"
-                                required
-                                placeholder="%"
-                                value={member.percentage}
-                                onChange={e => handleMemberChange(i, 'percentage', e.target.value)}
-                                className="w-20 bg-black/50 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
-                              />
-                              <span className="text-text-secondary text-xs w-16 truncate">₹{member.share_amount || '0'}</span>
-                            </>
-                          ) : (
-                            <input
-                              type="number"
-                              required
-                              placeholder="₹0"
-                              value={member.share_amount}
-                              onChange={e => handleMemberChange(i, 'share_amount', e.target.value)}
-                              className="w-24 bg-black/50 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
-                            />
-                          )}
-                          {members.length > 1 && (
-                            <button type="button" onClick={() => handleRemoveMember(i)} className="p-2 text-red-400 bg-red-500/10 rounded-lg">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <button type="button" onClick={handleAddMember} className="w-full mt-3 py-3 border border-dashed border-white/20 rounded-xl text-sm font-semibold text-text-secondary hover:text-white hover:border-white/40 hover:bg-white/5 transition-colors">
-                      + Add Person
-                    </button>
-                  </div>
+                <div>
+                  <label className="text-xs text-text-secondary uppercase font-bold tracking-wider mb-1 block">Who paid?</label>
+                  <input type="text" required value={payerName} onChange={e => setPayerName(e.target.value)} placeholder="You" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#5bc5a7]" />
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="oauthButton mt-6"
-                  >
-                    {isSubmitting ? 'Creating...' : 'Create Split Bill'}
-                  </button>
-                </form>
-              </motion.div>
-            </div>
-          </>
+                <div className="bg-black/20 p-4 rounded-xl border border-white/5">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-bold">Split with...</span>
+                    <button type="button" onClick={splitEqually} className="text-xs text-[#5bc5a7] font-bold uppercase hover:underline">Split Equally</button>
+                  </div>
+                  <div className="space-y-3">
+                    {members.map((member, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input type="text" required placeholder="Name" value={member.name} onChange={e => handleMemberChange(i, 'name', e.target.value)} className="flex-1 bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+                        <input type="number" required placeholder="₹0" value={member.share_amount} onChange={e => handleMemberChange(i, 'share_amount', e.target.value)} className="w-24 bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+                        {members.length > 1 && <button type="button" onClick={() => handleRemoveMember(i)} className="text-red-400 px-2"><X className="w-4 h-4"/></button>}
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" onClick={handleAddMember} className="w-full mt-3 py-2 border border-dashed border-white/20 rounded-lg text-sm text-text-secondary hover:text-white transition-colors">+ Add Person</button>
+                </div>
+                <button type="submit" disabled={isSubmitting} className="w-full bg-[#5bc5a7] text-white font-bold py-4 rounded-xl hover:bg-[#5bc5a7]/90 transition-colors shadow-lg shadow-[#5bc5a7]/20 mt-4">
+                  {isSubmitting ? 'Saving...' : 'Save Expense'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Settle Up Mock Overlay */}
       <AnimatePresence>
         {settleModalOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-sm bg-[#f4f4f0] text-black p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(99,102,241,1)] relative font-mono"
-            >
-              <button onClick={() => setSettleModalOpen(null)} className="absolute top-4 right-4 p-1 hover:bg-black/10 rounded-full">
-                <X className="w-5 h-5" />
-              </button>
-              
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSettleModalOpen(null)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[#1f2937] p-6 rounded-3xl relative z-10 border border-white/10 shadow-2xl">
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-primary mx-auto rounded-full flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 text-white">
-                  <Receipt className="w-8 h-8" />
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${settleModalOpen.amount > 0 ? 'bg-[#5bc5a7]/20 text-[#5bc5a7]' : 'bg-[#ff652f]/20 text-[#ff652f]'}`}>
+                  <ArrowRight className="w-8 h-8" />
                 </div>
-                <h3 className="font-black text-2xl uppercase tracking-tighter">Settle Up</h3>
-                <p className="text-sm font-bold text-gray-600 mt-1">Remaining Balance</p>
-                <p className="font-black text-4xl mt-2">{formatCurrency(settlingAmount)}</p>
+                <h3 className="font-bold text-2xl">Settle Up</h3>
+                <p className="text-text-secondary mt-1">Record a payment for</p>
+                <p className="font-bold text-3xl mt-2">{formatCurrency(Math.abs(settleModalOpen.amount))}</p>
+                <p className="text-sm mt-1">{settleModalOpen.amount > 0 ? `${settleModalOpen.name} paid you` : `You paid ${settleModalOpen.name}`}</p>
               </div>
-
               <div className="space-y-3">
-                <button 
-                  onClick={() => {
-                    toast.success('Fake UPI request sent!');
-                    setSettleModalOpen(null);
-                  }}
-                  className="w-full py-3 bg-[#10b981] text-black font-black uppercase border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                  </svg>
-                  Pay via UPI
-                </button>
-                <button 
-                  onClick={() => setSettleModalOpen(null)}
-                  className="w-full py-3 bg-white text-black font-black uppercase border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all"
-                >
-                  Cancel
-                </button>
+                <button onClick={() => { toast.success('Settled!'); setSettleModalOpen(null); fetchData(); }} className="w-full py-3 bg-[#5bc5a7] text-white font-bold rounded-xl shadow-lg shadow-[#5bc5a7]/20">Record Payment</button>
+                <button onClick={() => setSettleModalOpen(null)} className="w-full py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10">Cancel</button>
               </div>
             </motion.div>
           </div>

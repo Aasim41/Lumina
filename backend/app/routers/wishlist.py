@@ -23,34 +23,21 @@ async def get_wishlist(
     )
     items = result.scalars().all()
     
-    # Calculate daily savings rate for days_to_save
-    budget = current_user.monthly_budget or 0
-    today = datetime.today()
-    start_this_month = today.replace(day=1).date()
-    
-    txn_result = await db.execute(
-        select(Transaction)
-        .where(Transaction.user_id == current_user.id)
-        .where(Transaction.date >= start_this_month)
-    )
-    this_month_txns = txn_result.scalars().all()
-    total_spent = sum(t.amount for t in this_month_txns if t.category not in ["Savings", "SecretVault", "SecretVault_Processed"])
-    
-    days_elapsed = max(today.day, 1)
-    daily_avg_spend = total_spent / days_elapsed
-    daily_savings = max((budget / 30) - daily_avg_spend, 1)  # min 1 to avoid division by zero
+    # Calculate progress based on Secret Vault balance
+    vault_balance = current_user.vault_balance or 0.0
     
     responses = []
     for item in items:
-        days = int(item.price / daily_savings) if daily_savings > 0 else 999
-        progress = min((daily_savings * days_elapsed / item.price) * 100, 100) if item.price > 0 else 0
+        progress = min((vault_balance / item.price) * 100, 100) if item.price > 0 else 0
         responses.append(WishlistResponse(
             id=item.id,
             name=item.name,
             price=item.price,
             priority=item.priority,
             is_purchased=item.is_purchased,
-            days_to_save=days,
+            image_url=item.image_url,
+            link_url=item.link_url,
+            days_to_save=0, # Deprecated
             progress_percent=round(progress, 1),
             created_at=item.created_at,
         ))
@@ -68,6 +55,8 @@ async def create_wishlist_item(
         name=data.name,
         price=data.price,
         priority=data.priority,
+        image_url=data.image_url,
+        link_url=data.link_url,
     )
     db.add(item)
     await db.commit()
@@ -75,6 +64,7 @@ async def create_wishlist_item(
     return WishlistResponse(
         id=item.id, name=item.name, price=item.price,
         priority=item.priority, is_purchased=item.is_purchased,
+        image_url=item.image_url, link_url=item.link_url,
         days_to_save=0, progress_percent=0,
         created_at=item.created_at,
     )
