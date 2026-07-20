@@ -25,27 +25,27 @@ function hashSMS(body: string, date: string): string {
   return Math.abs(hash).toString(36);
 }
 
-// Amount patterns: Rs.500, Rs 500.00, INR 1,500.00, Rs.1,23,456.78
+// Amount patterns: Rs.500, Rs 500.00, INR 1,500.00, Rs.1,23,456.78, ₹ 500
 const AMOUNT_PATTERNS = [
-  /(?:rs\.?|inr\.?|rupees?)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-  /(?:amount|amt)\s*(?:of\s*)?(?:rs\.?|inr\.?)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-  /([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:has been|is|was)\s*(?:debited|credited)/i,
-  /(?:debited|credited)\s*(?:with|by|for)?\s*(?:rs\.?|inr\.?)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-  /(?:spent|paid|received|sent)\s*(?:rs\.?|inr\.?)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-  /(?:txn|transaction)\s*(?:of|for|:)\s*(?:rs\.?|inr\.?)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  /(?:rs\.?|inr\.?|rupees?|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  /(?:amount|amt)\s*(?:of\s*)?(?:rs\.?|inr\.?|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  /([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:has been|is|was)\s*(?:debited|credited|dr|cr)/i,
+  /(?:debited|credited|dr|cr)\s*(?:with|by|for)?\s*(?:rs\.?|inr\.?|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  /(?:spent|paid|received|sent)\s*(?:rs\.?|inr\.?|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  /(?:txn|transaction)\s*(?:of|for|:)\s*(?:rs\.?|inr\.?|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
 ];
 
 // Debit indicators
 const DEBIT_KEYWORDS = [
   /debited/i, /spent/i, /paid/i, /sent/i, /purchase/i, /withdrawn/i, /withdrawal/i,
   /payment/i, /transferred/i, /deducted/i, /charged/i, /auto.?pay/i, /emi/i,
-  /bill\s*pay/i, /neft/i, /rtgs/i, /imps/i, /upi/i,
+  /bill\s*pay/i, /neft/i, /rtgs/i, /imps/i, /upi/i, /\bdr\b/i,
 ];
 
 // Credit indicators
 const CREDIT_KEYWORDS = [
   /credited/i, /received/i, /refund/i, /cashback/i, /reversal/i, /deposit/i,
-  /salary/i,
+  /salary/i, /\bcr\b/i,
 ];
 
 // Merchant/payee patterns

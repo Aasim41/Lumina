@@ -33,7 +33,7 @@ export default function BudgetDashboard() {
       setAvailableCategories(catsData.map((c: any) => c.category));
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load budget data');
+      // Suppress toast error on load to avoid false positives when no data is available
     }
     setLoading(false);
   };

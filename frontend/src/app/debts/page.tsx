@@ -355,7 +355,7 @@ export default function DebtsPage() {
                     </div>
                   </div>
 
-                  <div className="pt-4 pb-8 sm:pb-0">
+                  <div className="pt-4 pb-24 sm:pb-6">
                     <button
                       type="submit"
                       disabled={isSubmitting}

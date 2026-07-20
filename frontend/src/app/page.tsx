@@ -189,7 +189,7 @@ export default function Dashboard() {
         <div className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
           <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
-            <div className="absolute top-4 left-1/2 -translate-x-1/2">
+            <div className="absolute top-10 left-1/2 -translate-x-1/2">
               <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
             </div>
             <div className="flex justify-between items-center mb-6 mt-2">
@@ -230,15 +230,15 @@ export default function Dashboard() {
               <div className="flex items-center space-x-2">
                 <button 
                   onClick={syncNow}
-                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-primary transition-colors hidden sm:block"
+                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-primary transition-colors"
                   title="Sync SMS"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={logout}
-                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-error transition-colors hidden sm:block"
-                  title="Log out"
+                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-error transition-colors"
+                  title="Logout"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 </button>
@@ -300,25 +300,7 @@ export default function Dashboard() {
               </Link>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="mb-6"
-            >
-              <Link href="/investments">
-                <div className="bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 border border-indigo-500/30 p-4 rounded-3xl flex items-center justify-between relative overflow-hidden group cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.15)] hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] transition-all">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">Investment Portfolio</span>
-                    <span className="text-xs text-text-secondary">Track stocks, mutual funds & SIPs</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-5 h-5 text-indigo-300" />
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
+
             
             {summary?.current_streak > 0 && (
               <motion.div
