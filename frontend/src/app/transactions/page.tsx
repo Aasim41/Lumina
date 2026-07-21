@@ -29,9 +29,17 @@ export default function TransactionsPage() {
 
   const fetchTransactions = async () => {
     try {
-      setLoading(true);
+      const cachedTxns = localStorage.getItem('lumina_transactions');
+      if (cachedTxns) {
+        setTransactions(JSON.parse(cachedTxns));
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+      
       const data = await getTransactions();
       setTransactions(data);
+      localStorage.setItem('lumina_transactions', JSON.stringify(data));
     } catch (error) {
       toast.error('Failed to load transactions');
     } finally {

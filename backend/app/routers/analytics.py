@@ -25,8 +25,8 @@ async def get_summary(
     start_last_month = (today.replace(day=1) - relativedelta(months=1)).date()
     
     # All txns for user
-    result = await db.execute(select(Transaction).where(Transaction.user_id == current_user.id))
-    transactions = result.scalars().all()
+    result = await db.execute(select(Transaction.date, Transaction.category, Transaction.amount).where(Transaction.user_id == current_user.id))
+    transactions = result.all()
     
     this_month_txns = [t for t in transactions if t.date >= start_this_month]
     last_month_txns = [t for t in transactions if start_last_month <= t.date < start_this_month]
@@ -163,9 +163,9 @@ async def get_categories(
     start_this_month = today.replace(day=1).date()
     
     result = await db.execute(
-        select(Transaction).where(Transaction.user_id == current_user.id, Transaction.date >= start_this_month)
+        select(Transaction.category, Transaction.amount).where(Transaction.user_id == current_user.id, Transaction.date >= start_this_month)
     )
-    transactions = result.scalars().all()
+    transactions = result.all()
     
     total_amount = sum(t.amount for t in transactions)
     
@@ -200,9 +200,9 @@ async def get_trends(
     twelve_months_ago = (datetime.today().replace(day=1) - relativedelta(months=11)).date()
     
     result = await db.execute(
-        select(Transaction).where(Transaction.user_id == current_user.id, Transaction.date >= twelve_months_ago)
+        select(Transaction.date, Transaction.category, Transaction.amount).where(Transaction.user_id == current_user.id, Transaction.date >= twelve_months_ago)
     )
-    transactions = result.scalars().all()
+    transactions = result.all()
     
     trend_map = {}
     for i in range(12):
@@ -232,9 +232,9 @@ async def get_heatmap(
     start_this_month = today.replace(day=1).date()
     
     result = await db.execute(
-        select(Transaction).where(Transaction.user_id == current_user.id, Transaction.date >= start_this_month)
+        select(Transaction.date, Transaction.category, Transaction.amount).where(Transaction.user_id == current_user.id, Transaction.date >= start_this_month)
     )
-    transactions = result.scalars().all()
+    transactions = result.all()
     
     day_map = {
         0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"
@@ -258,9 +258,9 @@ async def get_top_merchants(
     current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
-        select(Transaction).where(Transaction.user_id == current_user.id)
+        select(Transaction.merchant_clean, Transaction.category, Transaction.amount).where(Transaction.user_id == current_user.id)
     )
-    transactions = result.scalars().all()
+    transactions = result.all()
     
     merchant_map = defaultdict(lambda: {"amount": 0.0, "count": 0})
     for t in transactions:
@@ -432,8 +432,8 @@ async def get_wrap_up(
     start_this_month = today.replace(day=1).date()
     start_last_month = (today.replace(day=1) - relativedelta(months=1)).date()
     
-    result = await db.execute(select(Transaction).where(Transaction.user_id == current_user.id))
-    transactions = result.scalars().all()
+    result = await db.execute(select(Transaction.date, Transaction.category, Transaction.amount, Transaction.merchant_clean).where(Transaction.user_id == current_user.id))
+    transactions = result.all()
     
     this_month_txns = [t for t in transactions if t.date >= start_this_month and t.category not in ["Savings", "SecretVault", "SecretVault_Processed"]]
     last_month_txns = [t for t in transactions if start_last_month <= t.date < start_this_month and t.category not in ["Savings", "SecretVault", "SecretVault_Processed"]]
