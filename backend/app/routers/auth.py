@@ -59,6 +59,7 @@ async def auth_guest(request: GuestAuthRequest, db: AsyncSession = Depends(get_d
         dob=request.dob,
         monthly_budget=request.monthly_budget,
         last_budget_update=datetime.date.today(),
+        user_persona=request.user_persona,
     )
     
     db.add(user)

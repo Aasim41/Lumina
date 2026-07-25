@@ -210,12 +210,11 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
     }
   }, [onSyncComplete]);
 
-  // Sync on app open (mount)
+  // Sync on app open (mount) — delayed so dashboard loads first
   useEffect(() => {
-    // Small delay to let the UI render first
     const timer = setTimeout(() => {
       doSync();
-    }, 2000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [doSync]);

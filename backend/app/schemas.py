@@ -111,6 +111,7 @@ class GuestAuthRequest(BaseModel):
     age: int
     dob: date
     monthly_budget: float
+    user_persona: Optional[str] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -118,6 +119,7 @@ class UserUpdate(BaseModel):
     monthly_budget: Optional[float] = None
     avatar_url: Optional[str] = None
     preferred_currency: Optional[str] = None
+    user_persona: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: UUID
@@ -132,6 +134,7 @@ class UserResponse(BaseModel):
     current_streak: int = 0
     last_logged_date: Optional[date] = None
     unlocked_badges: str = "[]"
+    user_persona: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -297,3 +300,33 @@ class InvestmentResponse(BaseModel):
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
+
+# Financial Goals
+class GoalCreate(BaseModel):
+    name: str
+    target_amount: float
+    target_date: Optional[date] = None
+    icon: str = "🎯"
+
+class GoalContribute(BaseModel):
+    amount: float
+
+class GoalResponse(BaseModel):
+    id: UUID
+    name: str
+    target_amount: float
+    saved_amount: float
+    target_date: Optional[date] = None
+    icon: str
+    progress_percent: float = 0.0
+    monthly_needed: float = 0.0
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+# Smart Alerts
+class AlertItem(BaseModel):
+    id: str
+    type: str  # "warning", "danger", "info", "reminder"
+    title: str
+    message: str
+    icon: str

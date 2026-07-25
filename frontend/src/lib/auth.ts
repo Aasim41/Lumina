@@ -48,6 +48,12 @@ export const logout = () => {
   removeToken();
   if (typeof window !== 'undefined') {
     localStorage.removeItem('user');
+    localStorage.removeItem('lumina_user');
+    localStorage.removeItem('lumina_summary');
+    localStorage.removeItem('lumina_categories');
+    localStorage.removeItem('lumina_trends');
+    localStorage.removeItem('lumina_subs');
+    localStorage.removeItem('lumina_transactions');
     window.location.replace('/login/index.html');
   }
 };

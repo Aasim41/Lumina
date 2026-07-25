@@ -14,10 +14,21 @@ export function useAuth() {
       setLoading(false);
       return;
     }
+    
+    // Load cached user instantly (no network wait)
+    const cachedUser = localStorage.getItem('lumina_user');
+    if (cachedUser) {
+      try {
+        setUser(JSON.parse(cachedUser));
+        setLoading(false); // Stop blocking UI immediately
+      } catch (e) {}
+    }
+    
+    // Then silently refresh from server in background
     try {
-      setLoading(true);
       const data = await getUserProfile();
       setUser(data);
+      localStorage.setItem('lumina_user', JSON.stringify(data));
     } catch (e) {
       console.error("Failed to load user profile", e);
     } finally {

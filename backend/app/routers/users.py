@@ -39,6 +39,9 @@ async def update_me(
         current_user.monthly_budget = user_update.monthly_budget
         import datetime
         current_user.last_budget_update = datetime.date.today()
+    
+    if hasattr(user_update, "user_persona") and user_update.user_persona is not None:
+        current_user.user_persona = user_update.user_persona
         
     db.add(current_user)
     await db.commit()

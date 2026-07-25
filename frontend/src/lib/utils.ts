@@ -63,3 +63,51 @@ export function getCategoryIcon(category: string): string {
   };
   return icons[category] || "circle-ellipsis";
 }
+
+// Persona configurations
+export const PERSONA_CONFIGS: Record<string, {
+  label: string;
+  icon: string;
+  color: string;
+  categories: string[];
+  budgetRange: [number, number];
+  budgetPlaceholder: string;
+  quickActions: string[];
+}> = {
+  hostel_student: {
+    label: 'Hostel Student',
+    icon: '🎓',
+    color: '#f59e0b',
+    categories: ['Mess & Food', 'Canteen & Snacks', 'Transport', 'Books & Xerox', 'Stationery', 'Laundry', 'Entertainment', 'Miscellaneous'],
+    budgetRange: [3000, 12000],
+    budgetPlaceholder: '8000',
+    quickActions: ['Split Bill', 'Canteen', 'Books'],
+  },
+  school_student: {
+    label: 'School Student',
+    icon: '🎒',
+    color: '#3b82f6',
+    categories: ['School Fees', 'Stationery', 'Snacks & Tiffin', 'Transport / Bus', 'Hobbies & Gaming', 'Books', 'Entertainment', 'Miscellaneous'],
+    budgetRange: [1000, 5000],
+    budgetPlaceholder: '3000',
+    quickActions: ['Snacks', 'Stationery', 'Gaming'],
+  },
+  unmarried_employee: {
+    label: 'Single Professional',
+    icon: '💻',
+    color: '#8b5cf6',
+    categories: ['Food & Dining', 'Rent & Maintenance', 'Subscriptions', 'Transport', 'Shopping', 'Outings', 'SIP / Investments', 'Bills & Utilities', 'Healthcare', 'Entertainment', 'Miscellaneous'],
+    budgetRange: [25000, 90000],
+    budgetPlaceholder: '50000',
+    quickActions: ['Subscriptions', 'Save Money', 'Split Bill'],
+  },
+  married_employee: {
+    label: 'Family',
+    icon: '🏠',
+    color: '#10b981',
+    categories: ['Groceries & Provisions', 'Home Loan / Rent', 'Electricity & Bills', 'Insurance & Health', 'Child Education', 'Transport', 'Shopping', 'Entertainment', 'Family Emergency', 'SIP / Investments', 'Miscellaneous'],
+    budgetRange: [50000, 200000],
+    budgetPlaceholder: '100000',
+    quickActions: ['Groceries', 'Bills', 'EMI'],
+  },
+};

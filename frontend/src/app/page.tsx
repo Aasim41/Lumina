@@ -18,8 +18,8 @@ import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings } from 'lucide-react';
-import { deleteSubscription, apiFetch, getInsights, getTransactions } from '@/lib/api';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
+import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
 import { generateMonthlyStatement } from '@/lib/PDFGenerator';
@@ -75,6 +75,8 @@ export default function Dashboard() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showReviewBanner, setShowReviewBanner] = useState(true);
   const [insights, setInsights] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
   const [unlockedBadge, setUnlockedBadge] = useState<string | null>(null);
 
   useEffect(() => {
@@ -96,9 +98,15 @@ export default function Dashboard() {
     }
   }, [user?.unlocked_badges]);
 
+  // Defer non-critical API calls so dashboard renders first
   useEffect(() => {
     if (user) {
-      getInsights().then(setInsights).catch(console.error);
+      const timer = setTimeout(() => {
+        getInsights().then(setInsights).catch(console.error);
+        getAlerts().then(setAlerts).catch(console.error);
+        getGoals().then(setGoals).catch(console.error);
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [user]);
   const handleDeleteSubscription = async (id: string) => {
@@ -111,16 +119,19 @@ export default function Dashboard() {
     }
   };
 
-  // Stealth Savings Auto-Deduct
+  // Stealth Savings Auto-Deduct (deferred)
   useEffect(() => {
     if (user) {
-      apiFetch('/api/stealth/auto-deduct', { method: 'POST' })
-        .then(res => {
-          if (res.status === 'deducted') {
-            refresh();
-          }
-        })
-        .catch(console.error);
+      const timer = setTimeout(() => {
+        apiFetch('/api/stealth/auto-deduct', { method: 'POST' })
+          .then(res => {
+            if (res.status === 'deducted') {
+              refresh();
+            }
+          })
+          .catch(console.error);
+      }, 4000);
+      return () => clearTimeout(timer);
     }
   }, [user]);
 
@@ -363,7 +374,6 @@ export default function Dashboard() {
             </div>
           </header>
 
-          {/* Content */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -371,6 +381,41 @@ export default function Dashboard() {
             className="px-4 space-y-6 pb-24 -mt-2"
           >
             <MiniCalendar />
+
+            <AnimatePresence>
+              {alerts.map((alert, i) => {
+                let colorClass = 'bg-blue-500/10 border-blue-500/30 text-blue-400';
+                if (alert.severity === 'danger') colorClass = 'bg-red-500/10 border-red-500/30 text-red-400';
+                else if (alert.severity === 'warning') colorClass = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+                else if (alert.severity === 'reminder') colorClass = 'bg-purple-500/10 border-purple-500/30 text-purple-400';
+                
+                return (
+                  <motion.div 
+                    key={alert.id || i}
+                    initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                    exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                    className={`p-4 rounded-2xl border ${colorClass} shadow-lg relative overflow-hidden mb-4`}
+                  >
+                    <button 
+                      onClick={() => setAlerts(alerts.filter(a => a.id !== alert.id))}
+                      className="absolute top-2 right-2 p-1 bg-white/5 rounded-full hover:bg-white/10 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <div className="flex gap-3 items-start pr-6">
+                      <div className="mt-0.5">
+                        {alert.severity === 'danger' || alert.severity === 'warning' ? <AlertTriangle className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm mb-1">{alert.title}</h4>
+                        <p className="text-xs opacity-90">{alert.message}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
 
             {insights.length > 0 && (
               <div className="mb-2">
@@ -489,6 +534,47 @@ export default function Dashboard() {
                     </div>
                   )}
                 </motion.div>
+
+                {/* Goals Widget */}
+                {goals.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="glass p-5 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]"
+                  >
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-display font-semibold text-emerald-100 flex items-center">
+                        <Target className="w-5 h-5 mr-2 text-emerald-400" />
+                        Financial Goals
+                      </h3>
+                      <Link href="/goals" className="text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center">
+                        View All <ArrowRight className="w-3 h-3 ml-1" />
+                      </Link>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {goals.slice(0, 2).map((goal: any) => {
+                        const progress = Math.min((goal.current_amount / goal.target_amount) * 100, 100);
+                        return (
+                          <div key={goal.id}>
+                            <div className="flex justify-between items-end mb-1 text-sm">
+                              <span className="font-medium flex items-center gap-2">
+                                <span>{goal.icon}</span> {goal.name}
+                              </span>
+                              <span className="text-emerald-400 font-bold">{progress.toFixed(0)}%</span>
+                            </div>
+                            <div className="h-2 bg-black/40 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
 
                 {categories && categories.length > 0 && (
                   <CategoryDonutChart data={categories} />

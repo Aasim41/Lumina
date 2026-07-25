@@ -7,17 +7,22 @@ import { Spinner } from './ui/Spinner';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [authorized, setAuthorized] = useState(false);
+  // Check token synchronously — no network call needed
+  const [authorized, setAuthorized] = useState(() => isAuthenticated());
 
   useEffect(() => {
     if (!isAuthenticated()) {
       if (pathname !== '/login' && pathname !== '/login/') {
         window.location.replace('/login/index.html');
       }
+      setAuthorized(false);
     } else {
       setAuthorized(true);
-      import('@/lib/notifications').then(({ requestNotificationPermissions, scheduleRecurringNotifications }) => {
-        requestNotificationPermissions().then(() => scheduleRecurringNotifications());
+      // Defer notifications setup so it doesn't block rendering
+      requestIdleCallback(() => {
+        import('@/lib/notifications').then(({ requestNotificationPermissions, scheduleRecurringNotifications }) => {
+          requestNotificationPermissions().then(() => scheduleRecurringNotifications());
+        });
       });
     }
   }, [pathname]);
@@ -32,3 +37,4 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+

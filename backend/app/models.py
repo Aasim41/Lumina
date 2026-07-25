@@ -23,6 +23,7 @@ class User(Base):
     current_streak = Column(Integer, default=0)
     last_logged_date = Column(Date, nullable=True)
     unlocked_badges = Column(String, default="[]")  # Store as JSON string array
+    user_persona = Column(String, default="unmarried_employee")  # hostel_student, school_student, unmarried_employee, married_employee
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
@@ -140,5 +141,17 @@ class Investment(Base):
     quantity = Column(Float, default=0)
     average_buy_price = Column(Float, default=0)
     invested_amount = Column(Float, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
+
+class FinancialGoal(Base):
+    __tablename__ = "financial_goals"
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    name = Column(String, nullable=False)
+    target_amount = Column(Float, nullable=False)
+    saved_amount = Column(Float, default=0.0)
+    target_date = Column(Date, nullable=True)
+    icon = Column(String, default="🎯")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")

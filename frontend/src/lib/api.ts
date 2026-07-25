@@ -216,3 +216,15 @@ export const deleteInvestment = async (id: string) => apiFetch(`/api/investments
 
 export const deleteCategoryBudget = (id: string) =>
   apiFetch(`/api/budgets/${id}`, { method: 'DELETE' });
+
+// Goals
+export const getGoals = () => apiFetch('/api/goals/');
+export const createGoal = (data: { name: string; target_amount: number; target_date?: string; icon?: string }) =>
+  apiFetch('/api/goals/', { method: 'POST', body: JSON.stringify(data) });
+export const contributeToGoal = (id: string, amount: number) =>
+  apiFetch(`/api/goals/${id}/contribute`, { method: 'PATCH', body: JSON.stringify({ amount }) });
+export const deleteGoal = (id: string) =>
+  apiFetch(`/api/goals/${id}`, { method: 'DELETE' });
+
+// Alerts
+export const getAlerts = () => apiFetch('/api/alerts/');
