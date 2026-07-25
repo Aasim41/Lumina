@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useExpenseData } from '@/hooks/useExpenseData';
 import { useAuth } from '@/hooks/useAuth';
