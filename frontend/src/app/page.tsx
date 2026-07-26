@@ -269,12 +269,12 @@ export default function Dashboard() {
         <div className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
           <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
-            <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-10">
               <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
               {user?.user_persona && (
                 <button
                   onClick={() => setIsPersonaPickerOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[11px] font-medium text-white/70 hover:text-white"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[11px] font-medium text-white/70 hover:text-white shadow-sm"
                 >
                   <span>{PERSONA_CONFIGS[user.user_persona]?.icon || '👤'}</span>
                   <span>{PERSONA_CONFIGS[user.user_persona]?.label || 'Set Profile'}</span>
@@ -283,14 +283,14 @@ export default function Dashboard() {
               {!user?.user_persona && (
                 <button
                   onClick={() => setIsPersonaPickerOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all text-[11px] font-medium text-primary animate-pulse"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all text-[11px] font-medium text-primary animate-pulse shadow-sm"
                 >
                   <span>👤</span>
                   <span>Set Your Profile</span>
                 </button>
               )}
             </div>
-            <div className="flex justify-between items-center mb-6 mt-2">
+            <div className="flex justify-between items-center mb-6 mt-12 relative z-20">
               <div className="flex items-center space-x-3 sm:space-x-4">
                 <button 
                   onClick={() => { window.location.href = '/create-avatar/index.html'; }}
