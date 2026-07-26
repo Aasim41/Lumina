@@ -19,9 +19,9 @@ import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
-import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals } from '@/lib/api';
+import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, PERSONA_CONFIGS } from '@/lib/utils';
 import { generateMonthlyStatement } from '@/lib/PDFGenerator';
 import { Spinner } from '@/components/ui/Spinner';
 import { CategoryIcon } from '@/components/CategoryIcon';
@@ -78,6 +78,22 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [unlockedBadge, setUnlockedBadge] = useState<string | null>(null);
+  const [isPersonaPickerOpen, setIsPersonaPickerOpen] = useState(false);
+  const [personaLoading, setPersonaLoading] = useState(false);
+
+  const handlePersonaChange = async (persona: string) => {
+    setPersonaLoading(true);
+    try {
+      await updateUserProfile({ user_persona: persona });
+      toast.success(`Profile set to ${PERSONA_CONFIGS[persona]?.label || persona}!`);
+      setIsPersonaPickerOpen(false);
+      refreshUser();
+    } catch (e) {
+      toast.error('Failed to update profile');
+    } finally {
+      setPersonaLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user?.unlocked_badges) {
@@ -197,11 +213,82 @@ export default function Dashboard() {
         <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
         <AchievementModal isOpen={!!unlockedBadge} onClose={() => setUnlockedBadge(null)} badgeId={unlockedBadge || ''} />
         
+        {/* Persona Picker Modal */}
+        <AnimatePresence>
+          {isPersonaPickerOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100]"
+                onClick={() => setIsPersonaPickerOpen(false)}
+              />
+              <motion.div
+                initial={{ y: '100%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="fixed bottom-0 left-0 right-0 z-[100] px-4 pb-8"
+                style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
+              >
+                <div className="mx-auto max-w-md bg-[#111827]/95 backdrop-blur-2xl rounded-3xl border border-white/10 p-6 shadow-2xl">
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <h3 className="text-lg font-display font-bold text-white">Choose Your Lifestyle</h3>
+                      <p className="text-xs text-white/40 mt-0.5">This personalizes your categories & tips</p>
+                    </div>
+                    <button onClick={() => setIsPersonaPickerOpen(false)} className="p-2 bg-white/5 rounded-full">
+                      <X className="w-4 h-4 text-white/60" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(PERSONA_CONFIGS).map(([key, config]) => (
+                      <button
+                        key={key}
+                        disabled={personaLoading}
+                        onClick={() => handlePersonaChange(key)}
+                        className={`p-4 rounded-2xl border text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 ${
+                          user?.user_persona === key
+                            ? 'bg-white/10 border-white/30 shadow-lg ring-2 ring-primary/40'
+                            : 'bg-white/5 border-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-2xl block mb-2">{config.icon}</span>
+                        <p className="text-sm font-bold text-white">{config.label}</p>
+                        <p className="text-[10px] text-white/40 mt-0.5">₹{config.budgetRange[0].toLocaleString()} - ₹{config.budgetRange[1].toLocaleString()}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+        
         <div className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
           <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
-            <div className="absolute top-10 left-1/2 -translate-x-1/2">
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
               <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
+              {user?.user_persona && (
+                <button
+                  onClick={() => setIsPersonaPickerOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[11px] font-medium text-white/70 hover:text-white"
+                >
+                  <span>{PERSONA_CONFIGS[user.user_persona]?.icon || '👤'}</span>
+                  <span>{PERSONA_CONFIGS[user.user_persona]?.label || 'Set Profile'}</span>
+                </button>
+              )}
+              {!user?.user_persona && (
+                <button
+                  onClick={() => setIsPersonaPickerOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all text-[11px] font-medium text-primary animate-pulse"
+                >
+                  <span>👤</span>
+                  <span>Set Your Profile</span>
+                </button>
+              )}
             </div>
             <div className="flex justify-between items-center mb-6 mt-2">
               <div className="flex items-center space-x-3 sm:space-x-4">

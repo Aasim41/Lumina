@@ -42,8 +42,9 @@ async def init_db():
         "ALTER TABLE users ADD COLUMN current_streak INTEGER DEFAULT 0;",
         "ALTER TABLE users ADD COLUMN last_logged_date DATE;",
         "ALTER TABLE users ADD COLUMN unlocked_badges VARCHAR DEFAULT '[]';",
+        "ALTER TABLE users ADD COLUMN user_persona VARCHAR DEFAULT 'unmarried_employee';",
         "ALTER TABLE transactions ADD COLUMN currency VARCHAR;",
-        "ALTER TABLE transactions ADD COLUMN original_amount FLOAT;"
+        "ALTER TABLE transactions ADD COLUMN original_amount FLOAT;",
     ]
     
     from sqlalchemy import text
