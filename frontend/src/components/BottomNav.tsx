@@ -15,7 +15,6 @@ const PRIMARY_TABS = [
 
 const MORE_TABS = [
   { name: 'Splits', href: '/splits', icon: Users, color: '#a855f7', desc: 'Split bills with friends' },
-  { name: 'Wishlist', href: '/wishlist', icon: Heart, color: '#06b6d4', desc: 'Track items you want' },
   { name: 'Debts', href: '/debts', icon: Landmark, color: '#3b82f6', desc: 'Manage loans & EMIs' },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp, color: '#f97316', desc: 'Detailed spending insights' },
 ];

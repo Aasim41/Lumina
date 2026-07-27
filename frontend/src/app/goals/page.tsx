@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Plus, Trash2, IndianRupee, Calendar, TrendingUp } from 'lucide-react';
+import { Target, Plus, Trash2, IndianRupee, Calendar, TrendingUp, Lightbulb, Sparkles } from 'lucide-react';
 import { getGoals, createGoal, contributeToGoal, deleteGoal } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -85,18 +85,11 @@ export default function GoalsPage() {
             </motion.div>
           ) : (
             goals.map((goal: any, i: number) => {
-              const progress = Math.min((goal.current_amount / goal.target_amount) * 100, 100);
+              const progress = goal.progress_percent || 0;
               
-              let monthlyNeeded = 0;
-              if (goal.target_date) {
-                const now = new Date();
-                const targetDate = new Date(goal.target_date);
-                const monthsLeft = (targetDate.getFullYear() - now.getFullYear()) * 12 + targetDate.getMonth() - now.getMonth();
-                const remaining = goal.target_amount - goal.current_amount;
-                if (monthsLeft > 0 && remaining > 0) {
-                  monthlyNeeded = remaining / monthsLeft;
-                }
-              }
+              const monthlyNeeded = goal.monthly_needed || 0;
+              const weeklyNeeded = goal.weekly_needed || 0;
+              const dailyNeeded = goal.daily_needed || 0;
 
               return (
                 <motion.div 
@@ -130,7 +123,7 @@ export default function GoalsPage() {
 
                   <div className="mb-2 flex justify-between items-end">
                     <div>
-                      <span className="text-2xl font-bold text-emerald-400">{formatCurrency(goal.current_amount)}</span>
+                      <span className="text-2xl font-bold text-emerald-400">{formatCurrency(goal.saved_amount)}</span>
                       <span className="text-sm text-text-secondary ml-1">/ {formatCurrency(goal.target_amount)}</span>
                     </div>
                     <span className="text-sm font-bold text-emerald-400 bg-emerald-500/20 px-2 py-1 rounded-lg">
@@ -149,12 +142,21 @@ export default function GoalsPage() {
                   
                   <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/10">
                     {monthlyNeeded > 0 ? (
-                      <div className="text-xs text-text-secondary flex items-center">
-                        <TrendingUp className="w-3 h-3 mr-1 text-teal-400" />
-                        Need {formatCurrency(monthlyNeeded)}/mo
+                      <div className="flex flex-col gap-3 w-full mr-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">{formatCurrency(dailyNeeded)}/day</span>
+                          <span className="text-[11px] font-medium text-teal-400 bg-teal-500/10 px-2 py-1 rounded-full">{formatCurrency(weeklyNeeded)}/wk</span>
+                          <span className="text-[11px] font-medium text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-full">{formatCurrency(monthlyNeeded)}/mo</span>
+                        </div>
+                        {goal.strategy && (
+                          <div className="flex items-start gap-2 bg-white/5 p-2 rounded-xl border border-white/5 text-xs text-white/70">
+                            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                            <p className="leading-relaxed">{goal.strategy}</p>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-xs text-text-secondary">
+                      <div className="text-xs text-text-secondary mt-1">
                         {progress >= 100 ? 'Goal reached! 🎉' : 'Keep it up!'}
                       </div>
                     )}

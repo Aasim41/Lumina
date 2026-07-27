@@ -320,6 +320,9 @@ class GoalResponse(BaseModel):
     icon: str
     progress_percent: float = 0.0
     monthly_needed: float = 0.0
+    weekly_needed: float = 0.0
+    daily_needed: float = 0.0
+    strategy: str = ""
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
