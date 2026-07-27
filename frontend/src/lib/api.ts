@@ -65,6 +65,13 @@ export const uploadReceipt = (file: File) => {
   });
 };
 
+export const confirmReceipt = (data: any) => {
+  return apiFetch('/api/upload/receipt/confirm', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
 export const getSubscriptions = () => {
   return apiFetch('/api/subscriptions/');
 };

@@ -35,6 +35,24 @@ class UploadResponse(BaseModel):
     skipped_rows: int
     transactions: List[TransactionResponse]
 
+class ReceiptItem(BaseModel):
+    name: str
+    price: float
+    qty: int = 1
+    category: Optional[str] = "Miscellaneous"
+
+class ReceiptResponse(BaseModel):
+    merchant: str
+    date: str
+    total_amount: float
+    tax_amount: float
+    items: List[ReceiptItem]
+
+class ReceiptConfirmRequest(BaseModel):
+    merchant: str
+    date: str
+    items: List[ReceiptItem]
+
 class SummaryResponse(BaseModel):
     total_this_month: float
     total_saved_this_month: float
