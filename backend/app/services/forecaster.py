@@ -32,14 +32,29 @@ def forecast_spending(transactions: list) -> dict:
     # Sort months chronologically
     sorted_months = sorted(monthly_totals.keys())
     
+    current_month_str = datetime.today().strftime("%Y-%m")
+    
     # We train the model ONLY on the historical months in the dataset.
-    historical_data = [{"month": m, "amount": monthly_totals[m]} for m in sorted_months]
+    # If the latest month is the current month, we should extrapolate it so it represents a full month.
+    historical_data = []
+    today = datetime.today()
+    days_in_current_month = (today.replace(day=28) + relativedelta(days=4)).replace(day=1) - relativedelta(days=1)
+    
+    for m in sorted_months:
+        amount = monthly_totals[m]
+        if m == current_month_str:
+            # Extrapolate
+            current_day = max(1, today.day)
+            extrapolated = (amount / current_day) * days_in_current_month.day
+            historical_data.append({"month": m, "amount": amount, "extrapolated_amount": extrapolated})
+        else:
+            historical_data.append({"month": m, "amount": amount, "extrapolated_amount": amount})
     
     # Check if the current month is in the historical data, if not, append it with 0 amount
     # This ensures the graph always reaches the current month on the X axis.
     current_month_str = datetime.today().strftime("%Y-%m")
     if current_month_str not in monthly_totals:
-        historical_data.append({"month": current_month_str, "amount": 0.0})
+        historical_data.append({"month": current_month_str, "amount": 0.0, "extrapolated_amount": 0.0})
     
     # Predict based on the current month, regardless of whether there's data for it yet
     next_month_date = datetime.strptime(current_month_str, "%Y-%m") + relativedelta(months=1)
@@ -51,12 +66,12 @@ def forecast_spending(transactions: list) -> dict:
     n = len(sorted_months)
     if n < 3:
         # Simple Moving Average
-        predicted_total = sum(monthly_totals.values()) / n
+        predicted_total = sum(h["extrapolated_amount"] for h in historical_data[:n]) / n if n > 0 else 0
         confidence_std = predicted_total * 0.1 # Arbitrary 10% for SMA
     else:
         # Linear Regression (pure python)
         x = list(range(n))
-        y = [monthly_totals[m] for m in sorted_months]
+        y = [h["extrapolated_amount"] for h in historical_data[:n]]
         
         sum_x = sum(x)
         sum_y = sum(y)
