@@ -1,35 +1,109 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText } from 'lucide-react';
+import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { db } from '@/lib/db';
+import { exportAllData, importData, exportTransactionsCSV } from '@/lib/dataBackup';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load the saved API key when modal opens
+  const loadApiKey = async () => {
+    const dbUser = await db.users.toCollection().first();
+    if (dbUser?.groq_api_key) {
+      setApiKey(dbUser.groq_api_key);
+      setApiKeySaved(true);
+    }
+  };
+
+  // Load on first render when open
+  useState(() => {
+    if (isOpen) loadApiKey();
+  });
 
   const handleCurrencyChange = async (newCurrency: string) => {
     if (newCurrency === (user?.preferred_currency || 'INR')) return;
     setLoading(true);
-    const toastId = toast.loading('Converting everything...', { icon: '🔄' });
+    const toastId = toast.loading('Changing currency...', { icon: '🔄' });
     try {
-      await apiFetch('/api/settings/currency', {
-        method: 'PUT',
-        body: JSON.stringify({ new_currency: newCurrency })
-      });
+      await updateUserProfile({ preferred_currency: newCurrency });
       localStorage.setItem('preferred_currency', newCurrency);
       await refreshUser();
       toast.success(`Currency changed to ${newCurrency}!`, { id: toastId });
-      // Reload page to fully refresh all data charts and contexts
       window.location.reload();
     } catch (e) {
       toast.error('Failed to change currency', { id: toastId });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    if (!apiKey.trim()) {
+      toast.error('Please enter a valid API key');
+      return;
+    }
+    try {
+      const dbUser = await db.users.toCollection().first();
+      if (dbUser?.id) {
+        await db.users.update(dbUser.id, { groq_api_key: apiKey.trim() });
+        setApiKeySaved(true);
+        toast.success('API key saved! You can now chat with Lumina AI.', { icon: '🔑' });
+      }
+    } catch (e) {
+      toast.error('Failed to save API key');
+    }
+  };
+
+  const handleExportData = async () => {
+    const toastId = toast.loading('Exporting data...', { icon: '📦' });
+    try {
+      await exportAllData();
+      toast.success('Data exported! Check your downloads.', { id: toastId });
+    } catch (e) {
+      toast.error('Export failed', { id: toastId });
+    }
+  };
+
+  const handleImportData = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading('Importing data...', { icon: '📥' });
+    try {
+      const result = await importData(file);
+      if (result.success) {
+        toast.success(result.message, { id: toastId });
+        await refreshUser();
+        window.location.reload();
+      } else {
+        toast.error(result.message, { id: toastId });
+      }
+    } catch (e) {
+      toast.error('Import failed', { id: toastId });
+    }
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleExportCSV = async () => {
+    const toastId = toast.loading('Exporting CSV...', { icon: '📄' });
+    try {
+      await exportTransactionsCSV();
+      toast.success('CSV exported! Check your downloads.', { id: toastId });
+    } catch (e) {
+      toast.error('Export failed', { id: toastId });
     }
   };
 
@@ -55,7 +129,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
-            className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md w-full bg-surface border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 z-[100] flex flex-col shadow-2xl pb-safe"
+            className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md w-full bg-surface border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 z-[100] flex flex-col shadow-2xl pb-safe max-h-[85dvh] overflow-y-auto"
           >
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center space-x-2">
@@ -68,6 +142,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             </div>
 
             <div className="space-y-4">
+              {/* Currency Selector */}
               <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
                 <h3 className="text-sm font-semibold text-white mb-4">Preferred Currency</h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -95,8 +170,82 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     )
                   })}
                 </div>
-                <p className="text-xs text-text-secondary mt-4">
-                  Note: Changing currency will automatically convert your past transactions and budget using live mocked rates.
+              </div>
+
+              {/* Groq API Key */}
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Key className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-white">AI Chat API Key</h3>
+                </div>
+                <p className="text-xs text-text-secondary mb-3">
+                  Get a free Groq API key from <span className="text-emerald-400">console.groq.com</span> to enable AI chat.
+                </p>
+                <div className="flex space-x-2">
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={(e) => { setApiKey(e.target.value); setApiKeySaved(false); }}
+                    placeholder="gsk_..."
+                    className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
+                  />
+                  <button
+                    onClick={handleSaveApiKey}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                      apiKeySaved
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                        : 'bg-emerald-500 text-white hover:bg-emerald-400'
+                    }`}
+                  >
+                    {apiKeySaved ? '✓ Saved' : 'Save'}
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="text-xs text-text-secondary mt-2 hover:text-white transition-colors"
+                >
+                  {showApiKey ? 'Hide key' : 'Show key'}
+                </button>
+              </div>
+
+              {/* Data Backup & Restore */}
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                <h3 className="text-sm font-semibold text-white mb-4">Data Backup & Restore</h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleExportData}
+                    className="w-full p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center space-x-3 hover:bg-blue-500/20 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="text-sm font-medium">Export All Data (JSON Backup)</span>
+                  </button>
+
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center space-x-3 hover:bg-purple-500/20 transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm font-medium">Import Data (Restore from Backup)</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportCSV}
+                    className="w-full p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center space-x-3 hover:bg-emerald-500/20 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="text-sm font-medium">Export Transactions as CSV</span>
+                  </button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportData}
+                    className="hidden"
+                  />
+                </div>
+                <p className="text-xs text-text-secondary mt-3">
+                  💡 Tip: Export your data regularly to keep a backup on your phone storage.
                 </p>
               </div>
             </div>

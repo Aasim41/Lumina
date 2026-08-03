@@ -19,7 +19,7 @@ import { Spinner } from '@/components/ui/Spinner';
 
 export default function TransactionsPage() {
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);

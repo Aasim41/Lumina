@@ -15,7 +15,7 @@ export function MysteryEnvelope({ onOpen }: { onOpen: () => void }) {
     const fetchStatus = async () => {
       try {
         const data = await getMysteryEnvelope();
-        setStatus(data.status);
+        setStatus((data as any).status || (data as any).has_envelope ? 'locked' : 'none');
       } catch (e) {
         console.error(e);
       } finally {
@@ -37,7 +37,7 @@ export function MysteryEnvelope({ onOpen }: { onOpen: () => void }) {
         colors: ['#a855f7', '#ec4899', '#3b82f6']
       });
       
-      toast.success(`Surprise! You saved ₹${result.amount}!`);
+      toast.success(`Surprise! You saved ₹${(result as any).amount || 0}!`);
       setStatus('opened');
       onOpen(); // refresh data
     } catch (e) {

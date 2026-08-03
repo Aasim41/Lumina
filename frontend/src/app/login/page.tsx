@@ -36,7 +36,7 @@ export default function LoginPage() {
     });
     if (success) {
       // Force navigate with explicit file path for Capacitor
-      window.location.replace('/create-avatar/index.html');
+      window.location.replace('/create-avatar');
       return; // stop all further execution
     }
     setSubmitting(false);

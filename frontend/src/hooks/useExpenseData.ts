@@ -14,61 +14,28 @@ export function useExpenseData() {
   const fetchData = useCallback(async () => {
     if (!isAuthenticated()) return;
     
-    // Attempt to load from cache for instant UI
-    try {
-      const cachedSummary = localStorage.getItem('lumina_summary');
-      if (cachedSummary) {
-        setSummary(JSON.parse(cachedSummary));
-        setLoading(false); // We have cached data, don't show full loading screen
-      } else {
-        setLoading(true);
-      }
-      
-      const cachedCats = localStorage.getItem('lumina_categories');
-      if (cachedCats) setCategories(JSON.parse(cachedCats));
-      
-      const cachedTrends = localStorage.getItem('lumina_trends');
-      if (cachedTrends) setTrends(JSON.parse(cachedTrends));
-      
-      const cachedSubs = localStorage.getItem('lumina_subs');
-      if (cachedSubs) setSubscriptions(JSON.parse(cachedSubs));
-    } catch (e) {
-      console.warn("Failed to load dashboard cache");
-      setLoading(true);
-    }
+    setLoading(true);
     
     try {
       setError(null);
       
-      // Fetch fresh data in background
-      getSummary().then(sumData => {
-        setSummary(sumData);
-        localStorage.setItem('lumina_summary', JSON.stringify(sumData));
-        setLoading(false); 
-      }).catch(err => {
-        setError(err.message || 'Failed to fetch summary');
-        setLoading(false);
-      });
+      // All calls now resolve from local IndexedDB — they're instant
+      const [sumData, catData, trendData, forecastData, subData] = await Promise.all([
+        getSummary(),
+        getCategories(),
+        getTrends(),
+        getForecast(),
+        getSubscriptions(),
+      ]);
       
-      getCategories().then(data => {
-        setCategories(data);
-        localStorage.setItem('lumina_categories', JSON.stringify(data));
-      }).catch(console.error);
-      
-      getTrends().then(data => {
-        setTrends(data);
-        localStorage.setItem('lumina_trends', JSON.stringify(data));
-      }).catch(console.error);
-      
-      getForecast().then(setForecast).catch(console.error);
-      
-      getSubscriptions().then(data => {
-        setSubscriptions(data);
-        localStorage.setItem('lumina_subs', JSON.stringify(data));
-      }).catch(console.error);
-      
+      setSummary(sumData);
+      setCategories(catData);
+      setTrends(trendData);
+      setForecast(forecastData);
+      setSubscriptions(subData);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard data');
+    } finally {
       setLoading(false);
     }
   }, []);

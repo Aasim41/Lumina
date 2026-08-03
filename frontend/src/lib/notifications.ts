@@ -64,7 +64,7 @@ export async function scheduleSubscriptionReminders(subscriptions: any[], curren
         title: 'Upcoming Subscription',
         body: `Your ${sub.merchant} subscription (${currencyFormat(sub.amount)}) is billing in 3 days. Want to cancel it?`,
         id: id,
-        schedule: { at: reminderDate, repeats: true, every: 'month' },
+        schedule: { at: reminderDate, repeats: true, every: 'month' } as any,
         smallIcon: 'ic_stat_icon_config_sample',
       });
     }

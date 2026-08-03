@@ -48,8 +48,8 @@ export default function DebtsPage() {
         name,
         total_amount: parseFloat(totalAmount),
         paid_amount: 0,
-        interest_rate: interestRate ? parseFloat(interestRate) : null,
-        next_emi_date: nextEmiDate || null,
+        interest_rate: interestRate ? parseFloat(interestRate) : undefined,
+        next_emi_date: nextEmiDate || undefined,
       });
       toast.success('Debt tracker created!');
       setIsModalOpen(false);

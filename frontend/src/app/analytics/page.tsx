@@ -117,6 +117,8 @@ export default function AnalyticsDashboard() {
                   <ForecastChart 
                     historical={forecast.historical} 
                     projected={forecast.projected} 
+                    confidenceLow={forecast.confidence_low}
+                    confidenceHigh={forecast.confidence_high}
                   />
                 </div>
               </>

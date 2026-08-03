@@ -76,8 +76,10 @@ export function SubscriptionModal({ isOpen, onClose, onSuccess }: SubscriptionMo
         billing_day: parseInt(billingDay)
       });
       
-      import('@/lib/notifications').then(({ scheduleSubscriptionNotification }) => {
-        scheduleSubscriptionNotification(merchant, parseFloat(amount), parseInt(billingDay), res.id || String(Date.now()));
+      import('@/lib/notifications').then((module: any) => {
+        if (module.scheduleSubscriptionNotification) {
+          module.scheduleSubscriptionNotification(merchant, parseFloat(amount), parseInt(billingDay), res.id || String(Date.now()));
+        }
       });
 
       toast.success('Subscription tracked successfully!');

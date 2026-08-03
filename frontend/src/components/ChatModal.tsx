@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Bot, User, Sparkles } from 'lucide-react';
 import { Button } from './ui/Button';
 import ReactMarkdown from 'react-markdown';
-import { apiFetch } from '@/lib/api';
+import { db } from '@/lib/db';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,13 +42,97 @@ export function ChatModal({ isOpen, onClose }: ChatModalProps) {
     setIsLoading(true);
 
     try {
-      const data = await apiFetch('/api/chat', { 
-        method: 'POST', 
-        body: JSON.stringify({ message: userMessage }) 
+      // Get user's Groq API key from IndexedDB
+      const user = await db.users.toCollection().first();
+      const apiKey = user?.groq_api_key;
+
+      if (!apiKey) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: '🔑 **API Key Required**\n\nTo chat with me, please add your Groq API key in **Settings** (gear icon on the dashboard). You can get a free key at [console.groq.com](https://console.groq.com).'
+        }]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Build financial context from local data
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+      const allTxns = await db.transactions.toArray();
+      const recentTxns = allTxns.filter(t => t.date >= thirtyDaysAgoStr);
+
+      const totalSpent = recentTxns.reduce((sum, t) => sum + t.amount, 0);
+      const categoryTotals: Record<string, number> = {};
+      for (const t of recentTxns) {
+        categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+      }
+
+      const contextData = {
+        user_name: user?.name || 'User',
+        total_spent_last_30_days: totalSpent,
+        spending_by_category: categoryTotals,
+        recent_transactions_count: recentTxns.length,
+        top_5_recent_transactions: recentTxns
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .slice(0, 5)
+          .map(t => ({
+            merchant: t.merchant_clean,
+            amount: t.amount,
+            category: t.category,
+            date: t.date,
+          })),
+      };
+
+      const systemPrompt = `
+      You are 'Lumina', an expert, friendly AI Financial Advisor built into the Smart Expense Tracker app.
+      Your tone is encouraging, professional, and concise. Use emojis occasionally.
+      
+      IMPORTANT INSTRUCTIONS:
+      1. ALWAYS use INR (₹) as the default currency in your responses.
+      2. NEVER mention or display the "Secret Vault" or "Vault" feature.
+
+      Here is the user's financial context for the last 30 days:
+      ${JSON.stringify(contextData, null, 2)}
+      
+      Based on this data, answer the user's question with actionable insights. Do not make up transactions outside of this data, but you can infer general advice.
+      Keep your response under 150 words and use markdown formatting (like bolding key numbers).
+      `;
+
+      // Call Groq API directly
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+          model: 'llama-3.1-8b-instant',
+        }),
       });
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error connecting to my servers. Please try again later.' }]);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('invalid_key');
+        }
+        throw new Error(errorText);
+      }
+
+      const data = await response.json();
+      const assistantMessage = data.choices?.[0]?.message?.content || 'I could not generate a response.';
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+    } catch (error: any) {
+      let errorMsg = 'Sorry, I encountered an error. Please try again later.';
+      if (error.message === 'invalid_key') {
+        errorMsg = '🔑 Your Groq API key appears to be invalid. Please check it in **Settings**. Keys usually start with `gsk_`.';
+      }
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
     } finally {
       setIsLoading(false);
     }

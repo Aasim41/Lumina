@@ -213,12 +213,12 @@ export default function CreateAvatarPage() {
       console.error('Failed to save avatar', e);
     }
     // Always navigate to dashboard with explicit file path
-    window.location.replace('/index.html');
+    window.location.replace('/');
   };
 
   const handleSkip = async () => {
     try { await updateUserProfile({ avatar_url: '' }); await refreshUser(); } catch {}
-    window.location.replace('/index.html');
+    window.location.replace('/');
   };
 
   const ColorSwatch = ({ hex, selected, onClick }: { hex: string; selected: boolean; onClick: () => void }) => (

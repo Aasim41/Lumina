@@ -157,7 +157,7 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
                 </div>
 
                 <div className="pt-4 flex gap-3">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-1/3">
+                  <Button type="button" variant="secondary" onClick={() => setStep(1)} className="w-1/3">
                     Back
                   </Button>
                   <Button type="submit" size="lg" className="flex-1" isLoading={loading}>

@@ -306,7 +306,7 @@ function AddGoalModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose
           </div>
 
           <div className="pt-4 flex gap-3">
-            <Button type="button" variant="outline" onClick={onClose} className="w-1/3">
+            <Button type="button" variant="secondary" onClick={onClose} className="w-1/3">
               Cancel
             </Button>
             <Button type="submit" className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white" isLoading={loading}>
@@ -385,7 +385,7 @@ function ContributeModal({ isOpen, onClose, onSuccess, goal }: { isOpen: boolean
           </div>
 
           <div className="pt-4 flex gap-3">
-            <Button type="button" variant="outline" onClick={onClose} className="w-1/3">
+            <Button type="button" variant="secondary" onClick={onClose} className="w-1/3">
               Cancel
             </Button>
             <Button type="submit" className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white" isLoading={loading}>

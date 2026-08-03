@@ -47,7 +47,7 @@ export default function InvestmentsPage() {
     try {
       await createInvestment({
         name,
-        ticker: ticker || null,
+        ticker: ticker || undefined,
         asset_class: assetClass,
         quantity: parseFloat(quantity) || 0,
         average_buy_price: parseFloat(averageBuyPrice) || 0,
