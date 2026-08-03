@@ -35,9 +35,16 @@ export const signInWithGoogle = async () => {
     provider: 'google',
     options: {
       redirectTo: redirectUrl,
+      skipBrowserRedirect: isNative, // Important: tell Supabase to just return the URL natively
     }
   });
   if (error) throw error;
+
+  if (isNative && data?.url) {
+    const { Browser } = await import('@capacitor/browser');
+    await Browser.open({ url: data.url });
+  }
+
   return data;
 };
 

@@ -75,11 +75,15 @@ export function useAuth() {
       const { Capacitor } = await import('@capacitor/core');
       if (Capacitor.isNativePlatform()) {
         const { App } = await import('@capacitor/app');
-        appListener = await App.addListener('appUrlOpen', (event) => {
+        appListener = await App.addListener('appUrlOpen', async (event) => {
           const url = new URL(event.url);
           if (url.hostname === 'login-callback' && url.hash) {
-            // Push the hash to the router so Supabase client detects the session
-            router.push('/' + url.hash);
+            // Close the capacitor/browser window
+            const { Browser } = await import('@capacitor/browser');
+            await Browser.close();
+            // Assign to window.location.hash to trigger the native hashchange event 
+            // that the Supabase client relies on to process the OAuth token!
+            window.location.hash = url.hash;
           }
         });
       }
