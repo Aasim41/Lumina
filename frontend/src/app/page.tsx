@@ -21,7 +21,7 @@ import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
-import toast from 'react-hot-toast';
+
 import { formatCurrency, PERSONA_CONFIGS } from '@/lib/utils';
 import { generateMonthlyStatement } from '@/lib/PDFGenerator';
 import { Spinner } from '@/components/ui/Spinner';
