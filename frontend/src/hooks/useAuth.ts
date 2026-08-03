@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { db, generateId, nowISO, todayISO } from '@/lib/db';
-import { isAuthenticated as isAuth, setLoggedIn, setUser as setLocalUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export function useAuth() {
@@ -9,45 +8,50 @@ export function useAuth() {
   const router = useRouter();
 
   const fetchUser = useCallback(async () => {
-    if (!isAuth()) {
-      setLoading(false);
-      return;
-    }
-    
-    // Load cached user instantly from localStorage
-    const cachedUser = localStorage.getItem('lumina_user');
-    if (cachedUser) {
-      try {
-        setUser(JSON.parse(cachedUser));
-        setLoading(false);
-      } catch (e) {}
-    }
-    
-    // Then read fresh from IndexedDB
     try {
-      const dbUser = await db.users.toCollection().first();
-      if (dbUser) {
-        const userData = {
-          id: dbUser.id,
-          email: dbUser.email,
-          name: dbUser.name,
-          avatar_url: dbUser.avatar_url,
-          age: dbUser.age,
-          dob: dbUser.dob,
-          monthly_budget: dbUser.monthly_budget,
-          last_budget_update: dbUser.last_budget_update,
-          preferred_currency: dbUser.preferred_currency || 'INR',
-          current_streak: dbUser.current_streak || 0,
-          last_logged_date: dbUser.last_logged_date,
-          unlocked_badges: dbUser.unlocked_badges || '[]',
-          user_persona: dbUser.user_persona,
-          vault_balance: dbUser.vault_balance || 0,
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch profile from profiles table
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Failed to fetch profile:', error);
+      }
+
+      if (profile) {
+        setUser({
+          ...profile,
+          email: session.user.email || profile.email,
+          avatar_url: profile.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+          name: profile.name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
+        });
+      } else {
+        // Profile doesn't exist yet (trigger may not have fired), create it
+        const newProfile = {
+          id: session.user.id,
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
+          email: session.user.email || '',
+          avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
+          vault_balance: 0,
+          preferred_currency: 'INR',
+          current_streak: 0,
+          unlocked_badges: '[]',
+          created_at: new Date().toISOString(),
         };
-        setUser(userData);
-        localStorage.setItem('lumina_user', JSON.stringify(userData));
+        const { data: created } = await supabase.from('profiles').upsert(newProfile).select().single();
+        setUser(created || newProfile);
       }
     } catch (e) {
-      console.error("Failed to load user profile from IndexedDB", e);
+      console.error('Auth fetch error:', e);
     } finally {
       setLoading(false);
     }
@@ -55,41 +59,27 @@ export function useAuth() {
 
   useEffect(() => {
     fetchUser();
+
+    // Listen for auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await fetchUser();
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [fetchUser]);
 
-  const login = useCallback(async (data: { name: string, age: number, dob: string, monthly_budget: number, user_persona?: string }): Promise<boolean> => {
+  const signInWithGoogle = useCallback(async (): Promise<boolean> => {
     try {
       setLoading(true);
-      const userId = generateId();
-      const email = `local-${userId}@smartexpense.app`;
-
-      const newUser = {
-        id: userId,
-        name: data.name,
-        email: email,
-        age: data.age,
-        dob: data.dob,
-        monthly_budget: data.monthly_budget,
-        last_budget_update: todayISO(),
-        vault_balance: 0,
-        preferred_currency: 'INR',
-        user_persona: data.user_persona || 'unmarried_employee',
-        current_streak: 0,
-        unlocked_badges: '[]',
-        created_at: nowISO(),
-      };
-
-      await db.users.add(newUser);
-      setLoggedIn();
-      
-      const userData = { ...newUser };
-      setUser(userData);
-      localStorage.setItem('lumina_user', JSON.stringify(userData));
-      
-      return true;
+      const { signInWithGoogle: doGoogleSignIn } = await import('@/lib/auth');
+      await doGoogleSignIn();
+      return true; // OAuth redirects, so this may not execute
     } catch (e: any) {
-      console.error('Login failed', e);
-      alert('Login error: ' + (e.message || String(e)));
+      console.error('Google sign-in failed', e);
       return false;
     } finally {
       setLoading(false);
@@ -102,10 +92,13 @@ export function useAuth() {
     await doLogout();
   }, []);
 
+  const isAuthenticated = !!user;
+
   return {
     user,
-    isAuthenticated: isAuth(),
-    login,
+    isAuthenticated,
+    login: signInWithGoogle,  // Keep 'login' name for backward compat
+    signInWithGoogle,
     logout: handleLogout,
     loading,
     refreshUser: fetchUser

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Bot, User, Sparkles } from 'lucide-react';
 import { Button } from './ui/Button';
 import ReactMarkdown from 'react-markdown';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,9 +42,12 @@ export function ChatModal({ isOpen, onClose }: ChatModalProps) {
     setIsLoading(true);
 
     try {
-      // Get user's Groq API key from IndexedDB
-      const user = await db.users.toCollection().first();
-      const apiKey = user?.groq_api_key;
+      // Get user profile from Supabase
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) { setIsLoading(false); return; }
+
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+      const apiKey = profile?.groq_api_key;
 
       if (!apiKey) {
         setMessages(prev => [...prev, { 
@@ -55,13 +58,13 @@ export function ChatModal({ isOpen, onClose }: ChatModalProps) {
         return;
       }
 
-      // Build financial context from local data
+      // Build financial context from Supabase data
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-      const allTxns = await db.transactions.toArray();
-      const recentTxns = allTxns.filter(t => t.date >= thirtyDaysAgoStr);
+      const { data: allTxns } = await supabase.from('transactions').select('*').eq('user_id', authUser.id);
+      const recentTxns = (allTxns || []).filter(t => t.date >= thirtyDaysAgoStr);
 
       const totalSpent = recentTxns.reduce((sum, t) => sum + t.amount, 0);
       const categoryTotals: Record<string, number> = {};
@@ -70,7 +73,7 @@ export function ChatModal({ isOpen, onClose }: ChatModalProps) {
       }
 
       const contextData = {
-        user_name: user?.name || 'User',
+        user_name: profile?.name || 'User',
         total_spent_last_30_days: totalSpent,
         spending_by_category: categoryTotals,
         recent_transactions_count: recentTxns.length,

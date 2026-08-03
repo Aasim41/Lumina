@@ -7,7 +7,7 @@ import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 import { exportAllData, importData, exportTransactionsCSV } from '@/lib/dataBackup';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -24,9 +24,11 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
   // Load the saved API key when modal opens
   const loadApiKey = async () => {
-    const dbUser = await db.users.toCollection().first();
-    if (dbUser?.groq_api_key) {
-      setApiKey(dbUser.groq_api_key);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
+    const { data: profile } = await supabase.from('profiles').select('groq_api_key').eq('id', authUser.id).single();
+    if (profile?.groq_api_key) {
+      setApiKey(profile.groq_api_key);
       setApiKeySaved(true);
     }
   };
@@ -84,9 +86,9 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       return;
     }
     try {
-      const dbUser = await db.users.toCollection().first();
-      if (dbUser?.id) {
-        await db.users.update(dbUser.id, { groq_api_key: apiKey.trim() });
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser?.id) {
+        await supabase.from('profiles').update({ groq_api_key: apiKey.trim() }).eq('id', authUser.id);
         setApiKeySaved(true);
         toast.success('API key saved! You can now chat with Lumina AI.', { icon: '🔑' });
       }

@@ -1,13 +1,11 @@
 /**
- * api.ts — Local-first implementation
+ * api.ts — Supabase implementation
  *
  * Every function keeps the same name and return shape as before,
- * but reads/writes from the local Dexie.js database instead of
- * calling the FastAPI backend.
+ * but reads/writes from Supabase instead of Dexie.js.
  */
 
-import { db, generateId, nowISO, todayISO } from './db';
-import type { DBTransaction, DBUser } from './db';
+import { supabase } from './supabase';
 import { isAuthenticated } from './auth';
 import { categorize } from './categorizer';
 import { cleanMerchantName, normalizeAmount } from './cleaner';
@@ -28,44 +26,50 @@ import {
   computeSpentThisMonth,
 } from './analytics';
 
-// ── Helpers ────────────────────────────────────────────────────────
-
-async function getLocalUser(): Promise<DBUser> {
-  const user = await db.users.toCollection().first();
-  if (!user) throw new Error('No user profile found');
-  return user;
+export interface DBUser {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  dob: string;
+  monthly_budget: number;
+  last_budget_update: string;
+  vault_balance: number;
+  preferred_currency: string;
+  user_persona: string;
+  current_streak: number;
+  unlocked_badges: string;
+  created_at: string;
 }
 
-// ── Auth ───────────────────────────────────────────────────────────
+export interface DBTransaction {
+  id: string;
+  user_id?: string;
+  date: string;
+  merchant_raw: string;
+  merchant_clean: string;
+  amount: number;
+  currency: string;
+  original_amount?: number;
+  category: string;
+  source: string;
+  created_at: string;
+}
 
-export const guestLogin = async (data: { name: string; age: number; dob: string; monthly_budget: number; user_persona?: string }) => {
-  const userId = generateId();
-  const email = `local-${userId}@smartexpense.app`;
+// ── Helpers ────────────────────────────────────────────────────────
 
-  const newUser = {
-    id: userId,
-    name: data.name,
-    email,
-    age: data.age,
-    dob: data.dob,
-    monthly_budget: data.monthly_budget,
-    last_budget_update: todayISO(),
-    vault_balance: 0,
-    preferred_currency: 'INR',
-    user_persona: data.user_persona || 'unmarried_employee',
-    current_streak: 0,
-    unlocked_badges: '[]',
-    created_at: nowISO(),
-  };
+async function getAuthUserId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  return user.id;
+}
 
-  await db.users.add(newUser);
-
-  return {
-    access_token: 'local',
-    token_type: 'bearer',
-    user: newUser,
-  };
-};
+async function getLocalUser(): Promise<DBUser> {
+  const userId = await getAuthUserId();
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (error || !data) throw new Error('No user profile found');
+  return data as DBUser;
+}
 
 // ── User Profile ──────────────────────────────────────────────────
 
@@ -74,33 +78,38 @@ export const getUserProfile = async () => {
 };
 
 export const updateUserProfile = async (data: any) => {
-  const user = await getLocalUser();
-  await db.users.update(user.id!, data);
-  return { ...user, ...data };
+  const userId = await getAuthUserId();
+  const { error } = await supabase.from('profiles').update(data).eq('id', userId);
+  if (error) throw error;
+  return getLocalUser();
 };
 
 // ── Transactions ──────────────────────────────────────────────────
 
 export const getTransactions = async (params?: URLSearchParams) => {
-  let txns = await db.transactions.orderBy('date').reverse().toArray();
+  const userId = await getAuthUserId();
+  let query = supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false });
 
-  // Support basic filtering via params
   if (params) {
     const category = params.get('category');
     const month = params.get('month');
-    if (category) txns = txns.filter(t => t.category === category);
-    if (month) txns = txns.filter(t => t.date.startsWith(month));
+    if (category) query = query.eq('category', category);
+    if (month) query = query.like('date', `${month}%`);
   }
 
-  return txns;
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as DBTransaction[];
 };
 
 export const createTransaction = async (data: { date: string; merchant: string; amount: number; category?: string; currency?: string; original_amount?: number }) => {
+  const userId = await getAuthUserId();
   const merchantClean = cleanMerchantName(data.merchant);
   const category = data.category || categorize(merchantClean);
 
   const txn: DBTransaction = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     date: data.date,
     merchant_raw: data.merchant,
     merchant_clean: merchantClean,
@@ -109,30 +118,37 @@ export const createTransaction = async (data: { date: string; merchant: string; 
     original_amount: data.original_amount,
     category,
     source: 'manual_entry',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
 
-  await db.transactions.add(txn);
+  const { error } = await supabase.from('transactions').insert(txn);
+  if (error) throw error;
   return txn;
 };
 
 export const updateTransaction = async (id: string, data: any) => {
-  await db.transactions.update(id, data);
-  return db.transactions.get(id);
+  const { error } = await supabase.from('transactions').update(data).eq('id', id);
+  if (error) throw error;
+  const { data: txn, error: getError } = await supabase.from('transactions').select('*').eq('id', id).single();
+  if (getError) throw getError;
+  return txn;
 };
 
 export const deleteTransaction = async (id: string) => {
-  await db.transactions.delete(id);
+  const { error } = await supabase.from('transactions').delete().eq('id', id);
+  if (error) throw error;
   return null;
 };
 
 // ── CSV Upload ────────────────────────────────────────────────────
 
 export const uploadCSV = async (file: File) => {
+  const userId = await getAuthUserId();
   const parsed = await parseCSV(file);
 
   const transactions: DBTransaction[] = parsed.map(row => ({
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     date: row.date,
     merchant_raw: row.merchant_raw,
     merchant_clean: row.merchant_clean,
@@ -140,10 +156,11 @@ export const uploadCSV = async (file: File) => {
     currency: 'INR',
     category: row.category,
     source: 'csv_upload',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   }));
 
-  await db.transactions.bulkAdd(transactions);
+  const { error } = await supabase.from('transactions').insert(transactions);
+  if (error) throw error;
 
   const uniqueCategories = new Set(transactions.map(t => t.category));
 
@@ -157,7 +174,7 @@ export const uploadCSV = async (file: File) => {
 
 export const uploadReceipt = async (_file: File) => {
   // Stub — receipt OCR was mock in the backend anyway
-  const today = todayISO();
+  const today = new Date().toISOString().split('T')[0];
   return {
     merchant: 'Scanned Receipt',
     date: today,
@@ -168,8 +185,10 @@ export const uploadReceipt = async (_file: File) => {
 };
 
 export const confirmReceipt = async (data: { merchant: string; date: string; items: Array<{ name: string; price: number; qty: number; category: string }> }) => {
+  const userId = await getAuthUserId();
   const transactions: DBTransaction[] = data.items.map(item => ({
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     date: data.date,
     merchant_raw: `${data.merchant} - ${item.name}`,
     merchant_clean: data.merchant,
@@ -177,10 +196,11 @@ export const confirmReceipt = async (data: { merchant: string; date: string; ite
     currency: 'INR',
     category: item.category || 'Miscellaneous',
     source: 'receipt_scan',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   }));
 
-  await db.transactions.bulkAdd(transactions);
+  const { error } = await supabase.from('transactions').insert(transactions);
+  if (error) throw error;
   return transactions;
 };
 
@@ -208,8 +228,9 @@ export const getTopMerchants = async () => {
 };
 
 export const getForecast = async () => {
-  const txns = await db.transactions.toArray();
-  return forecastSpending(txns.map(t => ({ date: t.date, category: t.category, amount: t.amount })));
+  const userId = await getAuthUserId();
+  const { data: txns } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  return forecastSpending((txns || []).map(t => ({ date: t.date, category: t.category, amount: t.amount })));
 };
 
 export const getInsights = async () => {
@@ -250,76 +271,91 @@ export const exportPDF = async () => {
 // ── Subscriptions ─────────────────────────────────────────────────
 
 export const getSubscriptions = async () => {
-  return db.subscriptions.toArray();
+  const userId = await getAuthUserId();
+  const { data } = await supabase.from('subscriptions').select('*').eq('user_id', userId);
+  return data || [];
 };
 
 export const createSubscription = async (data: { merchant: string; amount: number; billing_day: number }) => {
+  const userId = await getAuthUserId();
   const sub = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     merchant: data.merchant,
     amount: data.amount,
     billing_day: data.billing_day,
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
-  await db.subscriptions.add(sub);
+  const { error } = await supabase.from('subscriptions').insert(sub);
+  if (error) throw error;
   return sub;
 };
 
 export const deleteSubscription = async (id: string) => {
-  await db.subscriptions.delete(id);
+  const { error } = await supabase.from('subscriptions').delete().eq('id', id);
+  if (error) throw error;
   return null;
 };
 
 // ── Wishlist ──────────────────────────────────────────────────────
 
 export const getWishlist = async () => {
-  return db.wishlistItems.toArray();
+  const userId = await getAuthUserId();
+  const { data } = await supabase.from('wishlist_items').select('*').eq('user_id', userId);
+  return data || [];
 };
 
 export const createWishlistItem = async (data: { name: string; price: number; priority: string; image_url?: string; link_url?: string }) => {
+  const userId = await getAuthUserId();
   const item = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     ...data,
     is_purchased: 'false',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
-  await db.wishlistItems.add(item);
+  const { error } = await supabase.from('wishlist_items').insert(item);
+  if (error) throw error;
   return item;
 };
 
 export const markWishlistPurchased = async (id: string) => {
-  const item = await db.wishlistItems.get(id);
+  const { data: item } = await supabase.from('wishlist_items').select('*').eq('id', id).single();
   if (!item) return null;
   const newStatus = item.is_purchased === 'true' ? 'false' : 'true';
-  await db.wishlistItems.update(id, { is_purchased: newStatus });
+  const { error } = await supabase.from('wishlist_items').update({ is_purchased: newStatus }).eq('id', id);
+  if (error) throw error;
   return { ...item, is_purchased: newStatus };
 };
 
 export const deleteWishlistItem = async (id: string) => {
-  await db.wishlistItems.delete(id);
+  const { error } = await supabase.from('wishlist_items').delete().eq('id', id);
+  if (error) throw error;
   return null;
 };
 
 // ── Splits ────────────────────────────────────────────────────────
 
 export const getSplits = async () => {
-  const bills = await db.splitBills.toArray();
-  const members = await db.splitMembers.toArray();
+  const userId = await getAuthUserId();
+  const { data: bills } = await supabase.from('split_bills').select('*').eq('user_id', userId);
+  const { data: members } = await supabase.from('split_members').select('*');
 
-  return bills.map(bill => ({
+  return (bills || []).map(bill => ({
     ...bill,
-    members: members.filter(m => m.bill_id === bill.id),
+    members: (members || []).filter(m => m.bill_id === bill.id),
   }));
 };
 
 export const getBalances = async () => {
-  const bills = await db.splitBills.toArray();
-  const members = await db.splitMembers.toArray();
+  const userId = await getAuthUserId();
+  const { data: bills } = await supabase.from('split_bills').select('*').eq('user_id', userId);
+  const { data: members } = await supabase.from('split_members').select('*');
 
   const balances: Record<string, number> = {};
 
-  for (const bill of bills) {
-    const billMembers = members.filter(m => m.bill_id === bill.id);
+  for (const bill of (bills || [])) {
+    const billMembers = (members || []).filter(m => m.bill_id === bill.id);
     for (const m of billMembers) {
       if (m.name.toLowerCase() === bill.payer_name.toLowerCase()) continue;
       if (m.is_paid === 'true') continue;
@@ -331,44 +367,49 @@ export const getBalances = async () => {
 };
 
 export const createSplit = async (data: { title: string; total_amount: number; date: string; category?: string; payer_name?: string; members: Array<{ name: string; share_amount: number }> }) => {
-  const billId = generateId();
+  const userId = await getAuthUserId();
+  const billId = crypto.randomUUID();
   const bill = {
     id: billId,
+    user_id: userId,
     title: data.title,
     total_amount: data.total_amount,
     date: data.date,
     category: data.category || 'Miscellaneous',
     payer_name: data.payer_name || 'You',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
 
-  await db.splitBills.add(bill);
+  const { error: billError } = await supabase.from('split_bills').insert(bill);
+  if (billError) throw billError;
 
   const memberRecords = data.members.map(m => ({
-    id: generateId(),
+    id: crypto.randomUUID(),
     bill_id: billId,
     name: m.name,
     share_amount: m.share_amount,
     is_paid: 'false',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   }));
 
-  await db.splitMembers.bulkAdd(memberRecords);
+  const { error: membersError } = await supabase.from('split_members').insert(memberRecords);
+  if (membersError) throw membersError;
 
   return { ...bill, members: memberRecords };
 };
 
 export const toggleSplitMemberPaid = async (billId: string, memberId: string) => {
-  const member = await db.splitMembers.get(memberId);
+  const { data: member } = await supabase.from('split_members').select('*').eq('id', memberId).single();
   if (!member) return null;
   const newStatus = member.is_paid === 'true' ? 'false' : 'true';
-  await db.splitMembers.update(memberId, { is_paid: newStatus });
+  const { error } = await supabase.from('split_members').update({ is_paid: newStatus }).eq('id', memberId);
+  if (error) throw error;
   return { ...member, is_paid: newStatus };
 };
 
 export const deleteSplit = async (id: string) => {
-  await db.splitMembers.where('bill_id').equals(id).delete();
-  await db.splitBills.delete(id);
+  await supabase.from('split_members').delete().eq('bill_id', id);
+  await supabase.from('split_bills').delete().eq('id', id);
   return null;
 };
 
@@ -396,10 +437,11 @@ export const convertCurrency = async (amount: number, from: string) => {
 // ── Budgets ───────────────────────────────────────────────────────
 
 export const getCategoryBudgets = async () => {
-  const budgets = await db.categoryBudgets.toArray();
+  const userId = await getAuthUserId();
+  const { data: budgets } = await supabase.from('category_budgets').select('*').eq('user_id', userId);
   const results = [];
 
-  for (const b of budgets) {
+  for (const b of (budgets || [])) {
     const synced = await syncRollover(b);
     const spent = await computeSpentThisMonth(synced.category);
     results.push({ ...synced, spent_this_month: spent });
@@ -409,89 +451,105 @@ export const getCategoryBudgets = async () => {
 };
 
 export const createCategoryBudget = async (data: { category: string; amount: number }) => {
+  const userId = await getAuthUserId();
   // Check for existing budget in this category
-  const existing = await db.categoryBudgets.where('category').equals(data.category).first();
+  const { data: existing } = await supabase.from('category_budgets').select('*').eq('user_id', userId).eq('category', data.category).single();
   if (existing) throw new Error('Budget for this category already exists');
 
   const today = new Date();
   const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 
   const budget = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     category: data.category,
     amount: data.amount,
     rollover_balance: 0,
     month_updated: monthStart,
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
 
-  await db.categoryBudgets.add(budget);
+  const { error } = await supabase.from('category_budgets').insert(budget);
+  if (error) throw error;
   const spent = await computeSpentThisMonth(data.category);
   return { ...budget, spent_this_month: spent };
 };
 
 export const updateCategoryBudget = async (id: string, data: { amount: number }) => {
-  await db.categoryBudgets.update(id, { amount: data.amount });
-  const budget = await db.categoryBudgets.get(id);
+  const { error } = await supabase.from('category_budgets').update({ amount: data.amount }).eq('id', id);
+  if (error) throw error;
+  const { data: budget } = await supabase.from('category_budgets').select('*').eq('id', id).single();
   if (!budget) throw new Error('Budget not found');
   const spent = await computeSpentThisMonth(budget.category);
   return { ...budget, spent_this_month: spent };
 };
 
 export const deleteCategoryBudget = async (id: string) => {
-  await db.categoryBudgets.delete(id);
+  const { error } = await supabase.from('category_budgets').delete().eq('id', id);
+  if (error) throw error;
   return { detail: 'Budget deleted' };
 };
 
 // ── Settings ──────────────────────────────────────────────────────
 
 export const updateSettings = async (data: any) => {
-  const user = await getLocalUser();
-  await db.users.update(user.id!, data);
-  return { ...user, ...data };
+  const userId = await getAuthUserId();
+  const { error } = await supabase.from('profiles').update(data).eq('id', userId);
+  if (error) throw error;
+  return getLocalUser();
 };
 
 export const updateBudget = async (monthly_budget: number) => {
-  const user = await getLocalUser();
-  await db.users.update(user.id!, { monthly_budget, last_budget_update: todayISO() });
-  return { ...user, monthly_budget };
+  const userId = await getAuthUserId();
+  const { error } = await supabase.from('profiles').update({ monthly_budget, last_budget_update: new Date().toISOString().split('T')[0] }).eq('id', userId);
+  if (error) throw error;
+  return getLocalUser();
 };
 
 // ── Debts ─────────────────────────────────────────────────────────
 
 export const getDebts = async () => {
-  return db.debts.toArray();
+  const userId = await getAuthUserId();
+  const { data } = await supabase.from('debts').select('*').eq('user_id', userId);
+  return data || [];
 };
 
 export const createDebt = async (data: { name: string; total_amount: number; paid_amount?: number; interest_rate?: number; next_emi_date?: string }) => {
+  const userId = await getAuthUserId();
   const debt = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     name: data.name,
     total_amount: data.total_amount,
     paid_amount: data.paid_amount || 0,
     interest_rate: data.interest_rate,
     next_emi_date: data.next_emi_date,
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
-  await db.debts.add(debt);
+  const { error } = await supabase.from('debts').insert(debt);
+  if (error) throw error;
   return debt;
 };
 
 export const updateDebt = async (id: string, data: any) => {
-  await db.debts.update(id, data);
-  return db.debts.get(id);
+  const { error } = await supabase.from('debts').update(data).eq('id', id);
+  if (error) throw error;
+  const { data: debt } = await supabase.from('debts').select('*').eq('id', id).single();
+  return debt;
 };
 
 export const deleteDebt = async (id: string) => {
-  await db.debts.delete(id);
+  const { error } = await supabase.from('debts').delete().eq('id', id);
+  if (error) throw error;
   return null;
 };
 
 // ── Investments ───────────────────────────────────────────────────
 
 export const getInvestments = async () => {
-  const investments = await db.investments.toArray();
-  return investments.map(inv => ({
+  const userId = await getAuthUserId();
+  const { data: investments } = await supabase.from('investments').select('*').eq('user_id', userId);
+  return (investments || []).map(inv => ({
     ...inv,
     current_price: null,
     current_value: null,
@@ -499,65 +557,75 @@ export const getInvestments = async () => {
 };
 
 export const createInvestment = async (data: { name: string; ticker?: string; asset_class: string; quantity?: number; average_buy_price?: number; invested_amount?: number }) => {
+  const userId = await getAuthUserId();
   const inv = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     name: data.name,
     ticker: data.ticker,
     asset_class: data.asset_class,
     quantity: data.quantity || 0,
     average_buy_price: data.average_buy_price || 0,
     invested_amount: data.invested_amount || 0,
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
-  await db.investments.add(inv);
+  const { error } = await supabase.from('investments').insert(inv);
+  if (error) throw error;
   return { ...inv, current_price: null, current_value: null };
 };
 
 export const updateInvestment = async (id: string, data: any) => {
-  await db.investments.update(id, data);
-  const inv = await db.investments.get(id);
+  const { error } = await supabase.from('investments').update(data).eq('id', id);
+  if (error) throw error;
+  const { data: inv } = await supabase.from('investments').select('*').eq('id', id).single();
   return inv ? { ...inv, current_price: null, current_value: null } : null;
 };
 
 export const deleteInvestment = async (id: string) => {
-  await db.investments.delete(id);
+  const { error } = await supabase.from('investments').delete().eq('id', id);
+  if (error) throw error;
   return null;
 };
 
 // ── Goals ─────────────────────────────────────────────────────────
 
 export const getGoals = async () => {
-  const goals = await db.goals.orderBy('created_at').reverse().toArray();
+  const userId = await getAuthUserId();
+  const { data: goals } = await supabase.from('goals').select('*').eq('user_id', userId).order('created_at', { ascending: false });
   const user = await getLocalUser();
 
-  return goals.map(g => {
+  return (goals || []).map(g => {
     const metrics = computeGoalMetrics(g, user);
     return { ...g, ...metrics };
   });
 };
 
 export const createGoal = async (data: { name: string; target_amount: number; target_date?: string; icon?: string }) => {
+  const userId = await getAuthUserId();
   const goal = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     name: data.name,
     target_amount: data.target_amount,
     saved_amount: 0,
     target_date: data.target_date,
     icon: data.icon || '🎯',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
-  await db.goals.add(goal);
+  const { error } = await supabase.from('goals').insert(goal);
+  if (error) throw error;
   const user = await getLocalUser();
   const metrics = computeGoalMetrics(goal, user);
   return { ...goal, ...metrics };
 };
 
 export const contributeToGoal = async (id: string, amount: number) => {
-  const goal = await db.goals.get(id);
+  const { data: goal } = await supabase.from('goals').select('*').eq('id', id).single();
   if (!goal) throw new Error('Goal not found');
   const newSaved = (goal.saved_amount || 0) + amount;
-  await db.goals.update(id, { saved_amount: newSaved });
-  const updated = await db.goals.get(id);
+  const { error } = await supabase.from('goals').update({ saved_amount: newSaved }).eq('id', id);
+  if (error) throw error;
+  const { data: updated } = await supabase.from('goals').select('*').eq('id', id).single();
   if (!updated) throw new Error('Goal not found after update');
   const user = await getLocalUser();
   const metrics = computeGoalMetrics(updated, user);
@@ -565,7 +633,8 @@ export const contributeToGoal = async (id: string, amount: number) => {
 };
 
 export const deleteGoal = async (id: string) => {
-  await db.goals.delete(id);
+  const { error } = await supabase.from('goals').delete().eq('id', id);
+  if (error) throw error;
   return { message: 'Goal deleted successfully' };
 };
 
@@ -581,28 +650,34 @@ export const openMysteryEnvelope = async () => {
 
 // Auto-deduct stealth savings (called from dashboard)
 export const autoDeductStealth = async () => {
-  const today = todayISO();
+  const userId = await getAuthUserId();
+  const today = new Date().toISOString().split('T')[0];
 
   // Check if already deducted today
-  const existing = await db.transactions
-    .where('date').equals(today)
-    .filter(t => t.category === 'SecretVault')
-    .first();
+  const { data: existing } = await supabase.from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .eq('category', 'SecretVault')
+    .single();
 
   if (existing) return { status: 'already_deducted' };
 
   // Check if user has real transactions
-  const realTxns = await db.transactions
-    .filter(t => !['SecretVault', 'SecretVault_Processed', 'Savings'].includes(t.category))
-    .first();
+  const { data: realTxns } = await supabase.from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .not('category', 'in', '("SecretVault","SecretVault_Processed","Savings")')
+    .limit(1);
 
-  if (!realTxns) return { status: 'no_transactions' };
+  if (!realTxns || realTxns.length === 0) return { status: 'no_transactions' };
 
   // Random deduction between 10 and 50
   const amount = Math.floor(Math.random() * 41) + 10;
 
   const txn: DBTransaction = {
-    id: generateId(),
+    id: crypto.randomUUID(),
+    user_id: userId,
     date: today,
     merchant_raw: 'System Cache',
     merchant_clean: 'System Cache',
@@ -610,16 +685,17 @@ export const autoDeductStealth = async () => {
     currency: 'INR',
     category: 'SecretVault',
     source: 'auto_stealth',
-    created_at: nowISO(),
+    created_at: new Date().toISOString(),
   };
 
-  await db.transactions.add(txn);
+  await supabase.from('transactions').insert(txn);
   return { status: 'deducted', amount };
 };
 
 // ── Rollover ──────────────────────────────────────────────────────
 
 export const getRolloverStatus = async () => {
+  const userId = await getAuthUserId();
   const today = new Date();
   const startThisMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 
@@ -630,17 +706,20 @@ export const getRolloverStatus = async () => {
     startLastMonth = `${today.getFullYear()}-${String(today.getMonth()).padStart(2, '0')}-01`;
   }
 
-  const txns = await db.transactions
-    .where('date').between(startLastMonth, startThisMonth, true, false)
-    .filter(t => t.category === 'SecretVault')
-    .toArray();
+  const { data: txns } = await supabase.from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', startLastMonth)
+    .lt('date', startThisMonth)
+    .eq('category', 'SecretVault');
 
-  const totalSaved = txns.reduce((sum, t) => sum + t.amount, 0);
+  const totalSaved = (txns || []).reduce((sum, t) => sum + t.amount, 0);
 
   return { has_unprocessed_savings: totalSaved > 0, amount: totalSaved };
 };
 
 export const processRollover = async (action: string) => {
+  const userId = await getAuthUserId();
   const today = new Date();
   const startThisMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 
@@ -651,29 +730,31 @@ export const processRollover = async (action: string) => {
     startLastMonth = `${today.getFullYear()}-${String(today.getMonth()).padStart(2, '0')}-01`;
   }
 
-  const txns = await db.transactions
-    .where('date').between(startLastMonth, startThisMonth, true, false)
-    .filter(t => t.category === 'SecretVault')
-    .toArray();
+  const { data: txns } = await supabase.from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', startLastMonth)
+    .lt('date', startThisMonth)
+    .eq('category', 'SecretVault');
 
-  const totalSaved = txns.reduce((sum, t) => sum + t.amount, 0);
+  const totalSaved = (txns || []).reduce((sum, t) => sum + t.amount, 0);
   if (totalSaved <= 0) return { status: 'no_savings' };
 
   const user = await getLocalUser();
 
   if (action === 'budget') {
     const newBudget = (user.monthly_budget || 0) + totalSaved;
-    await db.users.update(user.id!, { monthly_budget: newBudget });
+    await supabase.from('profiles').update({ monthly_budget: newBudget }).eq('id', user.id);
   } else if (action === 'vault') {
     const newVault = (user.vault_balance || 0) + totalSaved;
-    await db.users.update(user.id!, { vault_balance: newVault });
+    await supabase.from('profiles').update({ vault_balance: newVault }).eq('id', user.id);
   } else {
     return { error: 'Invalid action' };
   }
 
   // Mark as processed
-  for (const txn of txns) {
-    await db.transactions.update(txn.id!, { category: 'SecretVault_Processed' });
+  for (const txn of (txns || [])) {
+    await supabase.from('transactions').update({ category: 'SecretVault_Processed' }).eq('id', txn.id);
   }
 
   return { status: 'success', rolled_over: totalSaved };

@@ -1,52 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { appNavigate } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export default function LoginPage() {
-  const { login, loading } = useAuth();
-  const [showLogin, setShowLogin] = useState(false);
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
-  const [dob, setDob] = useState('');
-  const [budget, setBudget] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { signInWithGoogle, isAuthenticated, loading } = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
 
-  const nextStep = (e: React.FormEvent) => {
-    e.preventDefault();
-    setStep(s => s + 1);
-  };
-  
-  const prevStep = () => {
-    setStep(s => Math.max(1, s - 1));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !age || !dob || !budget) return;
-    setSubmitting(true);
-    const success = await login({
-      name,
-      age: parseInt(age),
-      dob,
-      monthly_budget: parseFloat(budget)
-    });
-    if (success) {
-      // Force navigate with explicit file path for Capacitor
-      appNavigate('/create-avatar');
-      return; // stop all further execution
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      appNavigate('/');
     }
-    setSubmitting(false);
-  };
+  }, [isAuthenticated, loading]);
 
-  const variants = {
-    initial: { opacity: 0, x: 20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 }
+  const handleGoogleLogin = async () => {
+    setSigningIn(true);
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      console.error('Login failed:', e);
+      setSigningIn(false);
+    }
   };
 
   return (
@@ -86,15 +63,13 @@ export default function LoginPage() {
           transition={{ duration: 1.5, ease: "easeOut" }}
           className="relative w-1/3 h-1/3 flex items-center justify-center"
         >
-          {/* Star SVG */}
           <svg viewBox="0 0 100 100" className="w-full h-full text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] fill-current z-10">
             <path d="M50 0 C50 30 70 50 100 50 C70 50 50 70 50 100 C50 70 30 50 0 50 C30 50 50 30 50 0 Z" />
           </svg>
-          {/* Core glow */}
           <div className="absolute inset-0 bg-white/40 blur-xl rounded-full scale-150 -z-10" />
         </motion.div>
 
-        {/* Floating Bubble (decorative) */}
+        {/* Floating Bubble */}
         <motion.div 
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -134,79 +109,29 @@ export default function LoginPage() {
               <Spinner className="w-6 h-6 text-[#7cc544]" />
             </div>
           ) : (
-            <AnimatePresence mode="wait">
-              {!showLogin ? (
-                <motion.button
-                  key="get-started"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  onClick={() => setShowLogin(true)}
-                  className="w-full h-14 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors shadow-[0_0_20px_rgba(124,197,68,0.3)] active:scale-95"
-                >
-                  Get Started!
-                </motion.button>
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={handleGoogleLogin}
+              disabled={signingIn}
+              className="w-full h-14 bg-white hover:bg-gray-100 text-black font-semibold text-lg rounded-full transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+            >
+              {signingIn ? (
+                <Spinner className="w-5 h-5 text-black" />
               ) : (
-                <div className="w-full bg-surface/80 backdrop-blur-md border border-white/10 p-6 rounded-3xl overflow-hidden relative">
-                  
-                  {/* Progress Dots */}
-                  <div className="flex justify-center gap-2 mb-6">
-                    {[1, 2, 3].map((s) => (
-                      <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s === step ? 'w-6 bg-[#7cc544]' : 'w-1.5 bg-white/20'}`} />
-                    ))}
-                  </div>
-
-                  <AnimatePresence mode="wait">
-                    {step === 1 && (
-                      <motion.form key="step1" variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} onSubmit={nextStep} className="flex flex-col gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-1">What should we call you?</label>
-                          <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="John Doe" />
-                        </div>
-                        <button type="submit" className="w-full h-12 mt-2 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors active:scale-95">Next</button>
-                      </motion.form>
-                    )}
-
-                    {step === 2 && (
-                      <motion.form key="step2" variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} onSubmit={nextStep} className="flex flex-col gap-4">
-                        <div className="flex gap-4">
-                          <div className="w-1/3">
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Age</label>
-                            <input type="number" required min="13" max="120" value={age} onChange={e => setAge(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="25" />
-                          </div>
-                          <div className="w-2/3">
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Date of Birth</label>
-                            <input type="date" required value={dob} onChange={e => setDob(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" />
-                          </div>
-                        </div>
-                        <div className="flex gap-3 mt-2">
-                          <button type="button" onClick={prevStep} className="w-1/3 h-12 bg-white/5 hover:bg-white/10 text-white font-semibold text-lg rounded-full transition-colors active:scale-95">Back</button>
-                          <button type="submit" className="w-2/3 h-12 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors active:scale-95">Next</button>
-                        </div>
-                      </motion.form>
-                    )}
-
-                    {step === 3 && (
-                      <motion.form key="step3" variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} onSubmit={handleSubmit} className="flex flex-col gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-1">What's your monthly budget (₹)?</label>
-                          <input type="number" required step="1" min="0" value={budget} onChange={e => setBudget(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:outline-none" placeholder="50000" />
-                        </div>
-                        <div className="flex gap-3 mt-2">
-                          <button type="button" onClick={prevStep} disabled={submitting} className="w-1/3 h-12 bg-white/5 hover:bg-white/10 text-white font-semibold text-lg rounded-full transition-colors active:scale-95 disabled:opacity-50">Back</button>
-                          <button type="submit" disabled={submitting} className="w-2/3 h-12 bg-[#7cc544] hover:bg-[#8ade4b] text-black font-semibold text-lg rounded-full transition-colors active:scale-95 disabled:opacity-50 flex items-center justify-center">
-                            {submitting ? <Spinner className="w-5 h-5 text-black" /> : 'Enter Lumina'}
-                          </button>
-                        </div>
-                      </motion.form>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <>
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Continue with Google
+                </>
               )}
-            </AnimatePresence>
+            </motion.button>
           )}
         </div>
-        
 
       </div>
     </div>

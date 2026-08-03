@@ -136,7 +136,7 @@ export async function checkBudgetsAndNotify() {
     const budgets = await getCategoryBudgets();
     
     for (const b of budgets) {
-      const totalLimit = b.amount + b.rollover_balance;
+      const totalLimit = b.amount + (b.rollover_balance || 0);
       if (totalLimit <= 0) continue;
       
       const percent = (b.spent_this_month / totalLimit) * 100;

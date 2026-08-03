@@ -1,4 +1,10 @@
-import { DBTransaction } from './db';
+// Transaction type for forecasting
+interface DBTransaction {
+  date: string;
+  category: string;
+  amount: number;
+  [key: string]: any;
+}
 
 export interface ForecastResult {
   predicted_next_month: number;
