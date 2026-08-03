@@ -86,8 +86,9 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
         user_persona: persona
       });
       setStep(5);
-    } catch (error) {
-      toast.error('Failed to save settings');
+    } catch (error: any) {
+      console.error("Setup error:", error);
+      toast.error(`Failed to save settings: ${error.message || JSON.stringify(error)}`);
     } finally {
       setLoading(false);
     }
