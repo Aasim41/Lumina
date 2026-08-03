@@ -25,10 +25,16 @@ export const getToken = async (): Promise<string | null> => {
 };
 
 export const signInWithGoogle = async () => {
+  const { Capacitor } = await import('@capacitor/core');
+  const isNative = Capacitor.isNativePlatform();
+  const redirectUrl = isNative 
+    ? 'com.lumina.smartexpense://login-callback' 
+    : (typeof window !== 'undefined' ? window.location.origin + '/' : undefined);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: typeof window !== 'undefined' ? window.location.origin + '/' : undefined
+      redirectTo: redirectUrl,
     }
   });
   if (error) throw error;

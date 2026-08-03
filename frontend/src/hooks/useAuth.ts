@@ -69,8 +69,28 @@ export function useAuth() {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [fetchUser]);
+    // Listen for deep links in Capacitor (OAuth redirect callback)
+    let appListener: any = null;
+    const setupAppListener = async () => {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { App } = await import('@capacitor/app');
+        appListener = await App.addListener('appUrlOpen', (event) => {
+          const url = new URL(event.url);
+          if (url.hostname === 'login-callback' && url.hash) {
+            // Push the hash to the router so Supabase client detects the session
+            router.push('/' + url.hash);
+          }
+        });
+      }
+    };
+    setupAppListener();
+
+    return () => {
+      subscription.unsubscribe();
+      if (appListener) appListener.remove();
+    };
+  }, [fetchUser, router]);
 
   const signInWithGoogle = useCallback(async (): Promise<boolean> => {
     try {
