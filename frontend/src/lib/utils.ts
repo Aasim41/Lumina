@@ -1,5 +1,19 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { Capacitor } from '@capacitor/core';
+
+export function appNavigate(path: string) {
+  if (typeof window === 'undefined') return;
+  if (Capacitor.isNativePlatform()) {
+    if (path === '/') {
+      window.location.replace('/index.html');
+    } else {
+      window.location.replace(`${path}/index.html`);
+    }
+  } else {
+    window.location.replace(path);
+  }
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

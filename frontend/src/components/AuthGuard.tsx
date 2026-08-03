@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import { Spinner } from './ui/Spinner';
+import { appNavigate } from '@/lib/utils';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,7 +14,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated()) {
       if (pathname !== '/login' && pathname !== '/login/') {
-        window.location.replace('/login');
+        appNavigate('/login');
       }
       setAuthorized(false);
     } else {

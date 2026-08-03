@@ -1,4 +1,5 @@
 import { db } from './db';
+import { appNavigate } from './utils';
 
 export interface User {
   id: string;
@@ -89,6 +90,6 @@ export const logout = async () => {
       console.error('Failed to clear IndexedDB:', e);
     }
 
-    window.location.replace('/login');
+    appNavigate('/login');
   }
 };

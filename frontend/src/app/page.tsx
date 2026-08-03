@@ -5,8 +5,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { useExpenseData } from '@/hooks/useExpenseData';
+import { appNavigate } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { MetricCard } from '@/components/MetricCard';
 import { CategoryDonutChart } from '@/components/CategoryDonutChart';
@@ -293,7 +294,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-6 mt-12 relative z-20">
               <div className="flex items-center space-x-3 sm:space-x-4">
                 <button 
-                  onClick={() => { window.location.href = '/create-avatar'; }}
+                  onClick={() => { appNavigate('/create-avatar'); }}
                   className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shrink-0 overflow-hidden shadow-[0_0_15px_rgba(52,211,153,0.3)] border border-white/20 relative group cursor-pointer"
                 >
                   {user?.avatar_url ? (

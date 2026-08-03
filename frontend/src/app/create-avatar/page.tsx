@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { updateUserProfile } from '@/lib/api';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { appNavigate } from '@/lib/utils';
+import { Camera, Check, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
 
 const MALE_SEEDS = ['Felix', 'Marcus', 'Leo', 'Aiden', 'Ravi', 'Omar', 'James', 'Max', 'Ryan', 'Kai', 'Sam', 'Dante'];
 const FEMALE_SEEDS = ['Sophia', 'Maya', 'Zara', 'Luna', 'Aria', 'Priya', 'Emma', 'Lily', 'Nova', 'Ruby', 'Mia', 'Ella'];
@@ -213,12 +214,12 @@ export default function CreateAvatarPage() {
       console.error('Failed to save avatar', e);
     }
     // Always navigate to dashboard with explicit file path
-    window.location.replace('/');
+    appNavigate('/');
   };
 
   const handleSkip = async () => {
     try { await updateUserProfile({ avatar_url: '' }); await refreshUser(); } catch {}
-    window.location.replace('/');
+    appNavigate('/');
   };
 
   const ColorSwatch = ({ hex, selected, onClick }: { hex: string; selected: boolean; onClick: () => void }) => (

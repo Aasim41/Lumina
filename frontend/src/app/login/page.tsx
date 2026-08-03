@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { appNavigate } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,7 +37,7 @@ export default function LoginPage() {
     });
     if (success) {
       // Force navigate with explicit file path for Capacitor
-      window.location.replace('/create-avatar');
+      appNavigate('/create-avatar');
       return; // stop all further execution
     }
     setSubmitting(false);
