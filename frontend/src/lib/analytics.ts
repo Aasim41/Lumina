@@ -1,14 +1,52 @@
 import { db, generateId, nowISO, todayISO, DBUser, DBTransaction, DBSubscription, DBCategoryBudget, DBGoal } from './db';
 
+export function getBudgetCycle(user?: DBUser) {
+  const today = new Date();
+  const defaultStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const startStr = user?.last_budget_update || defaultStart;
+  const startDate = new Date(startStr);
+  
+  let currentStart = new Date(startDate);
+  const days = user?.budget_days || new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
+  
+  // Roll forward if currentStart is in the past by more than `days`
+  while (true) {
+    const nextStart = new Date(currentStart);
+    nextStart.setDate(nextStart.getDate() + days);
+    if (nextStart > today) break;
+    currentStart = nextStart;
+  }
+  
+  const endDate = new Date(currentStart);
+  endDate.setDate(endDate.getDate() + days - 1);
+  
+  // Calculate how many days have passed in this cycle
+  const diffTime = Math.abs(today.getTime() - currentStart.getTime());
+  const elapsedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  // Calculate previous cycle
+  const prevStart = new Date(currentStart);
+  prevStart.setDate(prevStart.getDate() - days);
+  const prevEnd = new Date(currentStart);
+  prevEnd.setDate(prevEnd.getDate() - 1);
+  
+  return { 
+    startStr: currentStart.toISOString().split('T')[0], 
+    endStr: endDate.toISOString().split('T')[0], 
+    prevStartStr: prevStart.toISOString().split('T')[0],
+    prevEndStr: prevEnd.toISOString().split('T')[0],
+    days,
+    elapsedDays: Math.min(elapsedDays, days)
+  };
+}
+
 // 1. computeSummary
 export async function computeSummary(user: DBUser) {
   const allTransactions = await db.transactions.toArray();
-  const todayDate = new Date(todayISO());
-  const firstOfThisMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
-  const firstOfLastMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() - 1, 1);
+  const cycle = getBudgetCycle(user);
 
-  const thisMonthTxs = allTransactions.filter(t => new Date(t.date) >= firstOfThisMonth && new Date(t.date) <= todayDate);
-  const lastMonthTxs = allTransactions.filter(t => new Date(t.date) >= firstOfLastMonth && new Date(t.date) < firstOfThisMonth);
+  const thisMonthTxs = allTransactions.filter(t => t.date >= cycle.startStr && t.date <= cycle.endStr);
+  const lastMonthTxs = allTransactions.filter(t => t.date >= cycle.prevStartStr && t.date <= cycle.prevEndStr);
 
   const excludeCats = ['Savings', 'SecretVault'];
   
@@ -38,23 +76,26 @@ export async function computeSummary(user: DBUser) {
     }
   }
   
-  const daily_average = total_this_month / todayDate.getDate();
+  const daily_average = total_this_month / cycle.elapsedDays;
   
   const subs = await db.subscriptions.toArray();
   const total_subscriptions_this_month = subs.reduce((sum, s) => sum + s.amount, 0);
   
-  // badges
+  const vault = await db.users.toCollection().first();
+  const db_vault_balance = vault?.vault_balance || 0;
+  
+  // Badges logic (simplified example)
   const badges: string[] = [];
   if (allTransactions.filter(t => t.category !== 'SecretVault').length > 0) badges.push('First Steps');
   
   const monthly_budget = user.monthly_budget || 0;
   if (monthly_budget > 0 && total_saved_this_month > (monthly_budget * 0.2)) badges.push('Super Saver');
   
-  const projected = daily_average * new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate();
+  const projected = daily_average * cycle.days;
   if (monthly_budget > 0 && projected < monthly_budget) badges.push('On Track');
   
-  // streaks
-  const daily_budget = monthly_budget > 0 ? monthly_budget / new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate() : 0;
+  const todayDate = new Date(todayISO());
+  const daily_budget = monthly_budget > 0 ? monthly_budget / cycle.days : 0;
   
   const dailyTotals: Record<string, number> = {};
   allTransactions.forEach(t => {

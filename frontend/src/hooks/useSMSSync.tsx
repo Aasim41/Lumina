@@ -205,6 +205,10 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
       }
     } catch (e: any) {
       console.error('SMS sync error:', e);
+      // Alert user if permission was denied
+      if (e.message && e.message.includes('Permission')) {
+        toast.error('SMS permission required for automatic tracking. Please enable it in Settings.');
+      }
     } finally {
       isSyncing.current = false;
     }

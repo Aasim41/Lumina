@@ -12,34 +12,18 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
   const [step, setStep] = useState(1);
   const [persona, setPersona] = useState<string>('');
   const [budget, setBudget] = useState('');
+  const [budgetDays, setBudgetDays] = useState('30');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
 
-    let needsUpdate = false;
-    if (!user.user_persona) {
-      needsUpdate = true;
-    } else {
-      const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
-      
-      if (user.last_budget_update) {
-        const lastUpdate = new Date(user.last_budget_update);
-        if (lastUpdate.getMonth() !== currentMonth || lastUpdate.getFullYear() !== currentYear) {
-          needsUpdate = true;
-        }
-      } else {
-         needsUpdate = true;
-      }
-    }
-
-    if (needsUpdate) {
+    if (!user.user_persona || !user.monthly_budget || !user.budget_days) {
       setIsOpen(true);
       setStep(1);
       setPersona(user.user_persona || '');
-      setBudget('');
+      setBudget(user.monthly_budget ? user.monthly_budget.toString() : '');
+      setBudgetDays(user.budget_days ? user.budget_days.toString() : '30');
     }
   }, [user]);
 
@@ -59,6 +43,7 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
     try {
       await updateUserProfile({
         monthly_budget: parseFloat(budget.toString()),
+        budget_days: parseInt(budgetDays.toString()) || 30,
         user_persona: persona
       });
       toast.success('Profile and budget set!');
@@ -82,7 +67,7 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
           
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-display font-bold text-white">
-              {step === 1 ? 'Choose Your Lifestyle' : 'Set Monthly Budget'}
+              {step === 1 ? 'Choose Your Lifestyle' : 'Set Your Budget'}
             </h2>
             <div className="text-xs font-medium text-primary bg-primary/20 px-2 py-1 rounded-full">
               Step {step} of 2
@@ -154,6 +139,25 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
                       Suggested range for {selectedConfig.label}: ₹{selectedConfig.budgetRange[0]} - ₹{selectedConfig.budgetRange[1]}
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">
+                    Number of Days
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    max="365"
+                    value={budgetDays}
+                    onChange={(e) => setBudgetDays(e.target.value)}
+                    className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="30"
+                  />
+                  <p className="text-xs text-text-secondary mt-2">
+                    How many days does this budget last? (Default: 30)
+                  </p>
                 </div>
 
                 <div className="pt-4 flex gap-3">

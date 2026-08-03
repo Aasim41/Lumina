@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText } from 'lucide-react';
 import { updateUserProfile } from '@/lib/api';
@@ -17,6 +17,10 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetDays, setBudgetDays] = useState('30');
+  const [savingBudget, setSavingBudget] = useState(false);
 
   // Load the saved API key when modal opens
   const loadApiKey = async () => {
@@ -28,9 +32,34 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   };
 
   // Load on first render when open
-  useState(() => {
-    if (isOpen) loadApiKey();
-  });
+  useEffect(() => {
+    if (isOpen) {
+      loadApiKey();
+      if (user) {
+        setBudgetAmount(user.monthly_budget?.toString() || '');
+        setBudgetDays(user.budget_days?.toString() || '30');
+      }
+    }
+  }, [isOpen, user]);
+
+  const handleUpdateBudget = async () => {
+    if (!budgetAmount || !budgetDays) return;
+    setSavingBudget(true);
+    const toastId = toast.loading('Updating budget...');
+    try {
+      await updateUserProfile({
+        monthly_budget: parseFloat(budgetAmount),
+        budget_days: parseInt(budgetDays) || 30
+      });
+      await refreshUser();
+      toast.success('Budget updated! Recalculating...', { id: toastId });
+      window.location.reload(); // Force full app recalculation
+    } catch (e) {
+      toast.error('Failed to update budget', { id: toastId });
+    } finally {
+      setSavingBudget(false);
+    }
+  };
 
   const handleCurrencyChange = async (newCurrency: string) => {
     if (newCurrency === (user?.preferred_currency || 'INR')) return;
@@ -172,7 +201,41 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 </div>
               </div>
 
-              {/* Groq API Key */}
+              {/* Budget Settings */}
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-4">
+                <h3 className="text-sm font-semibold text-white">Active Budget</h3>
+                
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">Budget Amount</label>
+                  <input
+                    type="number"
+                    value={budgetAmount}
+                    onChange={(e) => setBudgetAmount(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">Cycle Duration (Days)</label>
+                  <input
+                    type="number"
+                    value={budgetDays}
+                    onChange={(e) => setBudgetDays(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                  />
+                </div>
+
+                <button
+                  onClick={handleUpdateBudget}
+                  disabled={savingBudget}
+                  className="w-full py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 rounded-xl font-medium flex items-center justify-center transition-all hover:bg-emerald-500/30"
+                >
+                  {savingBudget ? <Spinner className="w-4 h-4 mr-2" /> : null}
+                  Update Active Budget
+                </button>
+              </div>
+
+              {/* Advanced / Groq API Key */}
               <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
                 <div className="flex items-center space-x-2 mb-3">
                   <Key className="w-4 h-4 text-amber-400" />

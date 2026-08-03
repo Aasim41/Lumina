@@ -9,6 +9,7 @@ export interface DBUser {
   age?: number;
   dob?: string;            // ISO date string
   monthly_budget?: number;
+  budget_days?: number;
   last_budget_update?: string;
   vault_balance: number;
   preferred_currency: string;

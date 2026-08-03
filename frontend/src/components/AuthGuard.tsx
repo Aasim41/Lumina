@@ -13,7 +13,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      if (pathname !== '/login' && pathname !== '/login/') {
+      if (!pathname.startsWith('/login')) {
         appNavigate('/login');
       }
       setAuthorized(false);
