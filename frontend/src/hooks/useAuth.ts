@@ -127,6 +127,20 @@ export function useAuth() {
     }
   }, []);
 
+  const loginAsGuest = useCallback(async (name: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const { guestLogin: doGuestLogin } = await import('@/lib/auth');
+      await doGuestLogin(name);
+      return true;
+    } catch (e: any) {
+      console.error('Guest login failed', e);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const handleLogout = useCallback(async () => {
     const { logout: doLogout } = await import('@/lib/auth');
     setUser(null);
@@ -138,8 +152,9 @@ export function useAuth() {
   return {
     user,
     isAuthenticated,
-    login: signInWithGoogle,  // Keep 'login' name for backward compat
+    login: loginAsGuest,
     signInWithGoogle,
+    loginAsGuest,
     logout: handleLogout,
     loading,
     refreshUser: fetchUser

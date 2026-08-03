@@ -48,6 +48,27 @@ export const signInWithGoogle = async () => {
   return data;
 };
 
+export const guestLogin = async (name: string) => {
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+  
+  if (data.user) {
+    // Upsert profile with the provided name
+    const newProfile = {
+      id: data.user.id,
+      name: name,
+      email: '',
+      vault_balance: 0,
+      preferred_currency: 'INR',
+      current_streak: 0,
+      unlocked_badges: '[]',
+      created_at: new Date().toISOString(),
+    };
+    await supabase.from('profiles').upsert(newProfile);
+  }
+  return data;
+};
+
 export const getUser = async (): Promise<User | null> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
