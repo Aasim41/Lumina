@@ -116,13 +116,10 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
   return (
     <div className="fixed inset-0 bg-black z-[200] flex flex-col justify-center items-center overflow-hidden">
       
-      {/* Dynamic Background */}
+      {/* Dynamic Background - Replaced heavy Framer Motion animation with static gradient to fix Android lag */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <motion.div 
-          animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[radial-gradient(ellipse_at_center,rgba(124,197,68,0.15)_0%,rgba(0,0,0,0)_50%)]"
-        />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,197,68,0.15)_0%,rgba(0,0,0,0)_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(124,197,68,0.1)_0%,rgba(0,0,0,0)_60%)]" />
       </div>
 
       <div className="relative z-10 w-full max-w-md p-6 h-full flex flex-col">
