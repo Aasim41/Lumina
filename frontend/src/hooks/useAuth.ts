@@ -81,9 +81,26 @@ export function useAuth() {
             // Close the capacitor/browser window
             const { Browser } = await import('@capacitor/browser');
             await Browser.close();
-            // Assign to window.location.hash to trigger the native hashchange event 
-            // that the Supabase client relies on to process the OAuth token!
-            window.location.hash = url.hash;
+
+            // Parse the tokens directly from the hash to guarantee login
+            const hashParams = new URLSearchParams(url.hash.substring(1));
+            const access_token = hashParams.get('access_token');
+            const refresh_token = hashParams.get('refresh_token');
+
+            if (access_token && refresh_token) {
+              const { error } = await supabase.auth.setSession({
+                access_token,
+                refresh_token,
+              });
+              if (!error) {
+                router.push('/');
+              } else {
+                console.error('Error setting session:', error);
+                window.location.hash = url.hash;
+              }
+            } else {
+              window.location.hash = url.hash;
+            }
           }
         });
       }
