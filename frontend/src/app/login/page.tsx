@@ -22,10 +22,10 @@ export default function LoginPage() {
     if (!name.trim()) return;
     
     setSigningIn(true);
-    const success = await loginAsGuest(name.trim());
-    if (!success) {
+    const result = await loginAsGuest(name.trim());
+    if (!result.success) {
       setSigningIn(false);
-      alert('Login failed! Please ensure you have enabled Anonymous Sign-Ins in your Supabase Dashboard -> Authentication -> Providers.');
+      alert(`Login failed! Error: ${result.error}\n\nPlease ensure you have enabled Anonymous Sign-Ins in your Supabase Dashboard -> Authentication -> Providers.`);
     }
   };
 

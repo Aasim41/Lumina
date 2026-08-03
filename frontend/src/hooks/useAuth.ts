@@ -127,15 +127,15 @@ export function useAuth() {
     }
   }, []);
 
-  const loginAsGuest = useCallback(async (name: string): Promise<boolean> => {
+  const loginAsGuest = useCallback(async (name: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
       const { guestLogin: doGuestLogin } = await import('@/lib/auth');
       await doGuestLogin(name);
-      return true;
+      return { success: true };
     } catch (e: any) {
       console.error('Guest login failed', e);
-      return false;
+      return { success: false, error: e.message || 'Unknown error occurred' };
     } finally {
       setLoading(false);
     }
@@ -152,7 +152,7 @@ export function useAuth() {
   return {
     user,
     isAuthenticated,
-    login: loginAsGuest,
+    login: loginAsGuest as any,
     signInWithGoogle,
     loginAsGuest,
     logout: handleLogout,
