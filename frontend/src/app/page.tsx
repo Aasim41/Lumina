@@ -142,21 +142,7 @@ export default function Dashboard() {
     }
   };
 
-  // Stealth Savings Auto-Deduct (deferred)
-  useEffect(() => {
-    if (user) {
-      const timer = setTimeout(() => {
-        apiFetch('/api/stealth/auto-deduct', { method: 'POST' })
-          .then(res => {
-            if (res.status === 'deducted') {
-              refresh();
-            }
-          })
-          .catch(console.error);
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
+  // Stealth Savings feature removed per user request
 
 
   const getBadgeConfig = (badge: string) => {
