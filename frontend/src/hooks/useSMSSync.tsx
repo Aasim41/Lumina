@@ -1,9 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { parseMultipleSMS, ParsedTransaction } from '@/lib/smsParser';
 import { createTransaction } from '@/lib/api';
-import { getToken } from '@/lib/auth';
-import { Capacitor } from '@capacitor/core';
-import { LocalNotifications } from '@capacitor/local-notifications';
+import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 // Category mapping based on merchant/description keywords
@@ -26,7 +24,6 @@ const CATEGORY_MAP: [RegExp, string][] = [
 
 function categorize(merchant: string, type: string): string {
   if (type === 'credit') {
-    // Check if it's a refund
     if (/refund|cashback|reversal/i.test(merchant)) return 'Refund';
     return 'Income';
   }
@@ -49,7 +46,6 @@ function getSyncedHashes(): Set<string> {
 function addSyncedHashes(hashes: string[]) {
   const existing = getSyncedHashes();
   hashes.forEach(h => existing.add(h));
-  // Keep only last 5000 hashes to prevent localStorage bloat
   const arr = Array.from(existing);
   const trimmed = arr.slice(Math.max(0, arr.length - 5000));
   localStorage.setItem('lumina_synced_sms', JSON.stringify(trimmed));
@@ -68,32 +64,35 @@ function setLastSyncTime(time: number) {
 }
 
 async function readSMSMessages(): Promise<Array<{ body: string; sender: string; date: string }>> {
-  const { Capacitor, registerPlugin } = await import('@capacitor/core');
-  if (!Capacitor.isNativePlatform()) {
-    throw new Error('Not running on native Android device');
+  try {
+    const { Capacitor, registerPlugin } = await import('@capacitor/core');
+    if (!Capacitor.isNativePlatform()) {
+      return []; // Silently return empty on web
+    }
+
+    const NativeSms = registerPlugin<any>('NativeSms');
+
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const lastSync = getLastSyncTime();
+    const since = Math.max(sevenDaysAgo, lastSync);
+
+    const result = await NativeSms.getSms();
+    if (!result.smsList) return [];
+
+    return result.smsList
+      .filter((sms: any) => {
+        const smsTime = parseInt(sms.date || '0');
+        return smsTime >= since;
+      })
+      .map((sms: any) => ({
+        body: sms.body || '',
+        sender: sms.address || '',
+        date: new Date(parseInt(sms.date || Date.now())).toISOString().split('T')[0],
+      }));
+  } catch (e) {
+    console.warn('SMS read failed (permission likely denied):', e);
+    return []; // Never crash — just return empty
   }
-
-  const NativeSms = registerPlugin<any>('NativeSms');
-
-  // Read SMS from the last 7 days
-  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-  const lastSync = getLastSyncTime();
-  const since = Math.max(sevenDaysAgo, lastSync);
-
-  const result = await NativeSms.getSms();
-  if (!result.smsList) return [];
-
-  // Filter to messages since last sync and map to our format
-  return result.smsList
-    .filter((sms: any) => {
-      const smsTime = parseInt(sms.date || '0');
-      return smsTime >= since;
-    })
-    .map((sms: any) => ({
-      body: sms.body || '',
-      sender: sms.address || '',
-      date: new Date(parseInt(sms.date || Date.now())).toISOString().split('T')[0],
-    }));
 }
 
 async function syncTransactions(parsed: ParsedTransaction[]): Promise<{count: number, totalAmount: number}> {
@@ -140,10 +139,15 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
   const isSyncing = useRef(false);
 
   const doSync = useCallback(async () => {
-    // Prevent concurrent syncs
     if (isSyncing.current) return;
-    // Only sync if logged in
-    if (!getToken()) return;
+
+    // Properly await the async auth check
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+    } catch {
+      return; // Auth not ready, skip silently
+    }
 
     isSyncing.current = true;
 
@@ -162,31 +166,16 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
 
       const { count, totalAmount } = await syncTransactions(parsed);
       if (count > 0) {
-        toast.custom((t) => (
-          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-[#111] shadow-2xl rounded-2xl border border-[#7cc544]/30 pointer-events-auto flex ring-1 ring-black/5`}>
-            <div className="flex-1 w-0 p-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5">
-                  <div className="h-10 w-10 rounded-full bg-[#7cc544]/20 flex items-center justify-center">
-                    <span className="text-xl">💰</span>
-                  </div>
-                </div>
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium text-white">
-                    Smart Expense Tracked!
-                  </p>
-                  <p className="mt-1 text-sm text-gray-400">
-                    ₹{totalAmount.toFixed(2)} added from {count} new transaction{count > 1 ? 's' : ''}.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ), { duration: 4000 });
+        toast.success(`₹${totalAmount.toFixed(0)} added from ${count} SMS transaction${count > 1 ? 's' : ''}`, {
+          icon: '💰',
+          duration: 4000,
+        });
         
-        if (Capacitor.isNativePlatform()) {
-          try {
-            await LocalNotifications.requestPermissions();
+        // Try native notification but don't crash if it fails
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
             await LocalNotifications.schedule({
               notifications: [
                 {
@@ -196,25 +185,22 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
                 }
               ]
             });
-          } catch (e) {
-            console.error("Local notification error", e);
           }
+        } catch (e) {
+          console.warn("Local notification error (non-fatal):", e);
         }
         
         if (onSyncComplete) onSyncComplete(count);
       }
     } catch (e: any) {
-      console.error('SMS sync error:', e);
-      // Alert user if permission was denied
-      if (e.message && e.message.includes('Permission')) {
-        toast.error('SMS permission required for automatic tracking. Please enable it in Settings.');
-      }
+      console.warn('SMS sync error (non-fatal):', e);
+      // Never show error toasts for SMS — it's a background feature
     } finally {
       isSyncing.current = false;
     }
   }, [onSyncComplete]);
 
-  // Sync on app open (mount) — delayed so dashboard loads first
+  // Sync on app open — delayed so dashboard loads first
   useEffect(() => {
     const timer = setTimeout(() => {
       doSync();
@@ -223,16 +209,16 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
     return () => clearTimeout(timer);
   }, [doSync]);
 
-  // Background sync: re-sync every 15 minutes while the app is open
+  // Background sync: re-sync every 15 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       doSync();
-    }, 15 * 60 * 1000); // 15 minutes
+    }, 15 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [doSync]);
 
-  // Sync when app comes back to foreground (e.g., user switches back to the app)
+  // Sync when app comes back to foreground
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {

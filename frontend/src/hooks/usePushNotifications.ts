@@ -1,59 +1,48 @@
 'use client';
 
-import { useEffect } from 'react';
-import { PushNotifications } from '@capacitor/push-notifications';
+import { useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { useAuth } from './useAuth';
 
 export function usePushNotifications() {
-  const { user } = useAuth();
+  const registered = useRef(false);
 
   useEffect(() => {
-    // Push Notifications only work on physical devices (Android/iOS)
+    // Push Notifications only work on physical devices
     if (!Capacitor.isNativePlatform()) return;
-    if (!user) return;
+    if (registered.current) return;
 
     const registerPush = async () => {
-      let permStatus = await PushNotifications.checkPermissions();
-
-      if (permStatus.receive === 'prompt') {
-        permStatus = await PushNotifications.requestPermissions();
-      }
-
-      if (permStatus.receive !== 'granted') {
-        console.warn('User denied push notification permissions');
-        return;
-      }
-
-      await PushNotifications.register();
-    };
-
-    registerPush();
-
-    // Listeners
-    PushNotifications.addListener('registration', async (token) => {
-      console.log('Push registration success, token: ' + token.value);
-      // Send token to our backend
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/fcm-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({ fcm_token: token.value })
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        
+        let permStatus = await PushNotifications.checkPermissions();
+
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive !== 'granted') {
+          console.warn('User denied push notification permissions');
+          return;
+        }
+
+        await PushNotifications.register();
+        registered.current = true;
+
+        PushNotifications.addListener('registration', async (token) => {
+          console.log('Push registration success, token: ' + token.value);
+        });
+
+        PushNotifications.addListener('registrationError', (error: any) => {
+          console.error('Error on registration: ' + JSON.stringify(error));
         });
       } catch (e) {
-        console.error('Failed to save FCM token to backend', e);
+        console.warn('Push notification setup failed (non-fatal):', e);
       }
-    });
-
-    PushNotifications.addListener('registrationError', (error: any) => {
-      console.error('Error on registration: ' + JSON.stringify(error));
-    });
-
-    return () => {
-      PushNotifications.removeAllListeners();
     };
-  }, [user]);
+
+    // Delay push notification setup so it doesn't block dashboard rendering
+    const timer = setTimeout(registerPush, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 }

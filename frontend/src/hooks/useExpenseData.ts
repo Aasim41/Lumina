@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSummary, getCategories, getTrends, getForecast, getSubscriptions } from '../lib/api';
-import { isAuthenticated } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 export function useExpenseData() {
   const [summary, setSummary] = useState<any>(null);
@@ -12,28 +12,32 @@ export function useExpenseData() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!isAuthenticated()) return;
-    
-    setLoading(true);
-    
     try {
+      // Properly await the async auth check
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       setError(null);
       
-      // All calls now resolve from local IndexedDB — they're instant
       const [sumData, catData, trendData, forecastData, subData] = await Promise.all([
-        getSummary(),
-        getCategories(),
-        getTrends(),
-        getForecast(),
-        getSubscriptions(),
+        getSummary().catch(() => null),
+        getCategories().catch(() => []),
+        getTrends().catch(() => []),
+        getForecast().catch(() => null),
+        getSubscriptions().catch(() => []),
       ]);
       
       setSummary(sumData);
-      setCategories(catData);
-      setTrends(trendData);
+      setCategories(catData || []);
+      setTrends(trendData || []);
       setForecast(forecastData);
-      setSubscriptions(subData);
+      setSubscriptions(subData || []);
     } catch (err: any) {
+      console.error('Dashboard data fetch error:', err);
       setError(err.message || 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
