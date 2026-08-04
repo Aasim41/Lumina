@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSummary, getCategories, getTrends, getForecast, getSubscriptions } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { usePathname } from 'next/navigation';
 
 export function useExpenseData() {
   const [summary, setSummary] = useState<any>(null);
@@ -10,6 +11,7 @@ export function useExpenseData() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const pathname = usePathname();
 
   const fetchData = useCallback(async () => {
     try {
@@ -46,6 +48,18 @@ export function useExpenseData() {
 
   useEffect(() => {
     fetchData();
+  }, [fetchData, pathname]);
+
+  useEffect(() => {
+    const handleGlobalRefresh = () => fetchData();
+    window.addEventListener('lumina_refresh_data', handleGlobalRefresh);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') fetchData();
+    });
+    return () => {
+      window.removeEventListener('lumina_refresh_data', handleGlobalRefresh);
+      window.removeEventListener('visibilitychange', () => {});
+    };
   }, [fetchData]);
 
   return {

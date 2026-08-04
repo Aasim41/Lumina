@@ -123,6 +123,11 @@ export const createTransaction = async (data: { date: string; merchant: string; 
 
   const { error } = await supabase.from('transactions').insert(txn);
   if (error) throw error;
+  
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lumina_refresh_data'));
+  }
+  
   return txn;
 };
 
@@ -131,12 +136,22 @@ export const updateTransaction = async (id: string, data: any) => {
   if (error) throw error;
   const { data: txn, error: getError } = await supabase.from('transactions').select('*').eq('id', id).single();
   if (getError) throw getError;
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lumina_refresh_data'));
+  }
+
   return txn;
 };
 
 export const deleteTransaction = async (id: string) => {
   const { error } = await supabase.from('transactions').delete().eq('id', id);
   if (error) throw error;
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lumina_refresh_data'));
+  }
+
   return null;
 };
 
