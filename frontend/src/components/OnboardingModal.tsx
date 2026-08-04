@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { updateUserProfile } from '@/lib/api';
 import { Button } from './ui/Button';
 import toast from 'react-hot-toast';
-import { PERSONA_CONFIGS } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { PERSONA_CONFIGS, appNavigate } from '@/lib/utils';
+
 
 export function OnboardingModal({ user, onComplete }: { user: any, onComplete: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,11 +46,14 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
         budget_days: parseInt(budgetDays.toString()) || 30,
         user_persona: persona
       });
-      toast.success('Profile and budget set!');
+      toast.success('Profile and budget set! Now create your avatar!');
       setIsOpen(false);
       onComplete();
-    } catch (error) {
-      toast.error('Failed to save settings');
+      // Redirect to avatar creation page
+      appNavigate('/create-avatar');
+    } catch (error: any) {
+      const msg = error?.message || 'Unknown error';
+      toast.error(`Failed to save settings: ${msg}`);
     } finally {
       setLoading(false);
     }

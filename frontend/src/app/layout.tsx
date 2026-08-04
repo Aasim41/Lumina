@@ -1,18 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Space_Grotesk } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 
 import "./globals.css";
-
-const inter = Inter({ 
-  subsets: ['latin'],
-  variable: '--font-inter',
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-space-grotesk',
-});
 
 export const metadata: Metadata = {
   title: "Lumina",
@@ -40,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en">
       <body className="antialiased bg-background text-foreground min-h-screen">
         <main className="max-w-md mx-auto min-h-screen relative shadow-2xl shadow-black bg-background pb-20 overflow-x-hidden">
           {children}
