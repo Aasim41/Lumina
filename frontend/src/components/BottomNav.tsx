@@ -57,7 +57,7 @@ export function BottomNav() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]"
+              className="fixed inset-0 bg-black/60  z-[90]"
               onClick={() => setMoreOpen(false)}
             />
             <motion.div
@@ -68,7 +68,7 @@ export function BottomNav() {
               className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-8"
               style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
             >
-              <div className="mx-auto max-w-md bg-[#111827]/95 backdrop-blur-2xl rounded-3xl border border-white/10 p-5 shadow-2xl">
+              <div className="mx-auto max-w-md bg-[#111827]/95  rounded-3xl border border-white/10 p-5 shadow-2xl">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-display font-bold text-white">More</h3>
                   <button 

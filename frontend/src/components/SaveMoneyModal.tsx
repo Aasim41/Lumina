@@ -37,7 +37,7 @@ export function SaveMoneyModal({ isOpen, onClose, onSuccess }: { isOpen: boolean
   return (
     <>
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] animate-fadeIn"
+        className="fixed inset-0 bg-black/80  z-[100] animate-fadeIn"
         onClick={onClose}
       />
       

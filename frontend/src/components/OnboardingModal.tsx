@@ -63,7 +63,7 @@ export function OnboardingModal({ user, onComplete }: { user: any, onComplete: (
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[200]" />
+      <div className="fixed inset-0 bg-black/98 z-[200]" />
       
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-[#12081C] p-8 rounded-3xl border border-primary/20 shadow-2xl overflow-hidden relative pointer-events-auto">

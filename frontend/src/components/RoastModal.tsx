@@ -13,7 +13,7 @@ export function RoastModal({ isOpen, message, onClose }: { isOpen: boolean, mess
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[1000]"
+            className="fixed inset-0 bg-black/90  z-[1000]"
             onClick={onClose}
           />
           
