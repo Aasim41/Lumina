@@ -14,7 +14,7 @@ export default function ForecastPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#12081C] pb-24">
-        <header className="px-6 py-6 safe-pt sticky top-0 z-20 bg-purple-500/10 backdrop-blur-xl border-b border-purple-500/30 mb-6 shadow-[0_4px_30px_rgba(168,85,247,0.15)]">
+        <header className="px-6 py-6 safe-pt sticky top-0 z-20 bg-purple-500/10  border-b border-purple-500/30 mb-6 shadow-[0_4px_30px_rgba(168,85,247,0.15)]">
           <h1 className="text-3xl font-display font-bold mb-1">AI Forecast</h1>
           <p className="text-purple-300/60 text-sm">Predicting your next month's spending</p>
         </header>

@@ -243,7 +243,7 @@ export default function SplitsPage() {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[999] flex items-end justify-center">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/80 " />
             <motion.div 
               initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
               className="w-full bg-[#1f2937] p-6 rounded-t-3xl shadow-2xl relative z-10 max-h-[85vh] flex flex-col"
@@ -303,7 +303,7 @@ export default function SplitsPage() {
       <AnimatePresence>
         {settleModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSettleModalOpen(null)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSettleModalOpen(null)} className="absolute inset-0 bg-black/80 " />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[#1f2937] p-6 rounded-3xl relative z-10 border border-white/10 shadow-2xl">
               <div className="text-center mb-6">
                 <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${settleModalOpen.amount > 0 ? 'bg-[#5bc5a7]/20 text-[#5bc5a7]' : 'bg-[#ff652f]/20 text-[#ff652f]'}`}>

@@ -96,7 +96,7 @@ export default function WrapUpPage() {
       content: (
         <div className="flex flex-col items-center justify-center h-full text-center px-6">
           <p className="text-xl text-emerald-300 font-medium mb-8">Your biggest single splurge was</p>
-          <div className="bg-white/5 border border-white/10 p-6 rounded-3xl w-full backdrop-blur-xl">
+          <div className="bg-white/5 border border-white/10 p-6 rounded-3xl w-full ">
             <h3 className="text-3xl font-bold text-white mb-2">{data.biggest_splurge_merchant}</h3>
             <p className="text-4xl font-display font-bold text-emerald-400">{formatCurrency(data.biggest_splurge_amount)}</p>
           </div>
@@ -166,7 +166,7 @@ export default function WrapUpPage() {
       {/* Close Button */}
       <button 
         onClick={() => router.back()}
-        className="absolute top-16 right-4 p-2 bg-black/20 backdrop-blur-md rounded-full text-white/80 z-20"
+        className="absolute top-16 right-4 p-2 bg-black/20  rounded-full text-white/80 z-20"
       >
         <X className="w-5 h-5" />
       </button>

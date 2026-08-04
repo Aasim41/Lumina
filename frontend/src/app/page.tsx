@@ -13,7 +13,7 @@ import { MetricCard } from '@/components/MetricCard';
 import { CategoryDonutChart } from '@/components/CategoryDonutChart';
 import { SpendingLineChart } from '@/components/SpendingLineChart';
 import { ChatModal } from '@/components/ChatModal';
-import { OnboardingModal } from '@/components/OnboardingModal';
+
 import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
@@ -95,6 +95,12 @@ export default function Dashboard() {
       setPersonaLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user && (!user.user_persona || !user.monthly_budget)) {
+      import('@/lib/utils').then(m => m.appNavigate('/onboarding'));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user?.unlocked_badges) {
@@ -199,7 +205,6 @@ export default function Dashboard() {
   return (
     <ErrorBoundary>
       <AuthGuard>
-        <OnboardingModal user={user} onComplete={refreshUser} />
         <SaveMoneyModal 
           isOpen={isSaveModalOpen} 
           onClose={() => setIsSaveModalOpen(false)} 
@@ -222,7 +227,7 @@ export default function Dashboard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100]"
+                className="fixed inset-0 bg-black/70 z-[100]"
                 onClick={() => setIsPersonaPickerOpen(false)}
               />
               <motion.div
@@ -233,7 +238,7 @@ export default function Dashboard() {
                 className="fixed bottom-0 left-0 right-0 z-[100] px-4 pb-8"
                 style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
               >
-                <div className="mx-auto max-w-md bg-[#111827]/95 backdrop-blur-2xl rounded-3xl border border-white/10 p-6 shadow-2xl">
+                <div className="mx-auto max-w-md bg-[#111827]/95  rounded-3xl border border-white/10 p-6 shadow-2xl">
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <h3 className="text-lg font-display font-bold text-white">Choose Your Lifestyle</h3>

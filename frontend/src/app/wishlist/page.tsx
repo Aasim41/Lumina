@@ -131,12 +131,12 @@ export default function WishlistPage() {
                       )}
                       
                       {/* Priority Badge */}
-                      <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/50 backdrop-blur-md border border-white/10 text-white">
+                      <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/50  border border-white/10 text-white">
                         {item.priority} Priority
                       </div>
                       
                       {/* Delete Button (Hover) */}
-                      <button onClick={() => handleDelete(item.id)} className="absolute top-3 right-3 p-2 bg-red-500/80 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleDelete(item.id)} className="absolute top-3 right-3 p-2 bg-red-500/80  rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -180,7 +180,7 @@ export default function WishlistPage() {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[999] flex items-end justify-center">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/80 " />
             <motion.div 
               initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
               className="w-full bg-[#1f2937] p-6 rounded-t-3xl shadow-2xl relative z-10 max-h-[85vh] flex flex-col"

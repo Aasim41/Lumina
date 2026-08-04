@@ -76,7 +76,7 @@ export default function LoginPage() {
         <motion.div 
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[10%] right-[20%] w-6 h-6 rounded-full border border-white/30 backdrop-blur-md bg-white/5"
+          className="absolute top-[10%] right-[20%] w-6 h-6 rounded-full border border-white/30  bg-white/5"
         />
       </div>
 

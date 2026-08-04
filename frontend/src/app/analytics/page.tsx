@@ -42,7 +42,7 @@ export default function AnalyticsDashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5 p-4 pt-14">
+      <div className="sticky top-0 z-30 bg-background/80  border-b border-white/5 p-4 pt-14">
         <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Analytics</h1>
         <p className="text-xs text-white/50">Insights & AI Predictions</p>
       </div>

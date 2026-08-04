@@ -16,7 +16,7 @@ export default function UploadPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#171005] pb-24">
-        <header className="px-6 py-6 safe-pt sticky top-0 z-20 bg-amber-500/10 backdrop-blur-xl border-b border-amber-500/30 mb-6 shadow-[0_4px_30px_rgba(245,158,11,0.15)]">
+        <header className="px-6 py-6 safe-pt sticky top-0 z-20 bg-amber-500/10  border-b border-amber-500/30 mb-6 shadow-[0_4px_30px_rgba(245,158,11,0.15)]">
           <h1 className="text-3xl font-display font-bold mb-1">Upload Data</h1>
           <p className="text-amber-300/60 text-sm">Import bank statements to categorize with AI</p>
         </header>

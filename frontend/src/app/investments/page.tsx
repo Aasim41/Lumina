@@ -196,7 +196,7 @@ export default function InvestmentsPage() {
         {/* Create Investment Modal */}
         <AnimatePresence>
           {isModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 ">
               <motion.div
                 initial={{ opacity: 0, y: "100%" }}
                 animate={{ opacity: 1, y: 0 }}

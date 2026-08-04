@@ -52,7 +52,7 @@ export default function GoalsPage() {
     <AuthGuard>
       <div className="min-h-screen bg-[#0B1021] pb-24">
         {/* Header matching transactions page */}
-        <header className="px-6 pb-6 pt-14 safe-pt sticky top-0 z-20 bg-emerald-500/10 backdrop-blur-xl border-b border-emerald-500/30 shadow-[0_4px_30px_rgba(16,185,129,0.1)]">
+        <header className="px-6 pb-6 pt-14 safe-pt sticky top-0 z-20 bg-emerald-500/10  border-b border-emerald-500/30 shadow-[0_4px_30px_rgba(16,185,129,0.1)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
               <Target className="w-5 h-5 text-emerald-400" />
@@ -243,7 +243,7 @@ function AddGoalModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 ">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -342,7 +342,7 @@ function ContributeModal({ isOpen, onClose, onSuccess, goal }: { isOpen: boolean
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 ">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
