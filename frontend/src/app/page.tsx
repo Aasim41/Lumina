@@ -36,6 +36,11 @@ export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
   usePushNotifications();
   const { summary, categories, trends, subscriptions, loading, refresh } = useExpenseData();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // SMS auto-sync: syncs on open, every 15 min, and on foreground resume
   const handleSMSSyncComplete = useCallback((count: number) => {
@@ -187,6 +192,14 @@ export default function Dashboard() {
       </div>
     ), { duration: 4000, id: 'info-toast' });
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Spinner className="w-8 h-8 text-primary" />
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
