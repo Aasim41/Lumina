@@ -20,11 +20,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       } else {
         setAuthorized(true);
         // Defer notifications setup so it doesn't block rendering
-        requestIdleCallback(() => {
+        setTimeout(() => {
           import('@/lib/notifications').then(({ requestNotificationPermissions, scheduleRecurringNotifications }) => {
             requestNotificationPermissions().then(() => scheduleRecurringNotifications());
           });
-        });
+        }, 3000);
       }
     });
 
