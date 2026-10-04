@@ -110,14 +110,19 @@ export const getTransactions = async (params?: URLSearchParams) => {
   if (params) {
     const category = params.get('category');
     const month = params.get('month');
+    const type = params.get('type');
     if (category) txns = txns.filter(t => t.category === category);
     if (month) txns = txns.filter(t => t.date.startsWith(month));
+    if (type) txns = txns.filter(t => (t.type || (['Income', 'Salary', 'Refund'].includes(t.category) ? 'credit' : 'debit')) === type);
   }
 
-  return txns;
+  return txns.map(t => ({
+    ...t,
+    type: (t.type || (['Income', 'Salary', 'Refund'].includes(t.category) ? 'credit' : 'debit')) as 'debit' | 'credit'
+  }));
 };
 
-export const createTransaction = async (data: { date: string; merchant: string; amount: number; category?: string; currency?: string; original_amount?: number; source?: string; sms_hash?: string }) => {
+export const createTransaction = async (data: { date: string; merchant: string; amount: number; category?: string; type?: 'debit' | 'credit'; currency?: string; original_amount?: number; source?: string; sms_hash?: string }) => {
   const merchantClean = cleanMerchantName(data.merchant);
   const category = data.category || categorize(merchantClean);
   const normAmount = normalizeAmount(data.amount);
@@ -143,6 +148,8 @@ export const createTransaction = async (data: { date: string; merchant: string; 
     return existingDuplicate;
   }
 
+  const txnType: 'debit' | 'credit' = data.type || (['Income', 'Salary', 'Refund'].includes(category) ? 'credit' : 'debit');
+
   const txn: DBTransaction = {
     id: generateId(),
     user_id: userId,
@@ -154,6 +161,7 @@ export const createTransaction = async (data: { date: string; merchant: string; 
     currency: data.currency || 'INR',
     original_amount: data.original_amount,
     category,
+    type: txnType,
     source: data.source || 'manual_entry',
     created_at: nowISO(),
   };

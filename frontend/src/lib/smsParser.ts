@@ -139,16 +139,42 @@ function parseAmount(text: string): number | null {
 }
 
 function parseType(text: string): 'debit' | 'credit' {
-  for (const pat of CREDIT_KEYWORDS) {
-    if (pat.test(text)) return 'credit';
+  const isCredit = 
+    /credited/i.test(text) ||
+    /received\s+(?:rs\.?|inr\.?|₹)?\s*[0-9]/i.test(text) ||
+    /money\s*received/i.test(text) ||
+    /refund/i.test(text) ||
+    /cashback/i.test(text) ||
+    /salary/i.test(text) ||
+    /deposit(?:ed)?/i.test(text) ||
+    /\bcr\.?\b/i.test(text);
+
+  const isDebit =
+    /debited/i.test(text) ||
+    /spent/i.test(text) ||
+    /paid\s+(?:rs\.?|inr\.?|₹)?\s*[0-9]/i.test(text) ||
+    /withdrawn/i.test(text) ||
+    /purchase/i.test(text) ||
+    /charged/i.test(text) ||
+    /\bdr\.?\b/i.test(text);
+
+  if (isCredit && !isDebit) return 'credit';
+  if (isDebit && !isCredit) return 'debit';
+
+  // If both exist (e.g. "debited from X ... credited to Y")
+  if (isCredit && isDebit) {
+    if (/(?:your\s+)?(?:a\/c|account).*credited/i.test(text) || /credited\s+(?:with|to\s+your)/i.test(text)) {
+      return 'credit';
+    }
+    return 'debit';
   }
-  // Default to debit (most UPI messages are debits)
-  return 'debit';
+
+  return isCredit ? 'credit' : 'debit';
 }
 
 function parseMerchant(text: string): string {
   // Try UPI VPA first
-  const vpaMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z]+)/i);
+  const vpaMatch = text.match(/(?:to|from|by|vpa)?\s*[:/-]?\s*([a-zA-Z0-9._-]+@[a-zA-Z]+)/i);
   if (vpaMatch) {
     const vpa = vpaMatch[1];
     // Extract readable name from VPA
@@ -156,13 +182,39 @@ function parseMerchant(text: string): string {
     if (name.length > 2) return name.charAt(0).toUpperCase() + name.slice(1);
   }
 
+  // Check UPI ref with sender or merchant name e.g. UPI/P2A/12345/Rahul Sharma or UPI/12345/Rahul
+  const upiRefMatch = text.match(/UPI\/(?:[A-Za-z0-9_-]+\/)?(?:[0-9]+\/)?([A-Za-z][A-Za-z0-9\s._-]{2,25})/i);
+  if (upiRefMatch && !/ref|txn|imps|neft|rtgs|yes|bank|axis|sbi|hdfc|icici/i.test(upiRefMatch[1])) {
+    const raw = upiRefMatch[1].trim();
+    if (raw.length > 2) return raw;
+  }
+
+  // Incoming / Credit patterns (e.g. "from Rahul", "by Rahul", "transfer from XYZ")
+  const incomingPatterns = [
+    /(?:from|by)\s+([A-Za-z0-9][A-Za-z0-9\s&.'_-]{2,30})/i,
+    /(?:received\s+(?:rs\.?|inr\.?|₹)?\s*[0-9,.]+\s+from)\s+([A-Za-z0-9][A-Za-z0-9\s&.'_-]{2,30})/i,
+    /(?:refund\s+(?:of\s+)?(?:rs\.?|inr\.?|₹)?\s*[0-9,.]+\s+(?:from|for))\s+([A-Za-z0-9][A-Za-z0-9\s&.'_-]{2,30})/i,
+    /(?:salary\s+from)\s+([A-Za-z0-9][A-Za-z0-9\s&.'_-]{2,30})/i,
+  ];
+
+  for (const pat of incomingPatterns) {
+    const match = text.match(pat);
+    if (match) {
+      let sender = match[1].trim();
+      sender = sender.replace(/\s*(via\s+upi|a\/c|ac|account|ref|txn|on|dated|dr|cr|bal|balance|clear|available).*$/i, '').trim();
+      if (sender.length > 2 && sender.length < 35 && !/^(the|your|bank|account)$/i.test(sender)) {
+        return sender;
+      }
+    }
+  }
+
   for (const pattern of MERCHANT_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
       let merchant = match[1].trim();
       // Remove trailing garbage
-      merchant = merchant.replace(/\s*(a\/c|ac|account|ref|txn|on|dated).*$/i, '').trim();
-      if (merchant.length > 2 && merchant.length < 40) {
+      merchant = merchant.replace(/\s*(via\s+upi|a\/c|ac|account|ref|txn|on|dated|dr|cr|bal|balance).*$/i, '').trim();
+      if (merchant.length > 2 && merchant.length < 40 && !/^(the|your|bank|account)$/i.test(merchant)) {
         return merchant;
       }
     }

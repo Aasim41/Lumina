@@ -34,6 +34,7 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  const [txnType, setTxnType] = useState<'debit' | 'credit'>('debit');
   const [loading, setLoading] = useState(false);
   const [overdraftWarning, setOverdraftWarning] = useState<number | null>(null);
 
@@ -51,9 +52,11 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
       setAmount(initialData.amount ? initialData.amount.toString() : '');
       setDate(initialData.date || getLocalDateString());
       setCategory(initialData.category || '');
+      setTxnType(initialData.type || (['Income', 'Salary', 'Refund'].includes(initialData.category) ? 'credit' : 'debit'));
     } else if (isOpen && !initialData) {
       // Reset default to local date when opening a fresh form
       setDate(getLocalDateString());
+      setTxnType('debit');
     }
   }, [initialData, isOpen]);
 
@@ -66,11 +69,11 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
     if (!amount || !date) return;
     
     const expenseAmount = showCurrency ? parseFloat(amount) * (rates[currency] || 1) : parseFloat(amount);
-    const finalCategory = category || 'Miscellaneous';
+    const finalCategory = category || (txnType === 'credit' ? 'Income' : 'Miscellaneous');
     const finalMerchant = merchant.trim() || finalCategory;
     
-    // Check for overdraft if warning hasn't been shown yet
-    if (overdraftWarning === null) {
+    // Check for overdraft if warning hasn't been shown yet (only for expenses)
+    if (txnType === 'debit' && overdraftWarning === null) {
       const budget = user?.monthly_budget || 0;
       const totalSpent = summary?.total_this_month || 0;
       const totalSaved = summary?.total_saved_this_month || 0;
@@ -94,7 +97,8 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
         amount: expenseAmount,
         currency: showCurrency ? currency : 'INR',
         original_amount: showCurrency ? parseFloat(amount) : null,
-        category: finalCategory
+        category: finalCategory,
+        type: txnType,
       });
       
       // If there was an overdraft that we are covering from savings
@@ -166,15 +170,46 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
                 className="w-full max-w-md glass p-6 pt-5 rounded-t-3xl border border-white/10 border-b-0 shadow-2xl shadow-primary/20 pointer-events-auto max-h-[85vh] overflow-y-auto"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-display font-bold">Add Expense</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-display font-bold text-white">
+                    {txnType === 'credit' ? 'Add Income' : 'Add Expense'}
+                  </h2>
                   <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-text-secondary transition-colors active:scale-90">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
+                {/* Expense vs Income Toggle */}
+                <div className="flex p-1 bg-black/40 border border-white/10 rounded-2xl mb-4">
+                  <button
+                    type="button"
+                    onClick={() => { setTxnType('debit'); setCategory(''); }}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      txnType === 'debit' 
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm' 
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    <span>📤 Expense (Debit)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTxnType('credit'); setCategory('Income'); }}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      txnType === 'credit' 
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm' 
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    <span>📥 Income (Credit)</span>
+                  </button>
+                </div>
+
                 <form onSubmit={handleSubmit} className="custom-form">
-                  <p className="title">Add Expense <span>Keep track of your spending</span></p>
+                  <p className="title">
+                    {txnType === 'credit' ? 'Add Income' : 'Add Expense'}{' '}
+                    <span>{txnType === 'credit' ? 'Track your incoming money & earnings' : 'Keep track of your spending'}</span>
+                  </p>
                   <div>
                     <label>Amount (₹)</label>
                     <input
@@ -206,12 +241,12 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                   </div>
 
                   <div>
-                    <label>Merchant / Description (Optional)</label>
+                    <label>{txnType === 'credit' ? 'Source / Payer (Optional)' : 'Merchant / Description (Optional)'}</label>
                     <input
                       type="text"
                       value={merchant}
                       onChange={(e) => setMerchant(e.target.value)}
-                      placeholder="e.g. Zomato, Rent, Uber"
+                      placeholder={txnType === 'credit' ? 'e.g. Salary, Client payment, Friend transfer' : 'e.g. Zomato, Rent, Uber'}
                     />
                   </div>
 
@@ -232,20 +267,26 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                       onChange={(e) => setCategory(e.target.value)}
                     >
                       <option value="">Auto-predict</option>
-                      {Object.keys(CATEGORY_COLORS).map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
+                      {txnType === 'credit' ? (
+                        <>
+                          <option value="Income">Income</option>
+                          <option value="Salary">Salary</option>
+                          <option value="Freelance">Freelance</option>
+                          <option value="Refund">Refund / Cashback</option>
+                          <option value="Investment Return">Investment Return</option>
+                          <option value="Gift / Transfer">Gift / Transfer</option>
+                          <option value="Miscellaneous">Miscellaneous</option>
+                        </>
+                      ) : (
+                        Object.keys(CATEGORY_COLORS).map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))
+                      )}
                     </select>
                   </div>
 
-                  <div className="separator">
-                    <div></div>
-                    <span>OR</span>
-                    <div></div>
-                  </div>
-
-                  <div className="w-full">
-                    {overdraftWarning !== null && (
+                  <div className="w-full mt-4">
+                    {overdraftWarning !== null && txnType === 'debit' && (
                       <div className="mb-4 p-4 bg-warning/10 border border-warning/30 rounded-xl">
                         <p className="text-amber-700 text-sm font-bold mb-1">Budget Exceeded!</p>
                         <p className="text-[var(--font-color-sub)] text-xs font-semibold">
@@ -255,7 +296,7 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                       </div>
                     )}
                     <button type="submit" disabled={loading} className="oauthButton">
-                      {loading ? "Saving..." : (overdraftWarning !== null ? "Confirm & Deduct from Savings" : "Save Expense")}
+                      {loading ? "Saving..." : (overdraftWarning !== null ? "Confirm & Deduct from Savings" : (txnType === 'credit' ? "Save Income" : "Save Expense"))}
                     </button>
                   </div>
                   

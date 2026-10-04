@@ -33,7 +33,8 @@ export interface DBTransaction {
   currency: string;
   original_amount?: number;
   category: string;
-  source: string;           // 'csv_upload' | 'manual_entry' | 'receipt_scan' | 'auto_stealth'
+  type?: 'debit' | 'credit';
+  source: string;           // 'csv_upload' | 'manual_entry' | 'receipt_scan' | 'auto_stealth' | 'auto_sms'
   created_at: string;
 }
 
@@ -148,6 +149,10 @@ class SmartExpenseDB extends Dexie {
     this.version(2).stores({
       transactions:    'id, date, category, merchant_clean, source, sms_hash',
       goals:           'id, created_at',
+    });
+
+    this.version(3).stores({
+      transactions:    'id, date, category, merchant_clean, source, sms_hash, type',
     });
   }
 }

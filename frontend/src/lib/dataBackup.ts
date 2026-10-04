@@ -96,10 +96,11 @@ export async function importData(file: File): Promise<{ success: boolean; messag
 export async function exportTransactionsCSV(): Promise<void> {
   const transactions = await db.transactions.orderBy('date').reverse().toArray();
 
-  const header = 'Date,Merchant,Amount,Category,Source\n';
-  const rows = transactions.map(t =>
-    `${t.date},${csvEscape(t.merchant_clean)},${t.amount},${csvEscape(t.category)},${t.source}`
-  ).join('\n');
+  const header = 'Date,Merchant,Amount,Category,Type,Source\n';
+  const rows = transactions.map(t => {
+    const txnType = t.type || (['Income', 'Salary', 'Refund'].includes(t.category) ? 'credit' : 'debit');
+    return `${t.date},${csvEscape(t.merchant_clean)},${t.amount},${csvEscape(t.category)},${txnType},${t.source}`;
+  }).join('\n');
 
   const csv = header + rows;
   const blob = new Blob([csv], { type: 'text/csv' });

@@ -95,22 +95,37 @@ async function readSMSMessages(): Promise<Array<{ body: string; sender: string; 
   }
 }
 
-async function syncTransactions(parsed: ParsedTransaction[]): Promise<{count: number, totalAmount: number}> {
+async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
+  syncedCredits: number;
+  syncedDebits: number;
+  totalCreditAmount: number;
+  totalDebitAmount: number;
+  lastCreditMerchant: string;
+  lastDebitMerchant: string;
+}> {
   const syncedHashes = getSyncedHashes();
   const newTransactions = parsed.filter(t => !syncedHashes.has(t.smsHash));
 
-  if (newTransactions.length === 0) return { count: 0, totalAmount: 0 };
+  if (newTransactions.length === 0) {
+    return {
+      syncedCredits: 0,
+      syncedDebits: 0,
+      totalCreditAmount: 0,
+      totalDebitAmount: 0,
+      lastCreditMerchant: '',
+      lastDebitMerchant: '',
+    };
+  }
 
-  let synced = 0;
-  let totalAmount = 0;
+  let syncedCredits = 0;
+  let syncedDebits = 0;
+  let totalCreditAmount = 0;
+  let totalDebitAmount = 0;
+  let lastCreditMerchant = '';
+  let lastDebitMerchant = '';
   const newHashes: string[] = [];
 
   for (const txn of newTransactions) {
-    if (txn.type === 'credit') {
-      newHashes.push(txn.smsHash);
-      continue;
-    }
-
     try {
       const category = categorize(txn.merchant, txn.type);
       await createTransaction({
@@ -118,12 +133,21 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{count: nu
         merchant: `${txn.merchant} (${txn.source})`,
         amount: txn.amount,
         category,
+        type: txn.type, // 'credit' | 'debit'
         source: 'auto_sms',
         sms_hash: txn.smsHash,
       });
       newHashes.push(txn.smsHash);
-      synced++;
-      totalAmount += txn.amount;
+
+      if (txn.type === 'credit') {
+        syncedCredits++;
+        totalCreditAmount += txn.amount;
+        lastCreditMerchant = txn.merchant;
+      } else {
+        syncedDebits++;
+        totalDebitAmount += txn.amount;
+        lastDebitMerchant = txn.merchant;
+      }
     } catch (e) {
       console.error('Failed to sync transaction:', e);
     }
@@ -134,7 +158,14 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{count: nu
   }
 
   setLastSyncTime(Date.now());
-  return { count: synced, totalAmount };
+  return {
+    syncedCredits,
+    syncedDebits,
+    totalCreditAmount,
+    totalDebitAmount,
+    lastCreditMerchant,
+    lastDebitMerchant,
+  };
 }
 
 export function useSMSSync(onSyncComplete?: (count: number) => void) {
@@ -160,12 +191,34 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
         return;
       }
 
-      const { count, totalAmount } = await syncTransactions(parsed);
-      if (count > 0) {
-        toast.success(`₹${totalAmount.toFixed(0)} added from ${count} SMS transaction${count > 1 ? 's' : ''}`, {
-          icon: '💰',
-          duration: 4000,
-        });
+      const { 
+        syncedCredits, 
+        syncedDebits, 
+        totalCreditAmount, 
+        totalDebitAmount, 
+        lastCreditMerchant, 
+        lastDebitMerchant 
+      } = await syncTransactions(parsed);
+
+      const totalCount = syncedCredits + syncedDebits;
+
+      if (totalCount > 0) {
+        let notificationTitle = "Transactions Tracked! 💰";
+        let notificationBody = `Synced ${totalCount} new transaction${totalCount > 1 ? 's' : ''}.`;
+
+        if (syncedCredits > 0 && syncedDebits === 0) {
+          notificationTitle = "Money Received! 💵";
+          notificationBody = `₹${totalCreditAmount.toLocaleString('en-IN')} credited from ${lastCreditMerchant || 'UPI/Bank'}.`;
+          toast.success(notificationBody, { icon: '💵', duration: 4500 });
+        } else if (syncedDebits > 0 && syncedCredits === 0) {
+          notificationTitle = "Expense Tracked! 💳";
+          notificationBody = `₹${totalDebitAmount.toLocaleString('en-IN')} spent at ${lastDebitMerchant || 'merchant'}.`;
+          toast.success(notificationBody, { icon: '💳', duration: 4000 });
+        } else {
+          notificationTitle = "Cash Flow Updated! 📊";
+          notificationBody = `+₹${totalCreditAmount.toLocaleString('en-IN')} inflow and -₹${totalDebitAmount.toLocaleString('en-IN')} outflow.`;
+          toast.success(notificationBody, { icon: '💰', duration: 4500 });
+        }
         
         // Try native notification but don't crash if it fails
         try {
@@ -175,8 +228,8 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
             await LocalNotifications.schedule({
               notifications: [
                 {
-                  title: "Smart Expense Tracked! 💰",
-                  body: `₹${totalAmount.toFixed(2)} added from ${count} new transaction${count > 1 ? 's' : ''}.`,
+                  title: notificationTitle,
+                  body: notificationBody,
                   id: Math.floor(Math.random() * 2000000000),
                 }
               ]
@@ -186,7 +239,7 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
           console.warn("Local notification error (non-fatal):", e);
         }
         
-        if (onSyncComplete) onSyncComplete(count);
+        if (onSyncComplete) onSyncComplete(totalCount);
       }
     } catch (e: any) {
       console.warn('SMS sync error (non-fatal):', e);

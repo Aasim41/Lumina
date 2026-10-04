@@ -70,7 +70,7 @@ export default function TransactionsPage() {
 
   const handleCreate = async (data: any) => {
     await createTransaction(data);
-    toast.success('Expense added');
+    toast.success(data.type === 'credit' ? 'Income added! 📥' : 'Expense added! 📤');
     refresh();
     fetchTransactions();
   };

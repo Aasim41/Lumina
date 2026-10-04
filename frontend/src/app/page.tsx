@@ -18,7 +18,7 @@ import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
@@ -42,9 +42,8 @@ export default function Dashboard() {
   }, []);
 
   // SMS auto-sync: syncs on open, every 15 min, and on foreground resume
-  const handleSMSSyncComplete = useCallback((count: number) => {
-    toast.success(`${count} new transaction${count > 1 ? 's' : ''} synced from SMS!`, { icon: '📱' });
-    refresh(); // refresh dashboard data
+  const handleSMSSyncComplete = useCallback((_count: number) => {
+    refresh(); // refresh dashboard data (useSMSSync already displays the customized money/expense toast)
   }, [refresh]);
   const { syncNow } = useSMSSync(handleSMSSyncComplete);
 
@@ -465,8 +464,74 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            
-            <div className="px-6 py-6 space-y-8">
+
+            {/* Cash Flow Summary Widget (Inflow, Outflow, Net Balance) */}
+            <div className="mt-4 glass p-4 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <ArrowDownLeft className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-white/90">Cash Flow This Month</span>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  (summary?.net_cash_flow ?? 0) >= 0 
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                }`}>
+                  {(summary?.net_cash_flow ?? 0) >= 0 ? 'Cash Positive ✨' : 'Cash Negative ⚠️'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {/* Total Inflow */}
+                <div 
+                  onClick={() => showInfoToast("Total Inflow 📥", "Total money received and credited to your accounts this month.", <ArrowDownLeft className="w-5 h-5 text-emerald-400" />)}
+                  className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col cursor-pointer hover:bg-emerald-500/15 transition-all"
+                >
+                  <div className="flex items-center gap-1 text-[11px] text-emerald-400/90 font-medium mb-1">
+                    <ArrowDownLeft className="w-3 h-3" />
+                    <span>Inflow</span>
+                  </div>
+                  <span className="text-sm sm:text-base font-bold text-emerald-400 truncate">
+                    +{formatCurrency(summary?.total_income_this_month || 0)}
+                  </span>
+                </div>
+
+                {/* Total Outflow */}
+                <div 
+                  onClick={() => showInfoToast("Total Outflow 📤", "Total money spent and debited from your accounts this month.", <ArrowUpRight className="w-5 h-5 text-rose-400" />)}
+                  className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-col cursor-pointer hover:bg-rose-500/15 transition-all"
+                >
+                  <div className="flex items-center gap-1 text-[11px] text-rose-400/90 font-medium mb-1">
+                    <ArrowUpRight className="w-3 h-3" />
+                    <span>Outflow</span>
+                  </div>
+                  <span className="text-sm sm:text-base font-bold text-rose-400 truncate">
+                    -{formatCurrency(totalSpent + totalSubscriptions)}
+                  </span>
+                </div>
+
+                {/* Net Savings / Cash Flow */}
+                <div 
+                  onClick={() => showInfoToast("Net Cash Flow 💰", "Total Inflow minus Outflow. Positive means you earned more than you spent!", <Wallet className="w-5 h-5 text-indigo-400" />)}
+                  className={`p-3 rounded-2xl border flex flex-col cursor-pointer transition-all ${
+                    (summary?.net_cash_flow ?? 0) >= 0
+                      ? 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15'
+                      : 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/15'
+                  }`}
+                >
+                  <div className="flex items-center gap-1 text-[11px] text-white/70 font-medium mb-1">
+                    <Wallet className="w-3 h-3" />
+                    <span>Net Flow</span>
+                  </div>
+                  <span className={`text-sm sm:text-base font-bold truncate ${
+                    (summary?.net_cash_flow ?? 0) >= 0 ? 'text-indigo-300' : 'text-amber-400'
+                  }`}>
+                    {(summary?.net_cash_flow ?? 0) >= 0 ? '+' : ''}{formatCurrency(summary?.net_cash_flow ?? 0)}
+                  </span>
+                </div>
+              </div>
             </div>
           </header>
 

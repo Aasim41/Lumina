@@ -45,6 +45,8 @@ export function getBudgetCycle(user?: DBUser) {
   };
 }
 
+export const isCreditTransaction = (t: DBTransaction) => t.type === 'credit' || ['Income', 'Salary', 'Refund'].includes(t.category);
+
 // 1. computeSummary
 export async function computeSummary(user: DBUser) {
   const allTransactions = await db.transactions.toArray();
@@ -54,11 +56,15 @@ export async function computeSummary(user: DBUser) {
   const lastMonthTxs = allTransactions.filter(t => t.date >= cycle.prevStartStr && t.date <= cycle.prevEndStr);
 
   const excludeCats = ['Savings', 'SecretVault'];
+  const isCredit = isCreditTransaction;
   
-  const thisMonthExpenses = thisMonthTxs.filter(t => !excludeCats.includes(t.category));
-  const lastMonthExpenses = lastMonthTxs.filter(t => !excludeCats.includes(t.category));
+  const thisMonthExpenses = thisMonthTxs.filter(t => !excludeCats.includes(t.category) && !isCredit(t));
+  const thisMonthCredits = thisMonthTxs.filter(t => isCredit(t));
+  const lastMonthExpenses = lastMonthTxs.filter(t => !excludeCats.includes(t.category) && !isCredit(t));
   
   const total_this_month = thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
+  const total_income_this_month = thisMonthCredits.reduce((sum, t) => sum + t.amount, 0);
+  const net_cash_flow = total_income_this_month - total_this_month;
   const total_saved_this_month = thisMonthTxs.filter(t => excludeCats.includes(t.category)).reduce((sum, t) => sum + t.amount, 0);
   const total_last_month = lastMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
   
@@ -104,7 +110,7 @@ export async function computeSummary(user: DBUser) {
   
   const dailyTotals: Record<string, number> = {};
   allTransactions.forEach(t => {
-    if (!excludeCats.includes(t.category)) {
+    if (!excludeCats.includes(t.category) && !isCredit(t)) {
       dailyTotals[t.date.split('T')[0]] = (dailyTotals[t.date.split('T')[0]] || 0) + t.amount;
     }
   });
@@ -156,6 +162,8 @@ export async function computeSummary(user: DBUser) {
   
   return {
     total_this_month,
+    total_income_this_month,
+    net_cash_flow,
     total_saved_this_month,
     total_subscriptions_this_month,
     total_last_month,
@@ -180,11 +188,13 @@ export async function computeCategories() {
   const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
   const excludeCats = ['Savings', 'SecretVault'];
+  const isCredit = (t: DBTransaction) => t.type === 'credit' || ['Income', 'Salary', 'Refund'].includes(t.category);
   
   const thisMonthExpenses = allTransactions.filter(t => 
     t.date >= firstOfThisMonthStr && 
     t.date <= endOfThisMonthStr &&
-    !excludeCats.includes(t.category)
+    !excludeCats.includes(t.category) &&
+    !isCredit(t)
   );
 
   const total = thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
@@ -224,7 +234,7 @@ export async function computeTrends() {
   const twelveMonthsAgo = new Date(todayDate.getFullYear(), todayDate.getMonth() - 11, 1);
 
   allTransactions.forEach(t => {
-    if (!excludeCats.includes(t.category)) {
+    if (!excludeCats.includes(t.category) && !isCredit(t)) {
       const d = new Date(t.date);
       if (d >= twelveMonthsAgo) {
         const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -253,7 +263,8 @@ export async function computeHeatmap() {
   const thisMonthExpenses = allTransactions.filter(t => 
     t.date >= firstOfThisMonthStr && 
     t.date <= endOfThisMonthStr &&
-    !excludeCats.includes(t.category)
+    !excludeCats.includes(t.category) &&
+    !isCreditTransaction(t)
   );
 
   const heatmapMap: Record<string, number> = {
@@ -283,7 +294,7 @@ export async function computeTopMerchants() {
   const map: Record<string, { amount: number, count: number }> = {};
   
   allTransactions.forEach(t => {
-    if (!excludeCats.includes(t.category) && t.merchant_clean) {
+    if (!excludeCats.includes(t.category) && !isCreditTransaction(t) && t.merchant_clean) {
       const key = t.merchant_clean.trim();
       if (!map[key]) map[key] = { amount: 0, count: 0 };
       map[key].amount += t.amount;
@@ -310,8 +321,8 @@ export async function computeInsights(user: DBUser) {
   const fourteenDaysAgo = new Date(todayDate);
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
-  const thisWeekTxs = allTransactions.filter(t => new Date(t.date) >= sevenDaysAgo && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
-  const lastWeekTxs = allTransactions.filter(t => new Date(t.date) >= fourteenDaysAgo && new Date(t.date) < sevenDaysAgo && !excludeCats.includes(t.category));
+  const thisWeekTxs = allTransactions.filter(t => new Date(t.date) >= sevenDaysAgo && new Date(t.date) <= todayDate && !excludeCats.includes(t.category) && !isCreditTransaction(t));
+  const lastWeekTxs = allTransactions.filter(t => new Date(t.date) >= fourteenDaysAgo && new Date(t.date) < sevenDaysAgo && !excludeCats.includes(t.category) && !isCreditTransaction(t));
 
   const insights: Array<{ title: string, message: string, explanation: string, type: 'warning' | 'positive' | 'info', icon: string }> = [];
 
@@ -347,7 +358,7 @@ export async function computeInsights(user: DBUser) {
   }
 
   const firstOfThisMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
-  const thisMonthExpenses = allTransactions.filter(t => new Date(t.date) >= firstOfThisMonth && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
+  const thisMonthExpenses = allTransactions.filter(t => new Date(t.date) >= firstOfThisMonth && new Date(t.date) <= todayDate && !excludeCats.includes(t.category) && !isCreditTransaction(t));
   const total_this_month = thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
   const daily_average = total_this_month / Math.max(1, todayDate.getDate());
   const projected = daily_average * new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate();
