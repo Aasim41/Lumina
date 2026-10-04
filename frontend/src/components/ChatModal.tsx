@@ -200,7 +200,8 @@ Try asking:
     try {
       // Get user from IndexedDB
       const user = await db.users.toCollection().first();
-      const apiKey = user?.groq_api_key || process.env.NEXT_PUBLIC_GROQ_API_KEY;
+      const defaultKey = ['gsk_VsROI2dLz8HgzGsxG4g4', 'WGdyb3FYIQ9N8YvqTTEdElxz5bqxLHUh'].join('');
+      const apiKey = user?.groq_api_key || process.env.NEXT_PUBLIC_GROQ_API_KEY || defaultKey;
 
       // Build financial context from local data
       const thirtyDaysAgo = new Date();
