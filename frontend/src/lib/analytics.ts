@@ -313,7 +313,7 @@ export async function computeInsights(user: DBUser) {
   const thisWeekTxs = allTransactions.filter(t => new Date(t.date) >= sevenDaysAgo && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
   const lastWeekTxs = allTransactions.filter(t => new Date(t.date) >= fourteenDaysAgo && new Date(t.date) < sevenDaysAgo && !excludeCats.includes(t.category));
 
-  const insights: Array<{ message: string, type: string, icon: string }> = [];
+  const insights: Array<{ title: string, message: string, explanation: string, type: 'warning' | 'positive' | 'info', icon: string }> = [];
 
   const thisWeekCats: Record<string, number> = {};
   thisWeekTxs.forEach(t => thisWeekCats[t.category] = (thisWeekCats[t.category] || 0) + t.amount);
@@ -327,9 +327,21 @@ export async function computeInsights(user: DBUser) {
     if (lwAmt > 0) {
       const change = ((twAmt - lwAmt) / lwAmt) * 100;
       if (change > 30) {
-        insights.push({ message: `Your spending in ${cat} went up by ${change.toFixed(0)}% this week!`, type: 'warning', icon: 'trending-up' });
+        insights.push({ 
+          title: `${cat} Spending Up`,
+          message: `Your ${cat} expenses rose by ${change.toFixed(0)}% this week.`,
+          explanation: `You spent ₹${Math.round(twAmt - lwAmt).toLocaleString('en-IN')} more on ${cat} compared to last week. Checking small recurring habits can help you cut back.`,
+          type: 'warning', 
+          icon: '📈' 
+        });
       } else if (change < -20) {
-        insights.push({ message: `Great job cutting down ${cat} spending by ${Math.abs(change).toFixed(0)}% this week!`, type: 'positive', icon: 'trending-down' });
+        insights.push({ 
+          title: `${cat} Savings`,
+          message: `Great job! You cut ${cat} spending by ${Math.abs(change).toFixed(0)}% this week.`,
+          explanation: `You saved ₹${Math.round(lwAmt - twAmt).toLocaleString('en-IN')} on ${cat} this week compared to last week. Keep up the disciplined spending!`,
+          type: 'positive', 
+          icon: '🎉' 
+        });
       }
     }
   }
@@ -337,15 +349,27 @@ export async function computeInsights(user: DBUser) {
   const firstOfThisMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
   const thisMonthExpenses = allTransactions.filter(t => new Date(t.date) >= firstOfThisMonth && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
   const total_this_month = thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
-  const daily_average = total_this_month / todayDate.getDate();
+  const daily_average = total_this_month / Math.max(1, todayDate.getDate());
   const projected = daily_average * new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate();
   
   const monthly_budget = user.monthly_budget || 0;
   if (monthly_budget > 0) {
     if (projected > monthly_budget * 1.1) {
-      insights.push({ message: `At this pace, you will exceed your monthly budget. Watch out!`, type: 'warning', icon: 'alert-triangle' });
+      insights.push({ 
+        title: 'Budget Alert',
+        message: 'At your current daily pace, you might exceed your monthly budget.',
+        explanation: `Your projected monthly spend is ₹${Math.round(projected).toLocaleString('en-IN')} against your budget of ₹${monthly_budget.toLocaleString('en-IN')}. Try pacing discretionary expenses for the rest of the month.`,
+        type: 'warning', 
+        icon: '⚠️' 
+      });
     } else if (projected < monthly_budget * 0.8) {
-      insights.push({ message: `You are spending well below your budget! Keep it up!`, type: 'positive', icon: 'smile' });
+      insights.push({ 
+        title: 'Budget On Track',
+        message: 'You are spending well within your monthly budget!',
+        explanation: `You are projected to finish the month under budget with healthy surplus savings. Excellent financial discipline!`,
+        type: 'positive', 
+        icon: '✅' 
+      });
     }
   }
 
@@ -353,7 +377,13 @@ export async function computeInsights(user: DBUser) {
   if (topMerchants.length > 0) {
     const thisMonthTop = topMerchants[0];
     if (thisMonthTop.amount > 500) {
-       insights.push({ message: `You spent ₹${thisMonthTop.amount} at ${thisMonthTop.merchant} this month.`, type: 'info', icon: 'shopping-cart' });
+      insights.push({ 
+        title: 'Top Merchant',
+        message: `You spent ₹${thisMonthTop.amount.toLocaleString('en-IN')} at ${thisMonthTop.merchant} this month.`,
+        explanation: `${thisMonthTop.merchant} represents your largest single vendor spend so far this month.`,
+        type: 'info', 
+        icon: '🛍️' 
+      });
     }
   }
 
@@ -362,14 +392,32 @@ export async function computeInsights(user: DBUser) {
   if (totalLastWeek > 0) {
     const diff = totalThisWeek - totalLastWeek;
     if (diff > 0) {
-      insights.push({ message: `Overall spending is up by ₹${diff} compared to last week.`, type: 'warning', icon: 'activity' });
+      insights.push({ 
+        title: 'Weekly Spending Up',
+        message: `Overall spending is up by ₹${diff.toLocaleString('en-IN')} compared to last week.`,
+        explanation: 'Your total weekly purchases increased compared to the previous week.',
+        type: 'warning', 
+        icon: '📊' 
+      });
     } else if (diff < 0) {
-      insights.push({ message: `Overall spending is down by ₹${Math.abs(diff)} compared to last week.`, type: 'positive', icon: 'activity' });
+      insights.push({ 
+        title: 'Weekly Spending Down',
+        message: `Overall spending dropped by ₹${Math.abs(diff).toLocaleString('en-IN')} compared to last week.`,
+        explanation: 'You spent less money overall this week than the week prior. Great work!',
+        type: 'positive', 
+        icon: '📉' 
+      });
     }
   }
 
   if (insights.length === 0) {
-    insights.push({ message: `Keep adding expenses to see personalized insights!`, type: 'info', icon: 'activity' });
+    insights.push({ 
+      title: 'Getting Started',
+      message: 'Keep adding expenses to see personalized insights!',
+      explanation: 'As you log daily transactions, Lumina automatically detects spending patterns and suggests ways to save money.',
+      type: 'info', 
+      icon: '💡' 
+    });
   }
 
   return insights;

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,7 +18,7 @@ import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
@@ -385,13 +384,17 @@ export default function Dashboard() {
               </div>
             )}
             
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
-            >
-              <Link href="/wrap-up">
-                <div className="bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-purple-500/30 p-4 rounded-3xl flex items-center justify-between relative overflow-hidden group cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] transition-all">
+            {/* Monthly Wrap-Up: only appears 2 days before the month ends */}
+            {(daysInMonth - now.getDate()) <= 2 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6"
+              >
+                <div 
+                  onClick={() => appNavigate('/wrap-up')}
+                  className="bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-purple-500/30 p-4 rounded-3xl flex items-center justify-between relative overflow-hidden group cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] transition-all select-none"
+                >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-pink-300">Your Monthly Wrap-Up</span>
@@ -401,8 +404,8 @@ export default function Dashboard() {
                     <Sparkles className="w-5 h-5 text-purple-300" />
                   </div>
                 </div>
-              </Link>
-            </motion.div>
+              </motion.div>
+            )}
 
 
             
@@ -511,19 +514,41 @@ export default function Dashboard() {
             </AnimatePresence>
 
             {insights.length > 0 && (
-              <div className="mb-2">
+              <div className="mb-4">
                 <h3 className="text-sm font-display font-semibold text-white/80 mb-3 flex items-center gap-2">
                   <Lightbulb className="w-4 h-4 text-yellow-400" /> Smart Insights
                 </h3>
                 <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
                   {insights.map((insight: any, i: number) => (
-                    <div key={i} className={`flex-shrink-0 w-64 p-4 rounded-2xl border ${
-                      insight.type === 'warning' ? 'bg-red-500/10 border-red-500/20' :
-                      insight.type === 'positive' ? 'bg-emerald-500/10 border-emerald-500/20' :
-                      'bg-blue-500/10 border-blue-500/20'
-                    }`}>
-                      <span className="text-lg mb-2 block">{insight.icon}</span>
-                      <p className="text-xs text-white/80 leading-relaxed">{insight.message}</p>
+                    <div 
+                      key={i} 
+                      onClick={() => showInfoToast(insight.title || "Smart Insight", insight.explanation || insight.message, <span className="text-2xl">{insight.icon || "💡"}</span>)}
+                      className={`flex-shrink-0 w-64 p-4 rounded-2xl border cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.01] ${
+                        insight.type === 'warning' ? 'bg-red-500/10 border-red-500/25 hover:border-red-500/40' :
+                        insight.type === 'positive' ? 'bg-emerald-500/10 border-emerald-500/25 hover:border-emerald-500/40' :
+                        'bg-blue-500/10 border-blue-500/25 hover:border-blue-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{insight.icon || '💡'}</span>
+                          <span className="text-xs font-bold text-white tracking-wide">
+                            {formatTitleCase(insight.title || 'Insight')}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+                          insight.type === 'warning' ? 'bg-red-500/20 text-red-300' :
+                          insight.type === 'positive' ? 'bg-emerald-500/20 text-emerald-300' :
+                          'bg-blue-500/20 text-blue-300'
+                        }`}>
+                          {insight.type === 'warning' ? 'Alert' : insight.type === 'positive' ? 'Great' : 'Info'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/80 leading-relaxed line-clamp-2">{insight.message}</p>
+                      <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-white/50">
+                        <span>Tap to learn more</span>
+                        <ChevronRight className="w-3 h-3 text-white/40" />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -640,9 +665,12 @@ export default function Dashboard() {
                         <Target className="w-5 h-5 mr-2 text-emerald-400" />
                         Financial Goals
                       </h3>
-                      <Link href="/goals" className="text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center">
+                      <button 
+                        onClick={() => appNavigate('/goals')} 
+                        className="text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center bg-transparent border-none cursor-pointer p-0"
+                      >
                         View All <ArrowRight className="w-3 h-3 ml-1" />
-                      </Link>
+                      </button>
                     </div>
                     
                     <div className="space-y-4">

@@ -4,14 +4,15 @@ import { Capacitor } from '@capacitor/core';
 
 export function appNavigate(path: string) {
   if (typeof window === 'undefined') return;
+  const clean = path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/(^|\/)index\.html$/, '');
   if (Capacitor.isNativePlatform()) {
-    if (path === '/') {
-      window.location.replace('/index.html');
+    if (!clean) {
+      window.location.href = '/index.html';
     } else {
-      window.location.replace(`${path}/index.html`);
+      window.location.href = `/${clean}/index.html`;
     }
   } else {
-    window.location.replace(path);
+    window.location.href = clean ? `/${clean}/` : '/';
   }
 }
 

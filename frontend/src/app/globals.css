@@ -196,6 +196,7 @@ body {
   width: calc(100% / 5);
   border-radius: 1.5rem;
   z-index: 1;
+  pointer-events: none;
   transition:
     transform 0.5s cubic-bezier(0.37, 1.95, 0.66, 0.56),
     background 0.4s ease-in-out,
