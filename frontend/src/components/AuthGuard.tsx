@@ -2,49 +2,33 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { isAuthenticated } from '@/lib/auth';
 import { Spinner } from './ui/Spinner';
 import { appNavigate } from '@/lib/utils';
 
+// Global flag to track if the client has already mounted.
+// After the first page loads, all tab switching is instant with zero spinner flash.
+let globalHasHydrated = false;
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [mounted, setMounted] = useState(() => globalHasHydrated);
+  const [authorized, setAuthorized] = useState(() => globalHasHydrated ? isAuthenticated() : false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        if (!pathname.startsWith('/login')) {
-          appNavigate('/login');
-        }
-        setAuthorized(false);
-      } else {
-        setAuthorized(true);
-        // Defer notifications setup so it doesn't block rendering
-        setTimeout(() => {
-          import('@/lib/notifications').then(({ requestNotificationPermissions, scheduleRecurringNotifications }) => {
-            requestNotificationPermissions().then(() => scheduleRecurringNotifications());
-          });
-        }, 3000);
-      }
-    });
+    globalHasHydrated = true;
+    setMounted(true);
+    const authed = isAuthenticated();
+    setAuthorized(authed);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        if (!pathname.startsWith('/login')) {
-          appNavigate('/login');
-        }
-        setAuthorized(false);
-      } else {
-        setAuthorized(true);
+    if (!authed) {
+      if (!pathname.startsWith('/login')) {
+        appNavigate('/login');
       }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    }
   }, [pathname]);
 
-  if (authorized === null || !authorized) {
+  if (!mounted || !authorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Spinner className="w-8 h-8 text-primary" />

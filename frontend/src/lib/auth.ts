@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { db } from './db';
 import { appNavigate } from './utils';
 
 export interface User {
@@ -8,94 +8,88 @@ export interface User {
   avatar_url?: string;
 }
 
-export const isAuthenticated = async (): Promise<boolean> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return !!session;
-};
-
-// Synchronous check for guards that can't await
-export const isAuthenticatedSync = (): boolean => {
+/**
+ * Check if a user profile exists in IndexedDB.
+ */
+export const isAuthenticated = (): boolean => {
   if (typeof window === 'undefined') return false;
-  return !!localStorage.getItem('sb-auth-token');
+  return !!localStorage.getItem('lumina_logged_in');
 };
 
-export const getToken = async (): Promise<string | null> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token || null;
-};
-
-export const signInWithGoogle = async () => {
-  const { Capacitor } = await import('@capacitor/core');
-  const isNative = Capacitor.isNativePlatform();
-  const redirectUrl = isNative 
-    ? 'com.lumina.smartexpense://login-callback' 
-    : (typeof window !== 'undefined' ? window.location.origin + '/' : undefined);
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: redirectUrl,
-      skipBrowserRedirect: isNative, // Important: tell Supabase to just return the URL natively
-    }
-  });
-  if (error) throw error;
-
-  if (isNative && data?.url) {
-    const { Browser } = await import('@capacitor/browser');
-    await Browser.open({ url: data.url });
+/**
+ * Mark the user as logged in (called after profile is saved to Dexie).
+ */
+export const setLoggedIn = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('lumina_logged_in', 'true');
   }
-
-  return data;
 };
 
-export const guestLogin = async (name: string) => {
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (error) throw error;
-  
-  if (data.user) {
-    // Upsert profile with the provided name
-    const newProfile = {
-      id: data.user.id,
-      name: name,
-      email: '',
-      vault_balance: 0,
-      preferred_currency: 'INR',
-      current_streak: 0,
-      unlocked_badges: '[]',
-      created_at: new Date().toISOString(),
-    };
-    await supabase.from('profiles').upsert(newProfile);
+/**
+ * Legacy compat — components that call getToken() for auth checks.
+ * Returns a truthy string if logged in, null if not.
+ */
+export const getToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('lumina_logged_in') ? 'local' : null;
+};
+
+/** No-op for backward compat */
+export const setToken = (_token: string) => {
+  setLoggedIn();
+};
+
+/** No-op for backward compat */
+export const removeToken = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('lumina_logged_in');
   }
-  return data;
 };
 
-export const getUser = async (): Promise<User | null> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  return {
-    id: user.id,
-    email: user.email || '',
-    name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-    avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined
-  };
+export const getUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  const userStr = localStorage.getItem('lumina_user');
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch {
+    return null;
+  }
+};
+
+export const setUser = (user: User) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('lumina_user', JSON.stringify(user));
+  }
 };
 
 export const logout = async () => {
-  await supabase.auth.signOut();
   if (typeof window !== 'undefined') {
-    // Clear any cached data
+    localStorage.removeItem('lumina_logged_in');
     localStorage.removeItem('lumina_user');
     localStorage.removeItem('lumina_summary');
     localStorage.removeItem('lumina_categories');
     localStorage.removeItem('lumina_trends');
     localStorage.removeItem('lumina_subs');
     localStorage.removeItem('lumina_transactions');
+    localStorage.removeItem('token');
+
+    // Clear all IndexedDB tables
+    try {
+      await db.users.clear();
+      await db.transactions.clear();
+      await db.subscriptions.clear();
+      await db.categoryBudgets.clear();
+      await db.wishlistItems.clear();
+      await db.splitBills.clear();
+      await db.splitMembers.clear();
+      await db.debts.clear();
+      await db.investments.clear();
+      await db.goals.clear();
+    } catch (e) {
+      console.error('Failed to clear IndexedDB:', e);
+    }
+
     appNavigate('/login');
   }
 };
-
-// Keep these for backward compat but make them no-ops
-export const setLoggedIn = () => {};
-export const setToken = (_token: string) => {};
-export const removeToken = () => {};
-export const setUser = (_user: User) => {};

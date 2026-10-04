@@ -1,61 +1,21 @@
-import { supabase } from './supabase';
-
-export interface DBUser {
-  id?: string;
-  name?: string;
-  email?: string;
-  monthly_budget?: number;
-  last_budget_update?: string;
-  budget_days?: number;
-  vault_balance?: number;
-  user_persona?: string;
-}
-
-export interface DBTransaction {
-  id?: string;
-  amount: number;
-  date: string;
-  category: string;
-  merchant_clean?: string;
-}
-
-export interface DBSubscription {
-  id?: string;
-  amount: number;
-  billing_day: number;
-  merchant?: string;
-}
-
-export interface DBCategoryBudget {
-  id?: string;
-  category: string;
-  amount: number;
-  rollover_balance?: number;
-  month_updated?: string;
-}
-
-export interface DBGoal {
-  id?: string;
-  name: string;
-  target_amount: number;
-  saved_amount: number;
-  target_date?: string;
-}
-
-const todayISO = () => new Date().toISOString().split('T')[0];
-const generateId = () => crypto.randomUUID();
+import { db, generateId, nowISO, todayISO, DBUser, DBTransaction, DBSubscription, DBCategoryBudget, DBGoal } from './db';
 
 export function getBudgetCycle(user?: DBUser) {
   const today = new Date();
   const defaultStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-  const startStr = user?.last_budget_update || defaultStart;
+  const startStr = (user?.last_budget_update && !isNaN(new Date(user.last_budget_update).getTime()))
+    ? user.last_budget_update
+    : defaultStart;
   const startDate = new Date(startStr);
   
-  let currentStart = new Date(startDate);
-  const days = user?.budget_days || new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
+  let currentStart = isNaN(startDate.getTime()) ? new Date(today.getFullYear(), today.getMonth(), 1) : new Date(startDate);
+  let days = Number(user?.budget_days) || new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).getDate();
+  if (days <= 0 || isNaN(days)) days = 30;
   
   // Roll forward if currentStart is in the past by more than `days`
-  while (true) {
+  let iters = 0;
+  while (iters < 120) {
+    iters++;
     const nextStart = new Date(currentStart);
     nextStart.setDate(nextStart.getDate() + days);
     if (nextStart > today) break;
@@ -87,12 +47,11 @@ export function getBudgetCycle(user?: DBUser) {
 
 // 1. computeSummary
 export async function computeSummary(user: DBUser) {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const cycle = getBudgetCycle(user);
 
-  const thisMonthTxs = (allTransactions || []).filter(t => t.date >= cycle.startStr && t.date <= cycle.endStr);
-  const lastMonthTxs = (allTransactions || []).filter(t => t.date >= cycle.prevStartStr && t.date <= cycle.prevEndStr);
+  const thisMonthTxs = allTransactions.filter(t => t.date >= cycle.startStr && t.date <= cycle.endStr);
+  const lastMonthTxs = allTransactions.filter(t => t.date >= cycle.prevStartStr && t.date <= cycle.prevEndStr);
 
   const excludeCats = ['Savings', 'SecretVault'];
   
@@ -124,16 +83,15 @@ export async function computeSummary(user: DBUser) {
   
   const daily_average = total_this_month / cycle.elapsedDays;
   
-  const { data: subs = [] } = await supabase.from('subscriptions').select('*').eq('user_id', userId);
-  const total_subscriptions_this_month = (subs || []).reduce((sum, s) => sum + s.amount, 0);
+  const subs = await db.subscriptions.toArray();
+  const total_subscriptions_this_month = subs.reduce((sum, s) => sum + s.amount, 0);
   
-  const { data: profiles } = await supabase.from('profiles').select('*').eq('id', userId).limit(1);
-  const vault = profiles?.[0];
+  const vault = await db.users.toCollection().first();
   const db_vault_balance = vault?.vault_balance || 0;
   
   // Badges logic (simplified example)
   const badges: string[] = [];
-  if ((allTransactions || []).filter(t => t.category !== 'SecretVault').length > 0) badges.push('First Steps');
+  if (allTransactions.filter(t => t.category !== 'SecretVault').length > 0) badges.push('First Steps');
   
   const monthly_budget = user.monthly_budget || 0;
   if (monthly_budget > 0 && total_saved_this_month > (monthly_budget * 0.2)) badges.push('Super Saver');
@@ -145,15 +103,22 @@ export async function computeSummary(user: DBUser) {
   const daily_budget = monthly_budget > 0 ? monthly_budget / cycle.days : 0;
   
   const dailyTotals: Record<string, number> = {};
-  (allTransactions || []).forEach(t => {
+  allTransactions.forEach(t => {
     if (!excludeCats.includes(t.category)) {
       dailyTotals[t.date.split('T')[0]] = (dailyTotals[t.date.split('T')[0]] || 0) + t.amount;
     }
   });
 
+  const createdDate = user?.created_at ? new Date(user.created_at) : new Date(todayDate);
+  const minDate = isNaN(createdDate.getTime()) ? new Date(todayDate) : createdDate;
+  minDate.setHours(0, 0, 0, 0);
+
   let current_streak = 0;
   let d = new Date(todayDate);
-  while (true) {
+  d.setHours(0, 0, 0, 0);
+  let streakSafety = 0;
+  while (d >= minDate && streakSafety < 60) {
+    streakSafety++;
     const dStr = d.toISOString().split('T')[0];
     if ((dailyTotals[dStr] || 0) <= daily_budget) {
       current_streak++;
@@ -169,7 +134,9 @@ export async function computeSummary(user: DBUser) {
   if (sortedDates.length > 0) {
     const earliest = new Date(sortedDates[0]);
     let tmpD = new Date(earliest);
-    while (tmpD <= todayDate) {
+    let runSafety = 0;
+    while (tmpD <= todayDate && runSafety < 365) {
+      runSafety++;
       const dStr = tmpD.toISOString().split('T')[0];
       if ((dailyTotals[dStr] || 0) <= daily_budget) {
         current_run++;
@@ -184,8 +151,8 @@ export async function computeSummary(user: DBUser) {
   const streak_status = current_streak > 0 ? 'Active' : 'Broken';
   
   // Vault balance
-  const vault_balance = (allTransactions || []).filter(t => t.category === 'SecretVault').reduce((sum, t) => sum + t.amount, 0) 
-                      - (allTransactions || []).filter(t => t.category === 'SecretVault_Processed').reduce((sum, t) => sum + t.amount, 0);
+  const vault_balance = allTransactions.filter(t => t.category === 'SecretVault').reduce((sum, t) => sum + t.amount, 0) 
+                      - allTransactions.filter(t => t.category === 'SecretVault_Processed').reduce((sum, t) => sum + t.amount, 0);
   
   return {
     total_this_month,
@@ -208,14 +175,13 @@ export async function computeSummary(user: DBUser) {
 
 // 2. computeCategories
 export async function computeCategories() {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const todayDate = new Date(todayISO());
   const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
   const excludeCats = ['Savings', 'SecretVault'];
   
-  const thisMonthExpenses = (allTransactions || []).filter(t => 
+  const thisMonthExpenses = allTransactions.filter(t => 
     t.date >= firstOfThisMonthStr && 
     t.date <= endOfThisMonthStr &&
     !excludeCats.includes(t.category)
@@ -242,8 +208,7 @@ export async function computeCategories() {
 
 // 3. computeTrends
 export async function computeTrends() {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const todayDate = new Date(todayISO());
   const excludeCats = ['Savings', 'SecretVault'];
   
@@ -258,7 +223,7 @@ export async function computeTrends() {
 
   const twelveMonthsAgo = new Date(todayDate.getFullYear(), todayDate.getMonth() - 11, 1);
 
-  (allTransactions || []).forEach(t => {
+  allTransactions.forEach(t => {
     if (!excludeCats.includes(t.category)) {
       const d = new Date(t.date);
       if (d >= twelveMonthsAgo) {
@@ -279,14 +244,13 @@ export async function computeTrends() {
 
 // 4. computeHeatmap
 export async function computeHeatmap() {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const todayDate = new Date(todayISO());
   const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
   const excludeCats = ['Savings', 'SecretVault'];
 
-  const thisMonthExpenses = (allTransactions || []).filter(t => 
+  const thisMonthExpenses = allTransactions.filter(t => 
     t.date >= firstOfThisMonthStr && 
     t.date <= endOfThisMonthStr &&
     !excludeCats.includes(t.category)
@@ -313,13 +277,12 @@ export async function computeHeatmap() {
 
 // 5. computeTopMerchants
 export async function computeTopMerchants() {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const excludeCats = ['Savings', 'SecretVault'];
 
   const map: Record<string, { amount: number, count: number }> = {};
   
-  (allTransactions || []).forEach(t => {
+  allTransactions.forEach(t => {
     if (!excludeCats.includes(t.category) && t.merchant_clean) {
       const key = t.merchant_clean.trim();
       if (!map[key]) map[key] = { amount: 0, count: 0 };
@@ -337,8 +300,7 @@ export async function computeTopMerchants() {
 
 // 6. computeInsights
 export async function computeInsights(user: DBUser) {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const excludeCats = ['Savings', 'SecretVault'];
   const todayDate = new Date(todayISO());
   
@@ -348,8 +310,8 @@ export async function computeInsights(user: DBUser) {
   const fourteenDaysAgo = new Date(todayDate);
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
-  const thisWeekTxs = (allTransactions || []).filter(t => new Date(t.date) >= sevenDaysAgo && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
-  const lastWeekTxs = (allTransactions || []).filter(t => new Date(t.date) >= fourteenDaysAgo && new Date(t.date) < sevenDaysAgo && !excludeCats.includes(t.category));
+  const thisWeekTxs = allTransactions.filter(t => new Date(t.date) >= sevenDaysAgo && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
+  const lastWeekTxs = allTransactions.filter(t => new Date(t.date) >= fourteenDaysAgo && new Date(t.date) < sevenDaysAgo && !excludeCats.includes(t.category));
 
   const insights: Array<{ message: string, type: string, icon: string }> = [];
 
@@ -373,7 +335,7 @@ export async function computeInsights(user: DBUser) {
   }
 
   const firstOfThisMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
-  const thisMonthExpenses = (allTransactions || []).filter(t => new Date(t.date) >= firstOfThisMonth && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
+  const thisMonthExpenses = allTransactions.filter(t => new Date(t.date) >= firstOfThisMonth && new Date(t.date) <= todayDate && !excludeCats.includes(t.category));
   const total_this_month = thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
   const daily_average = total_this_month / todayDate.getDate();
   const projected = daily_average * new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate();
@@ -416,7 +378,6 @@ export async function computeInsights(user: DBUser) {
 // 7. computeAlerts
 export async function computeAlerts(user: DBUser) {
   const alerts: Array<{ id: string, type: string, title: string, message: string, icon: string }> = [];
-  const userId = (await supabase.auth.getUser()).data.user!.id;
   
   const summary = await computeSummary(user);
   const monthly_budget = user.monthly_budget || 0;
@@ -434,9 +395,9 @@ export async function computeAlerts(user: DBUser) {
   const todayDate = new Date(todayISO());
   const daysInMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate();
   const daily_limit = monthly_budget / daysInMonth;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const todayStr = todayDate.toISOString().split('T')[0];
-  const todayTxs = (allTransactions || []).filter(t => t.date.startsWith(todayStr) && !['Savings', 'SecretVault'].includes(t.category));
+  const todayTxs = allTransactions.filter(t => t.date.startsWith(todayStr) && !['Savings', 'SecretVault'].includes(t.category));
   const todayTotal = todayTxs.reduce((sum, t) => sum + t.amount, 0);
   
   if (daily_limit > 0 && todayTotal > daily_limit * 1.5) {
@@ -449,8 +410,8 @@ export async function computeAlerts(user: DBUser) {
     });
   }
 
-  const { data: categories = [] } = await supabase.from('category_budgets').select('*').eq('user_id', userId);
-  for (const cat of (categories || [])) {
+  const categories = await db.categoryBudgets.toArray();
+  for (const cat of categories) {
     const spent = await computeSpentThisMonth(cat.category);
     if (cat.amount > 0 && spent >= cat.amount * 0.8) {
       alerts.push({
@@ -463,9 +424,9 @@ export async function computeAlerts(user: DBUser) {
     }
   }
 
-  const { data: subs = [] } = await supabase.from('subscriptions').select('*').eq('user_id', userId);
+  const subs = await db.subscriptions.toArray();
   const todayDay = todayDate.getDate();
-  for (const sub of (subs || [])) {
+  for (const sub of subs) {
     let diff = sub.billing_day - todayDay;
     if (diff < 0) diff += daysInMonth; 
     if (diff <= 3) {
@@ -479,8 +440,8 @@ export async function computeAlerts(user: DBUser) {
     }
   }
 
-  const { data: goals = [] } = await supabase.from('goals').select('*').eq('user_id', userId);
-  for (const goal of (goals || [])) {
+  const goals = await db.goals.toArray();
+  for (const goal of goals) {
     if (goal.target_amount > 0) {
       const progress = goal.saved_amount / goal.target_amount;
       if (progress >= 1) {
@@ -508,11 +469,10 @@ export async function computeAlerts(user: DBUser) {
 
 // 8. generateRoast
 export async function generateRoast(user: DBUser, data: { amount: number, category: string, merchant: string }) {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const firstOfThisMonthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   
-  const categoryTxs = (allTransactions || []).filter(t => t.category === data.category && t.date >= firstOfThisMonthStr);
+  const categoryTxs = allTransactions.filter(t => t.category === data.category && t.date >= firstOfThisMonthStr);
   const total = categoryTxs.reduce((sum, t) => sum + t.amount, 0) + data.amount;
   const count = categoryTxs.length + 1;
 
@@ -556,15 +516,14 @@ export async function generateRoast(user: DBUser, data: { amount: number, catego
 
 // 9. computeWrapUp
 export async function computeWrapUp() {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const todayDate = new Date(todayISO());
   const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   const firstOfLastMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() - 1, 1).toISOString().split('T')[0];
   const excludeCats = ['Savings', 'SecretVault', 'SecretVault_Processed'];
 
-  const thisMonthExpenses = (allTransactions || []).filter(t => t.date >= firstOfThisMonthStr && t.date <= todayISO() && !excludeCats.includes(t.category));
-  const lastMonthExpenses = (allTransactions || []).filter(t => t.date >= firstOfLastMonthStr && t.date < firstOfThisMonthStr && !excludeCats.includes(t.category));
+  const thisMonthExpenses = allTransactions.filter(t => t.date >= firstOfThisMonthStr && t.date <= todayISO() && !excludeCats.includes(t.category));
+  const lastMonthExpenses = allTransactions.filter(t => t.date >= firstOfLastMonthStr && t.date < firstOfThisMonthStr && !excludeCats.includes(t.category));
 
   const total_spent = thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
   const total_last_month = lastMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
@@ -658,13 +617,12 @@ export async function syncRollover(budget: DBCategoryBudget) {
   const currentMonthStartStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   
   if (budget.month_updated && budget.month_updated < currentMonthStartStr) {
-    const userId = (await supabase.auth.getUser()).data.user!.id;
-    const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+    const allTransactions = await db.transactions.toArray();
     
     const updatedMonthStart = new Date(budget.month_updated);
     const nextMonthStart = new Date(updatedMonthStart.getFullYear(), updatedMonthStart.getMonth() + 1, 1);
     
-    const lastTrackedTxs = (allTransactions || []).filter(t => 
+    const lastTrackedTxs = allTransactions.filter(t => 
       t.category === budget.category && 
       new Date(t.date) >= updatedMonthStart && 
       new Date(t.date) < nextMonthStart
@@ -679,23 +637,19 @@ export async function syncRollover(budget: DBCategoryBudget) {
     budget.rollover_balance = newRolloverBalance;
     budget.month_updated = currentMonthStartStr;
     
-    await supabase.from('category_budgets').update({
-      rollover_balance: newRolloverBalance,
-      month_updated: currentMonthStartStr
-    }).eq('id', budget.id);
+    await db.categoryBudgets.put(budget);
   }
   return budget;
 }
 
 // 12. computeSpentThisMonth
 export async function computeSpentThisMonth(category: string) {
-  const userId = (await supabase.auth.getUser()).data.user!.id;
-  const { data: allTransactions = [] } = await supabase.from('transactions').select('*').eq('user_id', userId);
+  const allTransactions = await db.transactions.toArray();
   const todayDate = new Date(todayISO());
   const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
 
-  const spent = (allTransactions || [])
+  const spent = allTransactions
     .filter(t => t.category === category && t.date >= firstOfThisMonthStr && t.date <= endOfThisMonthStr)
     .reduce((sum, t) => sum + t.amount, 0);
     

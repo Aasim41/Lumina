@@ -25,7 +25,7 @@ export default function LoginPage() {
     const result = await loginAsGuest(name.trim());
     if (!result.success) {
       setSigningIn(false);
-      alert(`Login failed! Error: ${result.error}\n\nPlease ensure you have enabled Anonymous Sign-Ins in your Supabase Dashboard -> Authentication -> Providers.`);
+      alert(`Login failed: ${result.error}`);
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSummary, getCategories, getTrends, getForecast, getSubscriptions } from '../lib/api';
-import { supabase } from '../lib/supabase';
+import { isAuthenticated } from '../lib/auth';
 import { usePathname } from 'next/navigation';
 
 export function useExpenseData() {
@@ -15,9 +15,7 @@ export function useExpenseData() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Properly await the async auth check
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!isAuthenticated()) {
         setLoading(false);
         return;
       }

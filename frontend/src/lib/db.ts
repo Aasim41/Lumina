@@ -24,6 +24,7 @@ export interface DBUser {
 
 export interface DBTransaction {
   id?: string;
+  user_id?: string;
   date: string;             // ISO date string  YYYY-MM-DD
   merchant_raw: string;
   merchant_clean: string;

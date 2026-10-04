@@ -86,6 +86,7 @@ export function BottomNav() {
                       <Link
                         key={item.name}
                         href={item.href}
+                        prefetch={true}
                         replace
                         onClick={() => setMoreOpen(false)}
                         className={`flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 hover:scale-[1.02] active:scale-95 ${
@@ -125,6 +126,7 @@ export function BottomNav() {
               <Link 
                 key={item.name}
                 href={item.href}
+                prefetch={true}
                 replace
                 className="flex-1 flex flex-col items-center justify-center text-[10px] p-2 cursor-pointer font-semibold tracking-wide relative z-10 h-16 transition-all duration-300"
                 style={{ color: isActive ? '#fff' : 'var(--text)', transform: isActive ? 'translateY(-2px)' : 'none' }}

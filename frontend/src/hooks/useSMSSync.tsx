@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { parseMultipleSMS, ParsedTransaction } from '@/lib/smsParser';
 import { createTransaction } from '@/lib/api';
-import { supabase } from '@/lib/supabase';
+import { isAuthenticated } from '@/lib/auth';
 import toast from 'react-hot-toast';
 
 // Category mapping based on merchant/description keywords
@@ -141,13 +141,7 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
   const doSync = useCallback(async () => {
     if (isSyncing.current) return;
 
-    // Properly await the async auth check
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-    } catch {
-      return; // Auth not ready, skip silently
-    }
+    if (!isAuthenticated()) return;
 
     isSyncing.current = true;
 

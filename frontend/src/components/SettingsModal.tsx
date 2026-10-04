@@ -7,7 +7,7 @@ import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { exportAllData, importData, exportTransactionsCSV } from '@/lib/dataBackup';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -24,11 +24,9 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
   // Load the saved API key when modal opens
   const loadApiKey = async () => {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) return;
-    const { data: profile } = await supabase.from('profiles').select('groq_api_key').eq('id', authUser.id).single();
-    if (profile?.groq_api_key) {
-      setApiKey(profile.groq_api_key);
+    const dbUser = await db.users.toCollection().first();
+    if (dbUser?.groq_api_key) {
+      setApiKey(dbUser.groq_api_key);
       setApiKeySaved(true);
     }
   };
@@ -86,9 +84,9 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       return;
     }
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser?.id) {
-        await supabase.from('profiles').update({ groq_api_key: apiKey.trim() }).eq('id', authUser.id);
+      const dbUser = await db.users.toCollection().first();
+      if (dbUser?.id) {
+        await db.users.update(dbUser.id, { groq_api_key: apiKey.trim() });
         setApiKeySaved(true);
         toast.success('API key saved! You can now chat with Lumina AI.', { icon: '🔑' });
       }
@@ -154,7 +152,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60  z-[100]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
           />
           <motion.div
             initial={{ opacity: 0, y: 100 }}
