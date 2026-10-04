@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,9 @@ import { MetricCard } from '@/components/MetricCard';
 import { CategoryDonutChart } from '@/components/CategoryDonutChart';
 import { SpendingLineChart } from '@/components/SpendingLineChart';
 import { ChatModal } from '@/components/ChatModal';
+import { AnimatedCounter } from '@/components/AnimatedCounter';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
 import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
@@ -36,10 +39,34 @@ export default function Dashboard() {
   usePushNotifications();
   const { summary, categories, trends, subscriptions, loading, refresh } = useExpenseData();
   const [mounted, setMounted] = useState(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useGSAP(() => {
+    if (!mounted) return;
+
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+    tl.fromTo('.gsap-budget-card',
+      { opacity: 0, y: 24, scale: 0.96 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.7 }
+    );
+
+    tl.fromTo('.gsap-cash-item',
+      { opacity: 0, y: 18, scale: 0.92 },
+      { opacity: 1, y: 0, scale: 1, stagger: 0.08, duration: 0.55, ease: 'back.out(1.5)' },
+      '-=0.35'
+    );
+
+    tl.fromTo('.gsap-metric-card',
+      { opacity: 0, y: 16, scale: 0.95 },
+      { opacity: 1, y: 0, scale: 1, stagger: 0.06, duration: 0.45 },
+      '-=0.2'
+    );
+  }, { scope: dashboardRef, dependencies: [mounted, loading] });
 
   // SMS auto-sync: syncs on open, every 15 min, and on foreground resume
   const handleSMSSyncComplete = useCallback((_count: number) => {
@@ -269,7 +296,7 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
         
-        <div className="min-h-screen bg-[#0B1021] pb-24">
+        <div ref={dashboardRef} className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
           <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
             <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-10">
@@ -422,13 +449,13 @@ export default function Dashboard() {
               </motion.div>
             )}
 
-            <div className="glass p-5 rounded-3xl border border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.15)] relative overflow-hidden bg-indigo-500/10">
+            <div className="gsap-budget-card glass p-5 rounded-3xl border border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.15)] relative overflow-hidden bg-indigo-500/10">
               <div className="flex justify-between items-end mb-2">
                 <div>
                   <p className="text-xs text-text-secondary mb-1">Spent this month</p>
                   <div className="flex items-baseline space-x-1">
                     <span className="text-2xl font-display font-bold text-text-primary">
-                      {formatCurrency(totalSpent + totalSubscriptions)}
+                      <AnimatedCounter value={totalSpent + totalSubscriptions} />
                     </span>
                     <span className="text-sm text-text-secondary">/ {formatCurrency(budget)}</span>
                   </div>
@@ -436,7 +463,7 @@ export default function Dashboard() {
                 <div className="text-right">
                   <p className="text-xs text-text-secondary mb-1">Left to spend</p>
                   <p className={`font-semibold ${remaining < 0 ? 'text-error' : 'text-success'}`}>
-                    {formatCurrency(remaining)}
+                    <AnimatedCounter value={remaining} />
                   </p>
                 </div>
               </div>
@@ -459,7 +486,7 @@ export default function Dashboard() {
               {/* Legend for other categories */}
               {totalSubscriptions > 0 && (
                 <div className="flex justify-between mt-4 text-[10px] bg-black/20 p-2 rounded-xl">
-                  <span className="text-indigo-400">{formatCurrency(totalSpent)} spent</span>
+                  <span className="text-indigo-400"><AnimatedCounter value={totalSpent} /> spent</span>
                   <span className="text-purple-400 font-medium">{formatCurrency(totalSubscriptions)} subs</span>
                 </div>
               )}
@@ -487,35 +514,39 @@ export default function Dashboard() {
                 {/* Total Inflow */}
                 <div 
                   onClick={() => showInfoToast("Total Inflow 📥", "Total money received and credited to your accounts this month.", <ArrowDownLeft className="w-5 h-5 text-emerald-400" />)}
-                  className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col cursor-pointer hover:bg-emerald-500/15 transition-all"
+                  className="gsap-cash-item p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col cursor-pointer hover:bg-emerald-500/15 transition-all"
                 >
                   <div className="flex items-center gap-1 text-[11px] text-emerald-400/90 font-medium mb-1">
                     <ArrowDownLeft className="w-3 h-3" />
                     <span>Inflow</span>
                   </div>
-                  <span className="text-sm sm:text-base font-bold text-emerald-400 truncate">
-                    +{formatCurrency(summary?.total_income_this_month || 0)}
-                  </span>
+                  <AnimatedCounter 
+                    value={summary?.total_income_this_month || 0}
+                    prefix="+"
+                    className="text-sm sm:text-base font-bold text-emerald-400 truncate"
+                  />
                 </div>
 
                 {/* Total Outflow */}
                 <div 
                   onClick={() => showInfoToast("Total Outflow 📤", "Total money spent and debited from your accounts this month.", <ArrowUpRight className="w-5 h-5 text-rose-400" />)}
-                  className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-col cursor-pointer hover:bg-rose-500/15 transition-all"
+                  className="gsap-cash-item p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-col cursor-pointer hover:bg-rose-500/15 transition-all"
                 >
                   <div className="flex items-center gap-1 text-[11px] text-rose-400/90 font-medium mb-1">
                     <ArrowUpRight className="w-3 h-3" />
                     <span>Outflow</span>
                   </div>
-                  <span className="text-sm sm:text-base font-bold text-rose-400 truncate">
-                    -{formatCurrency(totalSpent + totalSubscriptions)}
-                  </span>
+                  <AnimatedCounter 
+                    value={totalSpent + totalSubscriptions}
+                    prefix="-"
+                    className="text-sm sm:text-base font-bold text-rose-400 truncate"
+                  />
                 </div>
 
                 {/* Net Savings / Cash Flow */}
                 <div 
                   onClick={() => showInfoToast("Net Cash Flow 💰", "Total Inflow minus Outflow. Positive means you earned more than you spent!", <Wallet className="w-5 h-5 text-indigo-400" />)}
-                  className={`p-3 rounded-2xl border flex flex-col cursor-pointer transition-all ${
+                  className={`gsap-cash-item p-3 rounded-2xl border flex flex-col cursor-pointer transition-all ${
                     (summary?.net_cash_flow ?? 0) >= 0
                       ? 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15'
                       : 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/15'
@@ -525,11 +556,13 @@ export default function Dashboard() {
                     <Wallet className="w-3 h-3" />
                     <span>Net Flow</span>
                   </div>
-                  <span className={`text-sm sm:text-base font-bold truncate ${
-                    (summary?.net_cash_flow ?? 0) >= 0 ? 'text-indigo-300' : 'text-amber-400'
-                  }`}>
-                    {(summary?.net_cash_flow ?? 0) >= 0 ? '+' : ''}{formatCurrency(summary?.net_cash_flow ?? 0)}
-                  </span>
+                  <AnimatedCounter
+                    value={summary?.net_cash_flow ?? 0}
+                    prefix={(summary?.net_cash_flow ?? 0) >= 0 ? '+' : ''}
+                    className={`text-sm sm:text-base font-bold truncate ${
+                      (summary?.net_cash_flow ?? 0) >= 0 ? 'text-indigo-300' : 'text-amber-400'
+                    }`}
+                  />
                 </div>
               </div>
             </div>
@@ -629,20 +662,23 @@ export default function Dashboard() {
                 {summary && (
                   <div className="grid grid-cols-2 gap-4">
                     <MetricCard
+                      className="gsap-metric-card"
                       title="Spent / Day"
-                      value={formatCurrency(summary.daily_average)}
+                      value={<AnimatedCounter value={summary.daily_average} />}
                       icon={<Activity className="w-5 h-5 text-error" />}
                       theme="red"
                       onClick={() => showInfoToast("Spent / Day", "How much you're spending on average each day this month.", <Activity className="w-6 h-6 text-error" />)}
                     />
                     <MetricCard
+                      className="gsap-metric-card"
                       title="Safe to Spend / Day"
-                      value={formatCurrency(dailyAllowed)}
+                      value={<AnimatedCounter value={dailyAllowed} />}
                       icon={<PiggyBank className="w-5 h-5 text-success" />}
                       theme="green"
                       onClick={() => showInfoToast("Safe to Spend / Day", "The amount you can safely spend each day for the rest of the month without going over budget.", <PiggyBank className="w-6 h-6 text-success" />)}
                     />
                     <MetricCard
+                      className="gsap-metric-card"
                       title="Top Category"
                       value={summary.top_category || 'None'}
                       icon={<Target className="w-5 h-5 text-primary" />}
@@ -650,13 +686,15 @@ export default function Dashboard() {
                       onClick={() => showInfoToast("Top Category", "The category where you spend the most money this month.", <Target className="w-6 h-6 text-primary" />)}
                     />
                     <MetricCard
+                      className="gsap-metric-card"
                       title="Transactions"
-                      value={summary.transaction_count?.toString() || '0'}
+                      value={<AnimatedCounter value={summary.transaction_count || 0} />}
                       icon={<Activity className="w-5 h-5 text-purple-500" />}
                       theme="blue"
                       onClick={() => showInfoToast("Transactions", "Total number of expenses you've recorded this month.", <Activity className="w-6 h-6 text-purple-500" />)}
                     />
                     <MetricCard
+                      className="gsap-metric-card"
                       title="Secret Vault"
                       value="***"
                       icon={<Trophy className="w-5 h-5 text-yellow-500" />}

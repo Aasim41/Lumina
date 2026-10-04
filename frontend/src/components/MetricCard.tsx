@@ -5,7 +5,7 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
 interface MetricCardProps {
   title: string;
-  value: string | number;
+  value: string | number | ReactNode;
   icon: ReactNode;
   theme?: 'blue' | 'green' | 'purple' | 'yellow' | 'red';
   trend?: {
