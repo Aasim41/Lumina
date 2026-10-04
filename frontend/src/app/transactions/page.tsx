@@ -49,6 +49,9 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     fetchTransactions();
+    const handleRefresh = () => fetchTransactions();
+    window.addEventListener('lumina_refresh_data', handleRefresh);
+    return () => window.removeEventListener('lumina_refresh_data', handleRefresh);
   }, []);
 
   const handleUpdate = async (id: string, category: string) => {

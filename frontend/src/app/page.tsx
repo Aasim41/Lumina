@@ -22,7 +22,7 @@ import { AchievementModal } from '@/components/AchievementModal';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
-import { formatCurrency, PERSONA_CONFIGS } from '@/lib/utils';
+import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
 import { generateMonthlyStatement } from '@/lib/PDFGenerator';
 import { Spinner } from '@/components/ui/Spinner';
 import { CategoryIcon } from '@/components/CategoryIcon';
@@ -364,13 +364,14 @@ export default function Dashboard() {
               >
                 {summary.badges.map((badge: string, i: number) => {
                   const config = getBadgeConfig(badge);
+                  const formattedTitle = formatTitleCase(badge);
                   return (
                     <button 
                       key={i} 
-                      onClick={() => showInfoToast(badge, config.description, config.icon)}
-                      className={`px-3 py-1.5 text-[11px] uppercase tracking-wider rounded-full font-bold flex items-center transition-all hover:scale-105 active:scale-95 cursor-pointer ${config.classes}`}
+                      onClick={() => showInfoToast(formattedTitle, config.description, config.icon)}
+                      className={`px-3 py-1.5 text-xs rounded-full font-bold flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm ${config.classes}`}
                     >
-                      {config.icon} {badge}
+                      {config.icon} <span>{formattedTitle}</span>
                     </button>
                   );
                 })}

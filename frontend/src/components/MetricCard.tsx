@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Card } from './ui/Card';
-import { cn } from '@/lib/utils';
+import { cn, formatTitleCase } from '@/lib/utils';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
 interface MetricCardProps {
@@ -17,6 +17,10 @@ interface MetricCardProps {
 }
 
 export function MetricCard({ title, value, icon, theme = 'blue', trend, className, onClick }: MetricCardProps) {
+  const displayValue = typeof value === 'string' && isNaN(Number(value)) && !value.startsWith('₹') && !value.startsWith('$')
+    ? formatTitleCase(value)
+    : value;
+
   return (
     <div 
       className={cn("metric-parent", className, onClick && "cursor-pointer active:scale-95 transition-transform")}
@@ -24,8 +28,8 @@ export function MetricCard({ title, value, icon, theme = 'blue', trend, classNam
     >
       <div className={cn("metric-card", `metric-theme-${theme}`)}>
         <div className="metric-content-box">
-          <span className="metric-value">{value}</span>
-          <p className="metric-title">{title}</p>
+          <span className="metric-value truncate">{displayValue}</span>
+          <p className="metric-title">{formatTitleCase(title)}</p>
           
           {trend && (
             <div className="mt-2 text-[10px] font-bold text-[#141414] transition-all duration-500 transform hover:translate-z-60 flex items-center">

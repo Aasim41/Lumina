@@ -117,30 +117,58 @@ export const getTransactions = async (params?: URLSearchParams) => {
   return txns;
 };
 
-export const createTransaction = async (data: { date: string; merchant: string; amount: number; category?: string; currency?: string; original_amount?: number }) => {
+export const createTransaction = async (data: { date: string; merchant: string; amount: number; category?: string; currency?: string; original_amount?: number; source?: string; sms_hash?: string }) => {
   const merchantClean = cleanMerchantName(data.merchant);
   const category = data.category || categorize(merchantClean);
+  const normAmount = normalizeAmount(data.amount);
   let userId: string | undefined;
   try {
     const u = await getLocalUser();
     userId = u.id;
   } catch {}
 
+  // Deduplication check: prevent logging the same transaction twice
+  if (data.sms_hash) {
+    const existingByHash = await db.transactions.where('sms_hash').equals(data.sms_hash).first();
+    if (existingByHash) return existingByHash;
+  }
+
+  // Also check if an identical transaction was recorded in the same day
+  const existingDuplicate = await db.transactions
+    .where('date')
+    .equals(data.date)
+    .filter(t => t.merchant_raw === data.merchant && Math.abs(t.amount - normAmount) < 0.01)
+    .first();
+  if (existingDuplicate && data.source === 'auto_sms') {
+    return existingDuplicate;
+  }
+
   const txn: DBTransaction = {
     id: generateId(),
     user_id: userId,
+    sms_hash: data.sms_hash,
     date: data.date,
     merchant_raw: data.merchant,
     merchant_clean: merchantClean,
-    amount: normalizeAmount(data.amount),
+    amount: normAmount,
     currency: data.currency || 'INR',
     original_amount: data.original_amount,
     category,
-    source: 'manual_entry',
+    source: data.source || 'manual_entry',
     created_at: nowISO(),
   };
 
   await db.transactions.add(txn);
+
+  // Invalidate cached data and notify all components
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('lumina_transactions');
+    localStorage.removeItem('lumina_summary');
+    localStorage.removeItem('lumina_categories');
+    localStorage.removeItem('lumina_trends');
+    window.dispatchEvent(new Event('lumina_refresh_data'));
+  }
+
   return txn;
 };
 

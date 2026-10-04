@@ -25,6 +25,7 @@ export interface DBUser {
 export interface DBTransaction {
   id?: string;
   user_id?: string;
+  sms_hash?: string;
   date: string;             // ISO date string  YYYY-MM-DD
   merchant_raw: string;
   merchant_clean: string;
@@ -142,6 +143,11 @@ class SmartExpenseDB extends Dexie {
       debts:           'id',
       investments:     'id',
       goals:           'id',
+    });
+
+    this.version(2).stores({
+      transactions:    'id, date, category, merchant_clean, source, sms_hash',
+      goals:           'id, created_at',
     });
   }
 }

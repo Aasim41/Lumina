@@ -118,6 +118,8 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{count: nu
         merchant: `${txn.merchant} (${txn.source})`,
         amount: txn.amount,
         category,
+        source: 'auto_sms',
+        sms_hash: txn.smsHash,
       });
       newHashes.push(txn.smsHash);
       synced++;
