@@ -46,20 +46,21 @@ public class NativeSmsPlugin extends Plugin {
         JSArray smsList = new JSArray();
         try {
             Uri uri = Uri.parse("content://sms/inbox");
-            // Only fetch last 200 messages for performance
-            Cursor cursor = getContext().getContentResolver().query(uri, null, null, null, "date DESC LIMIT 200");
+            Cursor cursor = getContext().getContentResolver().query(uri, null, null, null, "date DESC");
             
             if (cursor != null) {
                 int indexBody = cursor.getColumnIndex("body");
                 int indexAddress = cursor.getColumnIndex("address");
                 int indexDate = cursor.getColumnIndex("date");
+                int count = 0;
                 
-                while (cursor.moveToNext()) {
+                while (cursor.moveToNext() && count < 500) {
                     JSObject sms = new JSObject();
                     sms.put("body", cursor.getString(indexBody));
                     sms.put("address", cursor.getString(indexAddress));
                     sms.put("date", cursor.getString(indexDate));
                     smsList.put(sms);
+                    count++;
                 }
                 cursor.close();
             }

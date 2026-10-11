@@ -124,7 +124,7 @@ export const getTransactions = async (params?: URLSearchParams) => {
 
 export const createTransaction = async (data: { date: string; merchant: string; amount: number; category?: string; type?: 'debit' | 'credit'; currency?: string; original_amount?: number; source?: string; sms_hash?: string }) => {
   const merchantClean = cleanMerchantName(data.merchant);
-  const category = data.category || categorize(merchantClean);
+  const category = data.category || categorize(merchantClean, data.type);
   const normAmount = normalizeAmount(data.amount);
   let userId: string | undefined;
   try {
@@ -132,20 +132,19 @@ export const createTransaction = async (data: { date: string; merchant: string; 
     userId = u.id;
   } catch {}
 
-  // Deduplication check: prevent logging the same transaction twice
+  // Deduplication check: prevent logging the exact same SMS twice
   if (data.sms_hash) {
     const existingByHash = await db.transactions.where('sms_hash').equals(data.sms_hash).first();
     if (existingByHash) return existingByHash;
-  }
-
-  // Also check if an identical transaction was recorded in the same day
-  const existingDuplicate = await db.transactions
-    .where('date')
-    .equals(data.date)
-    .filter(t => t.merchant_raw === data.merchant && Math.abs(t.amount - normAmount) < 0.01)
-    .first();
-  if (existingDuplicate && data.source === 'auto_sms') {
-    return existingDuplicate;
+  } else if (data.source === 'auto_sms') {
+    const existingDuplicate = await db.transactions
+      .where('date')
+      .equals(data.date)
+      .filter(t => t.merchant_raw === data.merchant && Math.abs(t.amount - normAmount) < 0.01)
+      .first();
+    if (existingDuplicate) {
+      return existingDuplicate;
+    }
   }
 
   const txnType: 'debit' | 'credit' = data.type || (['Income', 'Salary', 'Refund'].includes(category) ? 'credit' : 'debit');

@@ -1,37 +1,43 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { parseMultipleSMS, ParsedTransaction } from '@/lib/smsParser';
+import { categorize } from '@/lib/categorizer';
 import { createTransaction } from '@/lib/api';
+import { db } from '@/lib/db';
 import { isAuthenticated } from '@/lib/auth';
 import toast from 'react-hot-toast';
 
-// Category mapping based on merchant/description keywords
-const CATEGORY_MAP: [RegExp, string][] = [
-  [/swiggy|zomato|food|restaurant|cafe|eat|pizza|burger|biryani|domino|mcd|kfc/i, 'Food & Dining'],
-  [/uber|ola|rapido|metro|irctc|rail|bus|petrol|fuel|hp\s|iocl|bpcl|shell|parking/i, 'Transport'],
-  [/amazon|flipkart|myntra|ajio|meesho|nykaa|shopping|mart|store|shop|mall|dmart|reliance/i, 'Shopping'],
-  [/netflix|hotstar|spotify|prime|youtube|disney|jiocinema|game|movie|pvr|inox|book/i, 'Entertainment'],
-  [/pharma|medic|hospital|doctor|apollo|diagnostic|lab|health|gym|fit/i, 'Healthcare'],
-  [/rent|landlord|society|maintenance|housing|pg\b|hostel/i, 'Rent & Housing'],
-  [/jio|airtel|vodafone|vi\b|bsnl|recharge|broadband|wifi|internet|mobile\s*bill/i, 'Bills & Utilities'],
-  [/electricity|elec|power|water|gas|lpg|dth|tata\s*sky|dish/i, 'Bills & Utilities'],
-  [/insurance|lic|policy|premium|mutual\s*fund|sip|invest|stock|zerodha|groww|upstox/i, 'Investment'],
-  [/school|college|university|tuition|course|udemy|education|exam|fee/i, 'Education'],
-  [/atm|cash|withdraw/i, 'Cash Withdrawal'],
-  [/emi|loan|credit\s*card|interest|repay/i, 'EMI & Loans'],
-  [/salary|income|credit.*salary/i, 'Income'],
-  [/refund|cashback|reversal/i, 'Refund'],
-];
+const SMS_PARSER_VERSION = 'v5';
 
-function categorize(merchant: string, type: string): string {
-  if (type === 'credit') {
-    if (/refund|cashback|reversal/i.test(merchant)) return 'Refund';
-    return 'Income';
-  }
+// One-time migration to clean up old SMS transactions that showed bank account names/numbers
+async function ensureParserMigration(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const currentVersion = localStorage.getItem('lumina_sms_parser_version');
+    if (currentVersion === SMS_PARSER_VERSION) return;
 
-  for (const [pattern, category] of CATEGORY_MAP) {
-    if (pattern.test(merchant)) return category;
+    // Remove previously auto-synced SMS transactions so they can be cleanly re-parsed with v5
+    const allTxns = await db.transactions.toArray();
+    const autoSmsIds = allTxns
+      .filter(t => t.source === 'auto_sms' || Boolean(t.sms_hash))
+      .map(t => t.id!)
+      .filter(Boolean);
+
+    if (autoSmsIds.length > 0) {
+      await db.transactions.bulkDelete(autoSmsIds);
+    }
+
+    localStorage.removeItem('lumina_synced_sms');
+    localStorage.removeItem('lumina_last_sms_sync');
+    localStorage.removeItem('lumina_transactions');
+    localStorage.removeItem('lumina_summary');
+    localStorage.removeItem('lumina_categories');
+    localStorage.removeItem('lumina_trends');
+    localStorage.setItem('lumina_sms_parser_version', SMS_PARSER_VERSION);
+
+    window.dispatchEvent(new Event('lumina-data-changed'));
+  } catch (e) {
+    console.warn('SMS parser migration warning:', e);
   }
-  return 'Miscellaneous';
 }
 
 // Get stored hashes of already-synced SMS to avoid duplicates
@@ -72,9 +78,9 @@ async function readSMSMessages(): Promise<Array<{ body: string; sender: string; 
 
     const NativeSms = registerPlugin<any>('NativeSms');
 
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const lastSync = getLastSyncTime();
-    const since = Math.max(sevenDaysAgo, lastSync);
+    const since = Math.max(thirtyDaysAgo, lastSync);
 
     const result = await NativeSms.getSms();
     if (!result.smsList) return [];
@@ -127,10 +133,10 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
 
   for (const txn of newTransactions) {
     try {
-      const category = categorize(txn.merchant, txn.type);
+      const category = categorize(txn.merchant, txn.type, txn.rawBody);
       await createTransaction({
         date: txn.date,
-        merchant: `${txn.merchant} (${txn.source})`,
+        merchant: txn.merchant,
         amount: txn.amount,
         category,
         type: txn.type, // 'credit' | 'debit'
@@ -179,6 +185,9 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
     isSyncing.current = true;
 
     try {
+      // Ensure one-time migration removes old bank-account-named SMS entries
+      await ensureParserMigration();
+
       const messages = await readSMSMessages();
       if (messages.length === 0) {
         isSyncing.current = false;
@@ -191,35 +200,35 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
         return;
       }
 
-      const { 
-        syncedCredits, 
-        syncedDebits, 
-        totalCreditAmount, 
-        totalDebitAmount, 
-        lastCreditMerchant, 
-        lastDebitMerchant 
+      const {
+        syncedCredits,
+        syncedDebits,
+        totalCreditAmount,
+        totalDebitAmount,
+        lastCreditMerchant,
+        lastDebitMerchant,
       } = await syncTransactions(parsed);
 
       const totalCount = syncedCredits + syncedDebits;
 
       if (totalCount > 0) {
-        let notificationTitle = "Transactions Tracked! 💰";
+        let notificationTitle = 'Transactions Tracked! 💰';
         let notificationBody = `Synced ${totalCount} new transaction${totalCount > 1 ? 's' : ''}.`;
 
         if (syncedCredits > 0 && syncedDebits === 0) {
-          notificationTitle = "Money Received! 💵";
+          notificationTitle = 'Money Received! 💵';
           notificationBody = `₹${totalCreditAmount.toLocaleString('en-IN')} credited from ${lastCreditMerchant || 'UPI/Bank'}.`;
           toast.success(notificationBody, { icon: '💵', duration: 4500 });
         } else if (syncedDebits > 0 && syncedCredits === 0) {
-          notificationTitle = "Expense Tracked! 💳";
+          notificationTitle = 'Expense Tracked! 💳';
           notificationBody = `₹${totalDebitAmount.toLocaleString('en-IN')} spent at ${lastDebitMerchant || 'merchant'}.`;
           toast.success(notificationBody, { icon: '💳', duration: 4000 });
         } else {
-          notificationTitle = "Cash Flow Updated! 📊";
-          notificationBody = `+₹${totalCreditAmount.toLocaleString('en-IN')} inflow and -₹${totalDebitAmount.toLocaleString('en-IN')} outflow.`;
+          notificationTitle = 'Cash Flow Updated! 📊';
+          notificationBody = `+₹${totalCreditAmount.toLocaleString('en-IN')} inflow (${syncedCredits}) & -₹${totalDebitAmount.toLocaleString('en-IN')} outflow (${syncedDebits}).`;
           toast.success(notificationBody, { icon: '💰', duration: 4500 });
         }
-        
+
         // Try native notification but don't crash if it fails
         try {
           const { Capacitor } = await import('@capacitor/core');
@@ -231,29 +240,28 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
                   title: notificationTitle,
                   body: notificationBody,
                   id: Math.floor(Math.random() * 2000000000),
-                }
-              ]
+                },
+              ],
             });
           }
         } catch (e) {
-          console.warn("Local notification error (non-fatal):", e);
+          console.warn('Local notification error (non-fatal):', e);
         }
-        
+
         if (onSyncComplete) onSyncComplete(totalCount);
       }
     } catch (e: any) {
       console.warn('SMS sync error (non-fatal):', e);
-      // Never show error toasts for SMS — it's a background feature
     } finally {
       isSyncing.current = false;
     }
   }, [onSyncComplete]);
 
-  // Sync on app open — delayed so dashboard loads first
+  // Sync on app open
   useEffect(() => {
     const timer = setTimeout(() => {
       doSync();
-    }, 5000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [doSync]);
