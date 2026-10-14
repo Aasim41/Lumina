@@ -218,16 +218,9 @@ export const uploadCSV = async (file: File) => {
   };
 };
 
-export const uploadReceipt = async (_file: File) => {
-  // Stub — receipt OCR was mock in the backend anyway
-  const today = todayISO();
-  return {
-    merchant: 'Scanned Receipt',
-    date: today,
-    total_amount: 0,
-    tax_amount: 0,
-    items: [],
-  };
+export const uploadReceipt = async (file: File) => {
+  const { scanReceiptWithAI } = await import('./aiReceiptScanner');
+  return scanReceiptWithAI(file);
 };
 
 export const confirmReceipt = async (data: { merchant: string; date: string; items: Array<{ name: string; price: number; qty: number; category: string }> }) => {
