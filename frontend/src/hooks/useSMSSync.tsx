@@ -4,6 +4,7 @@ import { categorize } from '@/lib/categorizer';
 import { createTransaction } from '@/lib/api';
 import { db } from '@/lib/db';
 import { isAuthenticated } from '@/lib/auth';
+import { parseBillFromSMS, saveTrackedBill } from '@/lib/billTracker';
 import toast from 'react-hot-toast';
 
 const SMS_PARSER_VERSION = 'v5';
@@ -192,6 +193,16 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
       if (messages.length === 0) {
         isSyncing.current = false;
         return;
+      }
+
+      // Detect credit card and utility bill statements
+      for (const msg of messages) {
+        try {
+          const bill = parseBillFromSMS(msg.body);
+          if (bill) {
+            saveTrackedBill(bill);
+          }
+        } catch {}
       }
 
       const parsed = parseMultipleSMS(messages);
