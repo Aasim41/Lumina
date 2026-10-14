@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { CATEGORY_COLORS } from '@/lib/utils';
 import { Button } from './ui/Button';
 import { X, Camera } from 'lucide-react';
@@ -36,7 +36,38 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
   const [category, setCategory] = useState('');
   const [txnType, setTxnType] = useState<'debit' | 'credit'>('debit');
   const [loading, setLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [overdraftWarning, setOverdraftWarning] = useState<number | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsScanning(true);
+    const toastId = toast.loading('Scanning receipt with AI Vision...', { icon: '📸' });
+    try {
+      const { scanReceiptWithAI } = await import('@/lib/aiReceiptScanner');
+      const result = await scanReceiptWithAI(files[0]);
+      if (result.merchant && result.merchant !== 'Receipt Expense') {
+        setMerchant(result.merchant);
+      }
+      if (result.total_amount > 0) {
+        setAmount(String(result.total_amount));
+      }
+      if (result.category) {
+        setCategory(result.category);
+      }
+      if (result.date) {
+        setDate(result.date);
+      }
+      setTxnType('debit');
+      toast.success(`Scanned ${result.merchant} (₹${result.total_amount})!`, { id: toastId });
+    } catch (err) {
+      toast.error('Could not scan receipt. Please enter details manually.', { id: toastId });
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   const [showCurrency, setShowCurrency] = useState(false);
   const [currency, setCurrency] = useState('USD');
@@ -174,9 +205,29 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                   <h2 className="text-xl font-display font-bold text-white">
                     {txnType === 'credit' ? 'Add Income' : 'Add Expense'}
                   </h2>
-                  <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-text-secondary transition-colors active:scale-90">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleScanReceipt}
+                    />
+                    <button
+                      type="button"
+                      disabled={isScanning}
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                      title="Scan receipt with camera"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>{isScanning ? 'Scanning...' : 'Scan 📸'}</span>
+                    </button>
+                    <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-text-secondary transition-colors active:scale-90">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Expense vs Income Toggle */}
