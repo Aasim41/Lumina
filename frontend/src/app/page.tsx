@@ -21,7 +21,9 @@ import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet } from 'lucide-react';
+import { SecuritySettingsModal } from '@/components/SecuritySettingsModal';
+import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
@@ -111,6 +113,7 @@ export default function Dashboard() {
   const [unlockedBadge, setUnlockedBadge] = useState<string | null>(null);
   const [isPersonaPickerOpen, setIsPersonaPickerOpen] = useState(false);
   const [personaLoading, setPersonaLoading] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
   const handlePersonaChange = async (persona: string) => {
     setPersonaLoading(true);

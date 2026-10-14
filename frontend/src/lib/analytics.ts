@@ -608,20 +608,84 @@ export async function computeWrapUp() {
     }
   }
 
-  const top_category_percentage = total_spent > 0 ? (top_category_amount / total_spent) * 100 : 0;
-  const savings_vs_last_month = total_last_month - total_spent;
-  const is_positive_savings = savings_vs_last_month > 0;
+  // Compute merchant frequency
+  const merchantCounts: Record<string, { count: number; amount: number }> = {};
+  thisMonthExpenses.forEach(t => {
+    const name = t.merchant_clean || 'Store';
+    if (!merchantCounts[name]) merchantCounts[name] = { count: 0, amount: 0 };
+    merchantCounts[name].count += 1;
+    merchantCounts[name].amount += t.amount;
+  });
+  const sortedMerchants = Object.entries(merchantCounts).sort(([, a], [, b]) => b.count - a.count);
+  const top_merchant = sortedMerchants.length > 0
+    ? { name: sortedMerchants[0][0], count: sortedMerchants[0][1].count, amount: sortedMerchants[0][1].amount }
+    : { name: 'Stores', count: 0, amount: 0 };
+
+  // Calculate No-Spend Days this month
+  const spendDates = new Set(thisMonthExpenses.map(t => t.date));
+  const currentDay = todayDate.getDate();
+  const no_spend_days = Math.max(0, currentDay - spendDates.size);
+
+  // Calculate Income
+  const thisMonthIncome = allTransactions
+    .filter(t => t.date >= firstOfThisMonthStr && t.date <= todayISO() && (t.type === 'credit' || ['Income', 'Salary', 'Refund'].includes(t.category)))
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const net_savings = thisMonthIncome - total_spent;
+
+  // Determine Archetype
+  let archetype = {
+    title: 'The Balanced Strategist ⚖️',
+    desc: 'Smart, calculated, and mindful with your money across the board.',
+    icon: '⚖️'
+  };
+  if (top_category === 'Food & Dining' && top_category_percentage >= 30) {
+    archetype = {
+      title: 'The Foodie Connoisseur 🍕',
+      desc: 'Good food is your love language! Treat yourself, but mind those delivery fees.',
+      icon: '🍕'
+    };
+  } else if (top_category === 'Shopping' && top_category_percentage >= 30) {
+    archetype = {
+      title: 'The Style Icon 🛍️',
+      desc: 'You appreciate great quality. Your deliveries keep the packages rolling in!',
+      icon: '🛍️'
+    };
+  } else if (top_category === 'Transport' && top_category_percentage >= 20) {
+    archetype = {
+      title: 'The City Explorer 🚗',
+      desc: 'Always on the move. Your cabs and transit keep your life in the fast lane.',
+      icon: '🚗'
+    };
+  } else if (top_category === 'Entertainment' && top_category_percentage >= 20) {
+    archetype = {
+      title: 'The Culture Connoisseur 🎬',
+      desc: 'Movies, concerts, and streaming keep your weekends electric!',
+      icon: '🎬'
+    };
+  } else if (net_savings > 0 && net_savings >= total_spent) {
+    archetype = {
+      title: 'The Zen Wealth Builder 🧘',
+      desc: 'Remarkable discipline! You saved more money than you spent this month.',
+      icon: '🧘'
+    };
+  }
 
   return {
     month: todayDate.toLocaleString('default', { month: 'long' }),
     total_spent,
+    total_income: thisMonthIncome,
+    net_savings,
     top_category,
     top_category_amount,
     top_category_percentage,
     biggest_splurge_merchant,
     biggest_splurge_amount,
     savings_vs_last_month: Math.abs(savings_vs_last_month),
-    is_positive_savings
+    is_positive_savings,
+    no_spend_days,
+    top_merchant,
+    archetype,
   };
 }
 
