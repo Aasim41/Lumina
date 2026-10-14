@@ -367,6 +367,13 @@ export default function Dashboard() {
                   <RefreshCw className="w-4 h-4" />
                 </button>
                 <button 
+                  onClick={() => setIsSecurityModalOpen(true)}
+                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-emerald-400 transition-colors"
+                  title="App Security & Biometric Lock"
+                >
+                  <Shield className="w-4 h-4" />
+                </button>
+                <button 
                   onClick={logout}
                   className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-error transition-colors"
                   title="Logout"
@@ -413,8 +420,8 @@ export default function Dashboard() {
               </div>
             )}
             
-            {/* Monthly Wrap-Up: only appears 2 days before the month ends */}
-            {(daysInMonth - now.getDate()) <= 2 && (
+            {/* Monthly Wrap-Up Story */}
+            {summary && (summary.total_this_month > 0 || (summary.total_income_this_month || 0) > 0) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -426,8 +433,10 @@ export default function Dashboard() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-pink-300">Your Monthly Wrap-Up</span>
-                    <span className="text-xs text-text-secondary">Tap to see your financial story</span>
+                    <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-pink-300">
+                      Your {now.toLocaleString('default', { month: 'long' })} Story 🎬
+                    </span>
+                    <span className="text-xs text-text-secondary">Tap to see your Financial Wrapped</span>
                   </div>
                   <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                     <Sparkles className="w-5 h-5 text-purple-300" />
@@ -578,6 +587,7 @@ export default function Dashboard() {
             className="px-4 space-y-6 pb-24 -mt-2"
           >
             <MiniCalendar />
+            <UpcomingBillsCard />
 
             <AnimatePresence>
               {alerts.map((alert, i) => {
@@ -832,6 +842,7 @@ export default function Dashboard() {
         </button>
 
         <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+        <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
 
         <BottomNav />
       </AuthGuard>

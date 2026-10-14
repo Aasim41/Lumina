@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CATEGORY_COLORS } from '@/lib/utils';
 import { Button } from './ui/Button';
-import { X } from 'lucide-react';
+import { X, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ManualEntryFormProps {
