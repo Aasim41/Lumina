@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from 'react-hot-toast';
 
 import "./globals.css";
+import { BiometricGuard } from "@/components/BiometricGuard";
 
 export const metadata: Metadata = {
   title: "Lumina",
@@ -37,7 +38,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased bg-background text-foreground min-h-screen">
         <main className="max-w-md mx-auto min-h-screen relative shadow-2xl shadow-black bg-background pb-20">
-          {children}
+          <BiometricGuard>
+            {children}
+          </BiometricGuard>
         </main>
         <Toaster 
           position="top-center"
