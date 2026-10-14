@@ -23,7 +23,7 @@ public class NativeBiometricPlugin extends Plugin {
         try {
             BiometricManager biometricManager = BiometricManager.from(getContext());
             int canAuth = biometricManager.canAuthenticate(
-                BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.BIOMETRIC_WEAK
             );
 
             boolean isAvailable = (canAuth == BiometricManager.BIOMETRIC_SUCCESS);
@@ -54,12 +54,8 @@ public class NativeBiometricPlugin extends Plugin {
 
                 BiometricPrompt.PromptInfo.Builder promptBuilder = new BiometricPrompt.PromptInfo.Builder()
                         .setTitle(title)
-                        .setSubtitle(subtitle);
-
-                // Allow device credential (PIN/pattern) if supported or use negative button
-                promptBuilder.setAllowedAuthenticators(
-                    BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL
-                );
+                        .setSubtitle(subtitle)
+                        .setNegativeButtonText(cancelText);
 
                 BiometricPrompt.PromptInfo promptInfo = promptBuilder.build();
 

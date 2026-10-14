@@ -16,7 +16,6 @@ interface ManualEntryFormProps {
 
 import { useAuth } from '@/hooks/useAuth';
 import { useExpenseData } from '@/hooks/useExpenseData';
-import { useEffect } from 'react';
 import { getRoast, getCurrencyRates } from '@/lib/api';
 import { RoastModal } from './RoastModal';
 import { motion, AnimatePresence } from 'framer-motion';
