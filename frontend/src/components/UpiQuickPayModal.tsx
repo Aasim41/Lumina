@@ -21,6 +21,7 @@ import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
+  'Chai & Snacks',
   'Food & Dining',
   'Groceries',
   'Transportation',
