@@ -24,7 +24,6 @@ import { AchievementModal } from '@/components/AchievementModal';
 import { SecuritySettingsModal } from '@/components/SecuritySettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
-import { MicroSpendCard } from '@/components/MicroSpendCard';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
@@ -494,14 +493,6 @@ export default function Dashboard() {
               todayTxCount={summary?.today_tx_count || 0}
               onInfoClick={showInfoToast}
             />
-
-            {/* Chai & Snack Index (UPI Micro-Spend Tracker) */}
-            <div className="mt-4">
-              <MicroSpendCard 
-                microSpend={summary?.micro_spend}
-                onOpenQuickPay={() => setIsUpiModalOpen(true)}
-              />
-            </div>
 
             {/* Cash Flow Summary Widget (Inflow, Outflow, Net Balance) */}
             <div className="mt-4 glass p-4 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
