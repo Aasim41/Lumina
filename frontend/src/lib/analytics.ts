@@ -179,6 +179,15 @@ export async function computeSummary(user: DBUser) {
   const vault_balance = allTransactions.filter(t => t.category === 'SecretVault').reduce((sum, t) => sum + t.amount, 0) 
                       - allTransactions.filter(t => t.category === 'SecretVault_Processed').reduce((sum, t) => sum + t.amount, 0);
   
+  // ── UPI Micro-Spend Tracker ("Chai and Snack Index") ────────────────
+  const microExpenses = thisMonthExpenses.filter(t => t.amount <= 150);
+  const micro_total = microExpenses.reduce((sum, t) => sum + t.amount, 0);
+  const micro_count = microExpenses.length;
+  const micro_percentage = total_this_month > 0 ? Number(((micro_total / total_this_month) * 100).toFixed(1)) : 0;
+  const micro_avg = micro_count > 0 ? Math.round(micro_total / micro_count) : 0;
+  const chai_cups = Math.round(micro_total / 15);
+  const micro_recent = [...microExpenses].reverse().slice(0, 5);
+
   return {
     total_this_month,
     total_income_this_month,
@@ -201,7 +210,15 @@ export async function computeSummary(user: DBUser) {
     today_tx_count,
     daily_allowance,
     balance_left_today,
-    income_today
+    income_today,
+    micro_spend: {
+      total: micro_total,
+      count: micro_count,
+      percentage: micro_percentage,
+      avg: micro_avg,
+      chai_cups,
+      recent: micro_recent
+    }
   };
 }
 
