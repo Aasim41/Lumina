@@ -155,6 +155,25 @@ export async function computeSummary(user: DBUser) {
   }
 
   const streak_status = current_streak > 0 ? 'Active' : 'Broken';
+  // Today's Spending & Daily Balance Metrics
+  const nowLocal = new Date();
+  const todayYear = nowLocal.getFullYear();
+  const todayMonth = String(nowLocal.getMonth() + 1).padStart(2, '0');
+  const todayDay = String(nowLocal.getDate()).padStart(2, '0');
+  const todayLocalStr = `${todayYear}-${todayMonth}-${todayDay}`;
+
+  const todayTxs = allTransactions.filter(t => t.date && t.date.startsWith(todayLocalStr));
+  const todayExpenses = todayTxs.filter(t => !excludeCats.includes(t.category) && !isCredit(t));
+  const spent_today = todayExpenses.reduce((sum, t) => sum + t.amount, 0);
+  const today_tx_count = todayExpenses.length;
+  const income_today = todayTxs.filter(t => isCredit(t)).reduce((sum, t) => sum + t.amount, 0);
+
+  const remainingMonthly = Math.max(0, monthly_budget - total_this_month - total_subscriptions_this_month);
+  const remainingDays = Math.max(1, cycle.days - cycle.elapsedDays + 1);
+  const daily_allowance = monthly_budget > 0 
+    ? Math.round((remainingMonthly + spent_today) / remainingDays) 
+    : (daily_average > 0 ? Math.round(daily_average) : 1000);
+  const balance_left_today = daily_allowance - spent_today;
   
   // Vault balance
   const vault_balance = allTransactions.filter(t => t.category === 'SecretVault').reduce((sum, t) => sum + t.amount, 0) 
@@ -177,7 +196,12 @@ export async function computeSummary(user: DBUser) {
     next_badge_target: 'Consistent Saver',
     current_streak,
     best_streak,
-    streak_status
+    streak_status,
+    spent_today,
+    today_tx_count,
+    daily_allowance,
+    balance_left_today,
+    income_today
   };
 }
 
