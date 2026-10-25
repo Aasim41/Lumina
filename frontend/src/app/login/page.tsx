@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { appNavigate } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
+import { LuminaLogo } from '@/components/LuminaLogo';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
@@ -39,7 +40,7 @@ export default function LoginPage() {
 
       {/* Top Header */}
       <div className="w-full max-w-sm flex justify-between items-center z-10 pt-4">
-        <h1 className="font-display font-medium tracking-widest text-sm text-white/90 uppercase">Lumina</h1>
+        <LuminaLogo size={28} showText={true} />
       </div>
 
       {/* Center Graphic */}
@@ -59,17 +60,14 @@ export default function LoginPage() {
           className="absolute inset-[15%] rounded-full border border-dashed border-white/30"
         />
 
-        {/* The Glowing Star */}
+        {/* The Glowing Lumina Wallet Logo */}
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          className="relative w-1/3 h-1/3 flex items-center justify-center"
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="relative z-10 flex items-center justify-center drop-shadow-[0_0_35px_rgba(16,185,129,0.35)]"
         >
-          <svg viewBox="0 0 100 100" className="w-full h-full text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] fill-current z-10">
-            <path d="M50 0 C50 30 70 50 100 50 C70 50 50 70 50 100 C50 70 30 50 0 50 C30 50 50 30 50 0 Z" />
-          </svg>
-          <div className="absolute inset-0 bg-white/40 blur-xl rounded-full scale-150 -z-10" />
+          <LuminaLogo size={110} showText={false} />
         </motion.div>
 
         {/* Floating Bubble */}

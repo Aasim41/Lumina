@@ -6,6 +6,7 @@ import { updateUserProfile } from '@/lib/api';
 import { appNavigate, PERSONA_CONFIGS } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { POPULAR_UPI_APPS, getDefaultUpiApp, setDefaultUpiApp } from '@/lib/upi';
+import { LuminaLogo } from '@/components/LuminaLogo';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, ShieldCheck, QrCode, CheckCircle2 } from 'lucide-react';
@@ -96,7 +97,7 @@ export default function OnboardingPage() {
 
       {/* Top Header */}
       <div className="w-full max-w-sm flex justify-between items-center z-10 pt-4">
-        <h1 className="font-display font-medium tracking-widest text-sm text-white/90 uppercase">Lumina</h1>
+        <LuminaLogo size={28} showText={true} />
         <div className="text-xs font-medium text-[#7cc544] bg-[#7cc544]/10 border border-[#7cc544]/20 px-3 py-1 rounded-full">
           Step {step} of 3
         </div>
