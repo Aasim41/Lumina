@@ -60,6 +60,7 @@ export function UpiQuickPayModal({
   const [savedPayees, setSavedPayees] = useState<UpiPayee[]>([]);
   const [selectedApp, setSelectedApp] = useState('any');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -306,11 +307,21 @@ export function UpiQuickPayModal({
 
             {/* Payment Form */}
             <form onSubmit={handlePay} className="space-y-4">
-              {/* UPI ID Input */}
+              {/* UPI ID Input & Standee QR Scanner */}
               <div>
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                  UPI ID (VPA)
-                </label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    UPI ID (VPA)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsScannerOpen(true)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-500/30 transition-all shadow-sm active:scale-95 cursor-pointer"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Scan Standee QR</span>
+                  </button>
+                </div>
                 <div className="relative">
                   <input
                     type="text"
@@ -436,6 +447,18 @@ export function UpiQuickPayModal({
               </p>
             </form>
           </motion.div>
+
+          {/* Standee QR Scanner */}
+          <UpiQrScannerModal
+            isOpen={isScannerOpen}
+            onClose={() => setIsScannerOpen(false)}
+            onScanSuccess={(data) => {
+              setVpa(data.pa);
+              if (data.pn) setName(data.pn);
+              if (data.am) setAmount(String(data.am));
+              if (data.tn) setNote(data.tn);
+            }}
+          />
         </div>
       )}
     </AnimatePresence>
