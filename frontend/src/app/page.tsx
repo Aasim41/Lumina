@@ -24,7 +24,9 @@ import { AchievementModal } from '@/components/AchievementModal';
 import { SecuritySettingsModal } from '@/components/SecuritySettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield } from 'lucide-react';
+import { MicroSpendCard } from '@/components/MicroSpendCard';
+import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
@@ -122,6 +124,7 @@ export default function Dashboard() {
   const [isPersonaPickerOpen, setIsPersonaPickerOpen] = useState(false);
   const [personaLoading, setPersonaLoading] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
 
   const handlePersonaChange = async (persona: string) => {
     setPersonaLoading(true);
@@ -390,6 +393,15 @@ export default function Dashboard() {
                 </button>
 
                 <button 
+                  onClick={() => setIsUpiModalOpen(true)}
+                  className="px-3.5 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 rounded-full text-xs font-bold flex items-center space-x-1.5 hover:bg-emerald-500/30 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
+                  title="Quick UPI Pay & Auto-Log"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+                  <span>UPI Pay</span>
+                </button>
+
+                <button 
                   onClick={() => setIsSaveModalOpen(true)}
                   className="px-4 py-2 bg-[#10b981]/20 text-[#10b981] rounded-full text-sm font-medium flex items-center space-x-1.5 hover:bg-[#10b981]/30 transition-colors"
                 >
@@ -520,6 +532,14 @@ export default function Dashboard() {
               todayTxCount={summary?.today_tx_count || 0}
               onInfoClick={showInfoToast}
             />
+
+            {/* Chai & Snack Index (UPI Micro-Spend Tracker) */}
+            <div className="mt-4">
+              <MicroSpendCard 
+                microSpend={summary?.micro_spend}
+                onOpenQuickPay={() => setIsUpiModalOpen(true)}
+              />
+            </div>
 
             {/* Cash Flow Summary Widget (Inflow, Outflow, Net Balance) */}
             <div className="mt-4 glass p-4 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
@@ -860,6 +880,11 @@ export default function Dashboard() {
 
         <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
         <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
+        <UpiQuickPayModal
+          isOpen={isUpiModalOpen}
+          onClose={() => setIsUpiModalOpen(false)}
+          onSuccess={() => refresh()}
+        />
 
         <BottomNav />
       </AuthGuard>
