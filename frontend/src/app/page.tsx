@@ -26,6 +26,7 @@ import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { MicroSpendCard } from '@/components/MicroSpendCard';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
+import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
@@ -418,75 +419,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {summary && summary.badges && summary.badges.length > 0 && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-wrap gap-3 mb-6 px-1"
-              >
-                {summary.badges.map((badge: string, i: number) => {
-                  const config = getBadgeConfig(badge);
-                  const formattedTitle = formatTitleCase(badge);
-                  return (
-                    <button 
-                      key={i} 
-                      onClick={() => showInfoToast(formattedTitle, config.description, config.icon)}
-                      className={`px-3 py-1.5 text-xs rounded-full font-bold flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm ${config.classes}`}
-                    >
-                      {config.icon} <span>{formattedTitle}</span>
-                    </button>
-                  );
-                })}
-              </motion.div>
-            )}
-            
-            {summary?.next_badge_target && (
-              <div className="mb-6 px-1 flex items-start space-x-2 text-xs text-text-secondary bg-white/5 p-3 rounded-2xl border border-white/5">
-                <Target className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                <span>{summary.next_badge_target}</span>
-              </div>
-            )}
-            
-            {/* Monthly Wrap-Up Story (Only visible during the last week of the month) */}
-            {isLastWeekOfMonth && summary && (summary.total_this_month > 0 || (summary.total_income_this_month || 0) > 0) && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-              >
-                <div 
-                  onClick={() => appNavigate('/wrap-up')}
-                  className="bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-purple-500/30 p-4 rounded-3xl flex items-center justify-between relative overflow-hidden group cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] transition-all select-none"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-pink-300">
-                      Your {now.toLocaleString('default', { month: 'long' })} Story 🎬
-                    </span>
-                    <span className="text-xs text-text-secondary">Tap to see your Financial Wrapped</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-5 h-5 text-purple-300" />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-
-            
-            {summary?.current_streak > 0 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mb-4 flex items-center gap-3 px-4 py-3 bg-orange-500/10 border border-orange-500/20 rounded-2xl"
-              >
-                <div className="text-2xl">🔥</div>
-                <div>
-                  <p className="text-sm font-bold text-orange-400">{summary.current_streak} day streak!</p>
-                  <p className="text-[11px] text-text-secondary">Best: {summary.best_streak} days</p>
-                </div>
-              </motion.div>
-            )}
+            {/* Dynamic Spotlight Banner: Cycles Wrapped (last week only), Streak & Badges at different times */}
+            <HeroSpotlightBanner
+              summary={summary}
+              isLastWeekOfMonth={isLastWeekOfMonth}
+              monthName={now.toLocaleString('default', { month: 'long' })}
+              onBadgeClick={showInfoToast}
+              getBadgeConfig={getBadgeConfig}
+            />
 
             <div className="gsap-budget-card glass p-5 rounded-3xl border border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.15)] relative overflow-hidden bg-indigo-500/10">
               <div className="flex justify-between items-end mb-2">
