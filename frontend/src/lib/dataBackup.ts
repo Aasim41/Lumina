@@ -19,20 +19,31 @@ interface BackupData {
 
 // ── Export All Data ───────────────────────────────────────────────
 
-export async function exportAllData(): Promise<void> {
+export async function exportAllData(): Promise<{ success: boolean; txCount: number }> {
+  const users = await db.users.toArray();
+  const transactions = await db.transactions.toArray();
+  const subscriptions = await db.subscriptions.toArray();
+  const categoryBudgets = await db.categoryBudgets.toArray();
+  const wishlistItems = await db.wishlistItems.toArray();
+  const splitBills = await db.splitBills.toArray();
+  const splitMembers = await db.splitMembers.toArray();
+  const debts = await db.debts.toArray();
+  const investments = await db.investments.toArray();
+  const goals = await db.goals.toArray();
+
   const data: BackupData = {
     version: 1,
     exported_at: new Date().toISOString(),
-    users: await db.users.toArray(),
-    transactions: await db.transactions.toArray(),
-    subscriptions: await db.subscriptions.toArray(),
-    categoryBudgets: await db.categoryBudgets.toArray(),
-    wishlistItems: await db.wishlistItems.toArray(),
-    splitBills: await db.splitBills.toArray(),
-    splitMembers: await db.splitMembers.toArray(),
-    debts: await db.debts.toArray(),
-    investments: await db.investments.toArray(),
-    goals: await db.goals.toArray(),
+    users,
+    transactions,
+    subscriptions,
+    categoryBudgets,
+    wishlistItems,
+    splitBills,
+    splitMembers,
+    debts,
+    investments,
+    goals,
   };
 
   const json = JSON.stringify(data, null, 2);
@@ -45,6 +56,26 @@ export async function exportAllData(): Promise<void> {
   a.click();
   URL.revokeObjectURL(url);
   document.body.removeChild(a);
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('lumina_last_backup_time', new Date().toISOString());
+  }
+
+  return { success: true, txCount: transactions.length };
+}
+
+export function getLastBackupTime(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('lumina_last_backup_time');
+}
+
+export async function getBackupSummaryStats() {
+  return {
+    transactions: await db.transactions.count(),
+    budgets: await db.categoryBudgets.count(),
+    goals: await db.goals.count(),
+    debts: await db.debts.count()
+  };
 }
 
 // ── Import Data ──────────────────────────────────────────────────
@@ -81,6 +112,10 @@ export async function importData(file: File): Promise<{ success: boolean; messag
     if (data.debts?.length) await db.debts.bulkAdd(data.debts);
     if (data.investments?.length) await db.investments.bulkAdd(data.investments);
     if (data.goals?.length) await db.goals.bulkAdd(data.goals);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lumina_last_backup_time', new Date().toISOString());
+    }
 
     return {
       success: true,

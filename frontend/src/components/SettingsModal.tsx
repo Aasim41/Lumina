@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText } from 'lucide-react';
+import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText, Zap, ShieldCheck } from 'lucide-react';
 import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/db';
-import { exportAllData, importData, exportTransactionsCSV } from '@/lib/dataBackup';
+import { exportAllData, importData, exportTransactionsCSV, getLastBackupTime } from '@/lib/dataBackup';
+import { POPULAR_UPI_APPS, getDefaultUpiApp, setDefaultUpiApp } from '@/lib/upi';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user, refreshUser } = useAuth();
@@ -21,6 +22,8 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [budgetAmount, setBudgetAmount] = useState('');
   const [budgetDays, setBudgetDays] = useState('30');
   const [savingBudget, setSavingBudget] = useState(false);
+  const [defaultUpiApp, setDefaultUpiAppState] = useState('any');
+  const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
 
   // Load the saved API key when modal opens
   const loadApiKey = async () => {
@@ -35,12 +38,21 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   useEffect(() => {
     if (isOpen) {
       loadApiKey();
+      setDefaultUpiAppState(getDefaultUpiApp());
+      setLastBackupTime(getLastBackupTime());
       if (user) {
         setBudgetAmount(user.monthly_budget?.toString() || '');
         setBudgetDays(user.budget_days?.toString() || '30');
       }
     }
   }, [isOpen, user]);
+
+  const handleUpiAppChange = (appId: string) => {
+    setDefaultUpiApp(appId);
+    setDefaultUpiAppState(appId);
+    const appName = POPULAR_UPI_APPS.find(a => a.id === appId)?.name || appId;
+    toast.success(`Default UPI app set to ${appName}`, { icon: '⚡' });
+  };
 
   const handleUpdateBudget = async () => {
     if (!budgetAmount || !budgetDays) return;

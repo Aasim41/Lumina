@@ -79,6 +79,48 @@ export async function scheduleSubscriptionReminders(subscriptions: any[], curren
   }
 }
 
+export async function scheduleDailyEveningRecap(spentToday: number = 0, dailyAllowance: number = 1000, txCount: number = 0) {
+  try {
+    const { display } = await LocalNotifications.checkPermissions();
+    if (display !== 'granted') return;
+
+    // Target 21:00 (9:00 PM)
+    const eveningDate = new Date();
+    eveningDate.setHours(21, 0, 0, 0);
+    if (new Date() > eveningDate) {
+      eveningDate.setDate(eveningDate.getDate() + 1);
+    }
+
+    let recapBody = `Did you make any purchases today? Check your daily summary.`;
+    if (spentToday === 0) {
+      recapBody = `Zero spend day! 🏆 You saved your full ₹${dailyAllowance} daily allowance today!`;
+    } else if (spentToday <= dailyAllowance) {
+      const saved = Math.round(dailyAllowance - spentToday);
+      recapBody = `🌙 You spent ₹${Math.round(spentToday)} today (${txCount} txns). You saved ₹${saved} under your daily cap!`;
+    } else {
+      const over = Math.round(spentToday - dailyAllowance);
+      recapBody = `⚠️ Spent ₹${Math.round(spentToday)} today (₹${over} over your daily cap). Rest well & reset tomorrow!`;
+    }
+
+    // Cancel existing 9 PM recap
+    await LocalNotifications.cancel({ notifications: [{ id: 1004 }] });
+
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          title: '🌙 9 PM Daily Spending Recap',
+          body: recapBody,
+          id: 1004,
+          schedule: { at: eveningDate, repeats: true, every: 'day' },
+          smallIcon: 'ic_stat_icon_config_sample',
+        }
+      ]
+    });
+  } catch (e) {
+    console.log('Evening recap notification not supported or disabled', e);
+  }
+}
+
 export async function scheduleRecurringNotifications() {
   try {
     const { display } = await LocalNotifications.checkPermissions();
