@@ -24,12 +24,35 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeBiometricPlugin.class);
         super.onCreate(savedInstanceState);
         
-        // Request camera permission proactively if not granted
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 101);
-        }
+        requestCameraPermissionIfNeeded();
+        configureWebView();
+        
+        PeriodicWorkRequest engagementRequest =
+            new PeriodicWorkRequest.Builder(EngagementWorker.class, 12, TimeUnit.HOURS)
+                .build();
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "LuminaEngagementWorker",
+            ExistingPeriodicWorkPolicy.KEEP,
+            engagementRequest
+        );
+    }
 
-        // Configure WebView for instant WebRTC camera stream playback
+    @Override
+    protected void onResume() {
+        super.onResume();
+        requestCameraPermissionIfNeeded();
+        configureWebView();
+    }
+
+    private void requestCameraPermissionIfNeeded() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.CAMERA
+            }, 101);
+        }
+    }
+
+    private void configureWebView() {
         if (getBridge() != null && getBridge().getWebView() != null) {
             WebView webView = getBridge().getWebView();
             WebSettings settings = webView.getSettings();
@@ -47,14 +70,5 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
-        
-        PeriodicWorkRequest engagementRequest =
-            new PeriodicWorkRequest.Builder(EngagementWorker.class, 12, TimeUnit.HOURS)
-                .build();
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "LuminaEngagementWorker",
-            ExistingPeriodicWorkPolicy.KEEP,
-            engagementRequest
-        );
     }
 }
