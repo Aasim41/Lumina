@@ -28,7 +28,7 @@ import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
 import { LuminaLogo } from '@/components/LuminaLogo';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
@@ -129,6 +129,7 @@ export default function Dashboard() {
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [isUpiScannerOpen, setIsUpiScannerOpen] = useState(false);
   const [scannedUpiData, setScannedUpiData] = useState<any>(null);
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
 
   // Month Wrap is only unlocked during the last week of the month
   const isLastWeekOfMonth = useMemo(() => {

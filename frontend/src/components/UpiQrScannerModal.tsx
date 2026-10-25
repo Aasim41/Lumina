@@ -61,7 +61,8 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA && ctx) {
+    // readyState >= 2 (HAVE_CURRENT_DATA) ensures video has decoded at least one frame
+    if (video.readyState >= 2 && video.videoWidth > 0 && ctx) {
       // Optimization: Scale canvas down to max 640px width for 9x faster decoding & zero thermal throttle
       const maxDim = 640;
       let targetW = video.videoWidth;
@@ -105,32 +106,80 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
     setIsProcessing(false);
 
     let activeStream: MediaStream | null = null;
+    let isMounted = true;
 
     async function initCamera() {
       try {
-        const constraints: MediaStreamConstraints = {
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        };
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Camera API is not supported on this device');
+        }
 
-        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        let mediaStream: MediaStream | null = null;
+        // Priority 1: Environment (rear camera) with ideal 720p
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          });
+        } catch {
+          // Priority 2: Standard back camera
+          try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: 'environment' },
+              audio: false
+            });
+          } catch {
+            // Priority 3: Fallback any available video camera
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            });
+          }
+        }
+
+        if (!isMounted) {
+          mediaStream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
         activeStream = mediaStream;
         setStream(mediaStream);
 
         if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-          videoRef.current.setAttribute('playsinline', 'true'); // Required for iOS/Android
-          await videoRef.current.play();
+          const video = videoRef.current;
+          video.setAttribute('playsinline', 'true');
+          video.setAttribute('webkit-playsinline', 'true');
+          video.setAttribute('autoplay', 'true');
+          video.setAttribute('muted', 'true');
+          video.muted = true;
+          video.defaultMuted = true;
+          video.srcObject = mediaStream;
+
+          const startPlayback = async () => {
+            try {
+              await video.play();
+            } catch (err) {
+              console.warn('Playback deferred:', err);
+            }
+            if (!requestAnimationRef.current) {
+              requestAnimationRef.current = requestAnimationFrame(scanFrame);
+            }
+          };
+
+          video.onloadedmetadata = startPlayback;
+          video.oncanplay = startPlayback;
+          // Immediate play attempt
+          video.play().catch(() => {});
           requestAnimationRef.current = requestAnimationFrame(scanFrame);
         }
 
         // Check if flashlight / torch is supported
         const track = mediaStream.getVideoTracks()[0];
-        const capabilities: any = track.getCapabilities?.() || {};
+        const capabilities: any = track?.getCapabilities?.() || {};
         if (capabilities.torch) {
           setHasTorch(true);
         }
@@ -138,8 +187,8 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
         console.error('Camera access error:', err);
         setCameraError(
           err.name === 'NotAllowedError'
-            ? 'Camera permission denied. Please enable camera access in your phone settings or upload a QR image.'
-            : 'Could not start camera. You can upload a QR image/screenshot below.'
+            ? 'Camera permission denied. Please grant camera permission in your phone settings or upload a QR image below.'
+            : 'Could not start live camera preview. You can upload a QR image/screenshot below.'
         );
       }
     }
@@ -147,6 +196,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
     initCamera();
 
     return () => {
+      isMounted = false;
       if (activeStream) {
         activeStream.getTracks().forEach((t) => t.stop());
       }
@@ -248,6 +298,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
                   ref={videoRef}
                   className="absolute inset-0 w-full h-full object-cover"
                   playsInline
+                  autoPlay
                   muted
                 />
                 <canvas ref={canvasRef} className="hidden" />
