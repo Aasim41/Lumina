@@ -28,6 +28,7 @@ import { MicroSpendCard } from '@/components/MicroSpendCard';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
+import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
@@ -324,8 +325,8 @@ export default function Dashboard() {
         <div ref={dashboardRef} className="min-h-screen bg-[#0B1021] pb-24">
           {/* Header with Budget Tracker */}
           <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-10">
-              <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
+            <div className="absolute top-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-10">
+              <LuminaLogo size={24} showText={true} />
               {user?.user_persona && (
                 <button
                   onClick={() => setIsPersonaPickerOpen(true)}

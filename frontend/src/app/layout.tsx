@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Lumina",
   description: "AI-Powered Personal Finance Tracker",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/lumina_icon.png",
+    apple: "/lumina_icon.png"
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
