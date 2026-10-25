@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -125,6 +125,13 @@ export default function Dashboard() {
   const [personaLoading, setPersonaLoading] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+
+  // Month Wrap is only unlocked during the last week of the month
+  const isLastWeekOfMonth = useMemo(() => {
+    const today = new Date();
+    const totalDaysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    return today.getDate() >= (totalDaysInMonth - 6); // Last 7 days of current month
+  }, []);
 
   const handlePersonaChange = async (persona: string) => {
     setPersonaLoading(true);
@@ -440,8 +447,8 @@ export default function Dashboard() {
               </div>
             )}
             
-            {/* Monthly Wrap-Up Story */}
-            {summary && (summary.total_this_month > 0 || (summary.total_income_this_month || 0) > 0) && (
+            {/* Monthly Wrap-Up Story (Only visible during the last week of the month) */}
+            {isLastWeekOfMonth && summary && (summary.total_this_month > 0 || (summary.total_income_this_month || 0) > 0) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
