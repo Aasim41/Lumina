@@ -26,8 +26,9 @@ import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { MicroSpendCard } from '@/components/MicroSpendCard';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
+import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
@@ -126,6 +127,8 @@ export default function Dashboard() {
   const [personaLoading, setPersonaLoading] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [isUpiScannerOpen, setIsUpiScannerOpen] = useState(false);
+  const [scannedUpiData, setScannedUpiData] = useState<any>(null);
 
   // Month Wrap is only unlocked during the last week of the month
   const isLastWeekOfMonth = useMemo(() => {
@@ -401,7 +404,18 @@ export default function Dashboard() {
                 </button>
 
                 <button 
-                  onClick={() => setIsUpiModalOpen(true)}
+                  onClick={() => setIsUpiScannerOpen(true)}
+                  className="p-2 bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 rounded-full hover:bg-emerald-500/25 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
+                  title="Scan Standee QR Code"
+                >
+                  <QrCode className="w-4 h-4 text-emerald-400" />
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setScannedUpiData(null);
+                    setIsUpiModalOpen(true);
+                  }}
                   className="px-3.5 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 rounded-full text-xs font-bold flex items-center space-x-1.5 hover:bg-emerald-500/30 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
                   title="Quick UPI Pay & Auto-Log"
                 >
@@ -829,8 +843,25 @@ export default function Dashboard() {
         <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
         <UpiQuickPayModal
           isOpen={isUpiModalOpen}
-          onClose={() => setIsUpiModalOpen(false)}
+          onClose={() => {
+            setIsUpiModalOpen(false);
+            setScannedUpiData(null);
+          }}
           onSuccess={() => refresh()}
+          prefillVpa={scannedUpiData?.pa}
+          prefillName={scannedUpiData?.pn}
+          prefillAmount={scannedUpiData?.am}
+          prefillNote={scannedUpiData?.tn}
+        />
+
+        <UpiQrScannerModal
+          isOpen={isUpiScannerOpen}
+          onClose={() => setIsUpiScannerOpen(false)}
+          onScanSuccess={(data) => {
+            setScannedUpiData(data);
+            setIsUpiScannerOpen(false);
+            setIsUpiModalOpen(true);
+          }}
         />
 
         <BottomNav />
