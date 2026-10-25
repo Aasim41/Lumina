@@ -11,17 +11,66 @@ import {
 import { Shield, Fingerprint, Delete, Lock, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const SESSION_UNLOCKED_KEY = 'lumina_session_unlocked';
+const LAST_ACTIVE_KEY = 'lumina_last_active_time';
+const LAST_BACKGROUND_KEY = 'lumina_last_background_time';
+const LOCK_TIMEOUT_MS = 60000; // 60 seconds grace period when app is in background
+
+function isSessionUnlocked(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(SESSION_UNLOCKED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function setSessionUnlocked(unlocked: boolean) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (unlocked) {
+      sessionStorage.setItem(SESSION_UNLOCKED_KEY, 'true');
+      localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
+    } else {
+      sessionStorage.removeItem(SESSION_UNLOCKED_KEY);
+    }
+  } catch {}
+}
+
 export function BiometricGuard({ children }: { children: React.ReactNode }) {
-  const [isLocked, setIsLocked] = useState(false);
+  // If app lock is disabled, or session is already unlocked within grace period, start unlocked
+  const [isLocked, setIsLocked] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    if (!isAppLockEnabled()) return false;
+    if (isSessionUnlocked()) {
+      const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || 0);
+      const isExpired = lastActive > 0 && Date.now() - lastActive > LOCK_TIMEOUT_MS;
+      if (!isExpired) {
+        return false; // Stay unlocked while switching tabs!
+      }
+    }
+    return true;
+  });
+
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [biometricSupport, setBiometricSupport] = useState(false);
-  const lastActiveRef = useRef<number>(Date.now());
 
   const checkAndPromptBiometrics = useCallback(async () => {
     if (!isAppLockEnabled()) {
       setIsLocked(false);
       return;
+    }
+
+    // Check if session is already unlocked (e.g. user just switched tabs)
+    if (isSessionUnlocked()) {
+      const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || 0);
+      const isExpired = lastActive > 0 && Date.now() - lastActive > LOCK_TIMEOUT_MS;
+      if (!isExpired) {
+        setIsLocked(false);
+        localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
+        return;
+      }
     }
 
     setIsLocked(true);
@@ -34,33 +83,74 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
     if (support.isAvailable) {
       const success = await authenticateBiometric();
       if (success) {
+        setSessionUnlocked(true);
         setIsLocked(false);
       }
     }
   }, []);
 
+  // On initial mount of the component/page
   useEffect(() => {
-    if (isAppLockEnabled()) {
-      checkAndPromptBiometrics();
+    if (!isAppLockEnabled()) {
+      setIsLocked(false);
+      return;
     }
+
+    // If session is already unlocked (user switching tabs), do NOT prompt
+    if (isSessionUnlocked()) {
+      const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || 0);
+      const isExpired = lastActive > 0 && Date.now() - lastActive > LOCK_TIMEOUT_MS;
+      if (!isExpired) {
+        setIsLocked(false);
+        localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
+        return;
+      }
+    }
+
+    // Otherwise prompt for unlock
+    checkAndPromptBiometrics();
   }, [checkAndPromptBiometrics]);
 
-  // Lock when returning from background if absent for > 30 seconds
+  // Keep active timestamp fresh while user is active
+  useEffect(() => {
+    const updateActiveTime = () => {
+      if (!isLocked) {
+        localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
+      }
+    };
+
+    const interval = setInterval(updateActiveTime, 15000);
+    window.addEventListener('touchstart', updateActiveTime, { passive: true });
+    window.addEventListener('click', updateActiveTime, { passive: true });
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('touchstart', updateActiveTime);
+      window.removeEventListener('click', updateActiveTime);
+    };
+  }, [isLocked]);
+
+  // Lock when returning from background ONLY if absent for > LOCK_TIMEOUT_MS (60s)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        lastActiveRef.current = Date.now();
+        localStorage.setItem(LAST_BACKGROUND_KEY, Date.now().toString());
       } else if (document.visibilityState === 'visible') {
-        const elapsed = Date.now() - lastActiveRef.current;
-        if (elapsed > 30000 && isAppLockEnabled()) {
+        const lastBg = Number(localStorage.getItem(LAST_BACKGROUND_KEY) || 0);
+        const elapsed = Date.now() - lastBg;
+
+        if (lastBg > 0 && elapsed > LOCK_TIMEOUT_MS && isAppLockEnabled()) {
+          setSessionUnlocked(false);
           checkAndPromptBiometrics();
+        } else if (!isLocked) {
+          localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
         }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [checkAndPromptBiometrics]);
+  }, [checkAndPromptBiometrics, isLocked]);
 
   const handleKeyPress = (num: string) => {
     if (pin.length >= 4) return;
@@ -72,6 +162,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
       // Validate
       if (hasBackupPin()) {
         if (verifyBackupPin(nextPin)) {
+          setSessionUnlocked(true);
           setIsLocked(false);
           setPin('');
         } else {
@@ -83,6 +174,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
         }
       } else {
         // No PIN configured yet, allow unlock
+        setSessionUnlocked(true);
         setIsLocked(false);
       }
     }
