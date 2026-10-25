@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSummary, getCategories, getTrends, getForecast, getSubscriptions } from '../lib/api';
 import { isAuthenticated } from '../lib/auth';
+import { scheduleDailyEveningRecap } from '../lib/notifications';
 import { usePathname } from 'next/navigation';
 
 export function useExpenseData() {
@@ -36,6 +37,10 @@ export function useExpenseData() {
       setTrends(trendData || []);
       setForecast(forecastData);
       setSubscriptions(subData || []);
+
+      if (sumData) {
+        scheduleDailyEveningRecap(sumData.spent_today, sumData.daily_allowance, sumData.today_tx_count);
+      }
     } catch (err: any) {
       console.error('Dashboard data fetch error:', err);
       setError(err.message || 'Failed to fetch dashboard data');
