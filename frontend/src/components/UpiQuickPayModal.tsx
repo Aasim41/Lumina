@@ -237,8 +237,8 @@ export function UpiQuickPayModal({
                   <ShieldCheck className="w-3.5 h-3.5" /> Skips app chooser
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {POPULAR_UPI_APPS.slice(0, 6).map((app) => {
+              <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
+                {POPULAR_UPI_APPS.map((app) => {
                   const isSelected = selectedApp === app.id;
                   return (
                     <button

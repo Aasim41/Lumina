@@ -64,6 +64,9 @@
         <package android:name="net.one97.paytm" />
         <package android:name="com.dreamplug.androidapp" />
         <package android:name="in.org.npci.upiapp" />
+        <package android:name="com.naviapp" />
+        <package android:name="com.mobikwik_new" />
+        <package android:name="com.fampay.in" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="upi" />

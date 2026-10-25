@@ -26,6 +26,9 @@ export const POPULAR_UPI_APPS: UpiAppConfig[] = [
   { id: 'phonepe', name: 'PhonePe', packageName: 'com.phonepe.app', color: 'from-purple-600 to-indigo-600', accent: '#5f259f', iconText: 'Pe' },
   { id: 'paytm', name: 'Paytm', packageName: 'net.one97.paytm', color: 'from-sky-500 to-blue-600', accent: '#00b9f5', iconText: 'P' },
   { id: 'cred', name: 'CRED', packageName: 'com.dreamplug.androidapp', color: 'from-neutral-800 to-neutral-900', accent: '#111111', iconText: 'C' },
+  { id: 'navi', name: 'Navi UPI', packageName: 'com.naviapp', color: 'from-blue-600 to-indigo-700', accent: '#0052FF', iconText: 'N' },
+  { id: 'mobikwik', name: 'MobiKwik', packageName: 'com.mobikwik_new', color: 'from-sky-500 to-blue-600', accent: '#00A3EF', iconText: 'M' },
+  { id: 'fampay', name: 'FamPay', packageName: 'com.fampay.in', color: 'from-amber-400 to-yellow-500', accent: '#FFBE00', iconText: 'Fam' },
   { id: 'bhim', name: 'BHIM UPI', packageName: 'in.org.npci.upiapp', color: 'from-amber-500 to-orange-600', accent: '#00796B', iconText: 'B' },
 ];
 
@@ -37,6 +40,10 @@ export const COMMON_UPI_HANDLES = [
   '@paytm',
   '@ybl',
   '@ibl',
+  '@navi',
+  '@fam',
+  '@ikwik',
+  '@mobikwik',
   '@axl',
   '@postbank'
 ];
