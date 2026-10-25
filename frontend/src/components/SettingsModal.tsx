@@ -111,6 +111,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
     const toastId = toast.loading('Exporting data...', { icon: '📦' });
     try {
       await exportAllData();
+      setLastBackupTime(new Date().toISOString());
       toast.success('Data exported! Check your downloads.', { id: toastId });
     } catch (e) {
       toast.error('Export failed', { id: toastId });
@@ -125,6 +126,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
     try {
       const result = await importData(file);
       if (result.success) {
+        setLastBackupTime(new Date().toISOString());
         toast.success(result.message, { id: toastId });
         await refreshUser();
         window.location.reload();
@@ -283,9 +285,56 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 </button>
               </div>
 
+              {/* Preferred UPI App Setting */}
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+                    <h3 className="text-sm font-semibold text-white">Preferred UPI App</h3>
+                  </div>
+                  <span className="text-[11px] text-emerald-400 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Skips app chooser
+                  </span>
+                </div>
+                <p className="text-xs text-text-secondary">
+                  Choose which UPI app launches directly when tapping "Pay via UPI".
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {POPULAR_UPI_APPS.map((app) => {
+                    const isActive = defaultUpiApp === app.id;
+                    return (
+                      <button
+                        key={app.id}
+                        type="button"
+                        onClick={() => handleUpiAppChange(app.id)}
+                        className={`p-2.5 rounded-xl flex items-center justify-center space-x-1.5 border text-xs font-semibold transition-all ${
+                          isActive
+                            ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                            : 'bg-black/30 border-white/10 text-text-secondary hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <span>{app.iconText}</span>
+                        <span className="truncate">{app.name.split(' ')[0]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Data Backup & Restore */}
               <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                <h3 className="text-sm font-semibold text-white mb-4">Data Backup & Restore</h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-semibold text-white">Data Backup & Restore</h3>
+                  {lastBackupTime ? (
+                    <span className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      Backed up {new Date(lastBackupTime).toLocaleDateString()}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                      No backup yet
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-3">
                   <button
                     onClick={handleExportData}

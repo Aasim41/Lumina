@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon } from 'lucide-react';
+import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon, Zap } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import toast from 'react-hot-toast';
 
 export default function SplitsPage() {
@@ -27,6 +28,12 @@ export default function SplitsPage() {
   const [splitMode, setSplitMode] = useState<'amount' | 'percentage'>('amount');
   
   const [settleModalOpen, setSettleModalOpen] = useState<any>(null); // friend name or bill
+  const [upiPayModal, setUpiPayModal] = useState<{ isOpen: boolean; name: string; amount: number; note: string }>({
+    isOpen: false,
+    name: '',
+    amount: 0,
+    note: ''
+  });
 
   const fetchData = async () => {
     try {
@@ -315,13 +322,45 @@ export default function SplitsPage() {
                 <p className="text-sm mt-1">{settleModalOpen.amount > 0 ? `${settleModalOpen.name} paid you` : `You paid ${settleModalOpen.name}`}</p>
               </div>
               <div className="space-y-3">
-                <button onClick={() => { toast.success('Settled!'); setSettleModalOpen(null); fetchData(); }} className="w-full py-3 bg-[#5bc5a7] text-white font-bold rounded-xl shadow-lg shadow-[#5bc5a7]/20">Record Payment</button>
+                {settleModalOpen.amount < 0 && (
+                  <button
+                    onClick={() => {
+                      const amountToPay = Math.abs(settleModalOpen.amount);
+                      const friendName = settleModalOpen.name;
+                      setSettleModalOpen(null);
+                      setUpiPayModal({
+                        isOpen: true,
+                        name: friendName,
+                        amount: amountToPay,
+                        note: `Settling split bill with ${friendName}`
+                      });
+                    }}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                  >
+                    <Zap className="w-4 h-4 fill-white" />
+                    <span>Pay {formatCurrency(Math.abs(settleModalOpen.amount))} via UPI</span>
+                  </button>
+                )}
+                <button onClick={() => { toast.success('Settled!'); setSettleModalOpen(null); fetchData(); }} className="w-full py-3 bg-[#5bc5a7] text-white font-bold rounded-xl shadow-lg shadow-[#5bc5a7]/20">Record Payment Manually</button>
                 <button onClick={() => setSettleModalOpen(null)} className="w-full py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10">Cancel</button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* UPI Quick Pay Modal */}
+      <UpiQuickPayModal
+        isOpen={upiPayModal.isOpen}
+        onClose={() => setUpiPayModal(prev => ({ ...prev, isOpen: false }))}
+        onSuccess={() => {
+          fetchData();
+          toast.success('Split settled and logged!');
+        }}
+        prefillName={upiPayModal.name}
+        prefillAmount={upiPayModal.amount}
+        prefillNote={upiPayModal.note}
+      />
     </AuthGuard>
   );
 }
