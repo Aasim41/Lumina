@@ -3,14 +3,10 @@ package com.lumina.smartexpense;
 import android.os.Bundle;
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.webkit.PermissionRequest;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.BridgeWebChromeClient;
 
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
@@ -23,10 +19,17 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeSmsPlugin.class);
         registerPlugin(NativeBiometricPlugin.class);
         super.onCreate(savedInstanceState);
-        
-        requestCameraPermissionIfNeeded();
-        configureWebView();
-        
+
+        // Proactively request camera permission so WebView getUserMedia can work
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 101);
+        }
+
+        // Allow video playback without a user gesture (needed for live camera preview)
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
+        }
+
         PeriodicWorkRequest engagementRequest =
             new PeriodicWorkRequest.Builder(EngagementWorker.class, 12, TimeUnit.HOURS)
                 .build();
@@ -35,40 +38,5 @@ public class MainActivity extends BridgeActivity {
             ExistingPeriodicWorkPolicy.KEEP,
             engagementRequest
         );
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        requestCameraPermissionIfNeeded();
-        configureWebView();
-    }
-
-    private void requestCameraPermissionIfNeeded() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.CAMERA
-            }, 101);
-        }
-    }
-
-    private void configureWebView() {
-        if (getBridge() != null && getBridge().getWebView() != null) {
-            WebView webView = getBridge().getWebView();
-            WebSettings settings = webView.getSettings();
-            settings.setMediaPlaybackRequiresUserGesture(false);
-            settings.setJavaScriptCanOpenWindowsAutomatically(true);
-            settings.setDomStorageEnabled(true);
-            settings.setAllowFileAccess(true);
-
-            webView.setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
-                @Override
-                public void onPermissionRequest(final PermissionRequest request) {
-                    MainActivity.this.runOnUiThread(() -> {
-                        request.grant(request.getResources());
-                    });
-                }
-            });
-        }
     }
 }
