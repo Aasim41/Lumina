@@ -23,6 +23,7 @@ import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
 import { SecuritySettingsModal } from '@/components/SecuritySettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
+import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield } from 'lucide-react';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
@@ -62,6 +63,13 @@ export default function Dashboard() {
       { opacity: 1, y: 0, scale: 1, stagger: 0.08, duration: 0.55, ease: 'back.out(1.5)' },
       '-=0.35'
     );
+
+    tl.fromTo('.gsap-today-stat',
+      { opacity: 0, y: 14, scale: 0.94 },
+      { opacity: 1, y: 0, scale: 1, stagger: 0.08, duration: 0.5, ease: 'back.out(1.4)' },
+      '-=0.2'
+    );
+
 
     tl.fromTo('.gsap-metric-card',
       { opacity: 0, y: 16, scale: 0.95 },
@@ -503,6 +511,15 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+
+                        {/* Today's Spending & Daily Balance Widget */}
+            <TodaySpendingCard 
+              spentToday={summary?.spent_today || 0}
+              balanceLeftToday={summary?.balance_left_today ?? (dailyAllowed || 0)}
+              dailyAllowance={summary?.daily_allowance ?? (dailyAllowed || 0)}
+              todayTxCount={summary?.today_tx_count || 0}
+              onInfoClick={showInfoToast}
+            />
 
             {/* Cash Flow Summary Widget (Inflow, Outflow, Net Balance) */}
             <div className="mt-4 glass p-4 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
