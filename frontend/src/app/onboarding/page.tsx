@@ -247,7 +247,7 @@ export default function OnboardingPage() {
               </div>
 
               {/* UPI App Selection Grid */}
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1 scrollbar-thin">
                 {POPULAR_UPI_APPS.map((app) => {
                   const isSelected = selectedUpiApp === app.id;
                   return (

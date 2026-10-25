@@ -339,8 +339,8 @@ export function UpiQuickPayModal({
                 </div>
 
                 {/* Quick Handle Chips */}
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {COMMON_UPI_HANDLES.slice(0, 6).map((handle) => (
+                <div className="flex flex-wrap gap-1.5 mt-2 max-h-16 overflow-y-auto scrollbar-none">
+                  {COMMON_UPI_HANDLES.map((handle) => (
                     <button
                       key={handle}
                       type="button"
