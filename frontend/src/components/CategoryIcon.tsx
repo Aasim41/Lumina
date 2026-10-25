@@ -1,7 +1,8 @@
-import { Utensils, Film, ShoppingBag, Car, Zap, Home, HeartPulse, PiggyBank, CircleEllipsis } from 'lucide-react';
+import { Utensils, Film, ShoppingBag, Car, Zap, Home, HeartPulse, PiggyBank, CircleEllipsis, Coffee } from 'lucide-react';
 
 export const CategoryIcon = ({ category, className }: { category: string, className?: string }) => {
   switch (category) {
+    case "Chai & Snacks": return <Coffee className={className} />;
     case "Food & Dining": return <Utensils className={className} />;
     case "Entertainment": return <Film className={className} />;
     case "Shopping": return <ShoppingBag className={className} />;

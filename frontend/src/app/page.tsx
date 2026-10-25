@@ -322,9 +322,9 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
         
-        <div ref={dashboardRef} className="min-h-screen bg-[#0B1021] pb-24">
+        <div ref={dashboardRef} className="min-h-screen bg-[#0B1021] pb-24 overflow-x-hidden">
           {/* Header with Budget Tracker */}
-          <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
+          <header className="px-5 sm:px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-primary/10 to-transparent relative">
             <div className="absolute top-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-10">
               <LuminaLogo size={24} showText={true} />
               {user?.user_persona && (
@@ -346,8 +346,11 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
-            <div className="flex justify-between items-center mb-6 mt-12 relative z-20">
-              <div className="flex items-center space-x-3 sm:space-x-4">
+            
+            {/* Main Header Action Row - Perfectly fits all screen sizes without overflow */}
+            <div className="flex justify-between items-center mb-6 mt-12 relative z-20 gap-2">
+              {/* Left: User Profile + Name + Streak Badge */}
+              <div className="flex items-center space-x-2.5 min-w-0">
                 <button 
                   onClick={() => { appNavigate('/create-avatar'); }}
                   className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shrink-0 overflow-hidden shadow-[0_0_15px_rgba(52,211,153,0.3)] border border-white/20 relative group cursor-pointer"
@@ -365,72 +368,122 @@ export default function Dashboard() {
                     <span className="text-[10px] text-white font-medium">Edit</span>
                   </div>
                 </button>
-                <div>
-                  <p className="text-xs text-text-secondary">Welcome back,</p>
-                  <p className="font-medium text-text-primary">{user?.name?.split(' ')[0]}</p>
-                </div>
-                
-                {summary && summary.current_streak > 0 && (
-                  <div 
-                    onClick={() => showInfoToast("Current Streak 🔥", `You have logged an expense ${summary.current_streak} day(s) in a row! Keep it up!`, <Flame className="w-5 h-5 text-orange-500" />)}
-                    className="flex items-center ml-2 bg-orange-500/10 px-2.5 py-1 rounded-full border border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.15)] cursor-pointer hover:bg-orange-500/20 transition-colors"
-                  >
-                    <Flame className="w-3.5 h-3.5 text-orange-500 mr-1.5 animate-pulse" />
-                    <span className="text-xs font-bold text-orange-400">{summary.current_streak}</span>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-text-secondary leading-tight truncate">Welcome back,</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-semibold text-text-primary text-sm leading-tight truncate">{user?.name?.split(' ')[0]}</p>
+                    {summary && summary.current_streak > 0 && (
+                      <span 
+                        onClick={() => showInfoToast("Current Streak 🔥", `You have logged an expense ${summary.current_streak} day(s) in a row! Keep it up!`, <Flame className="w-3.5 h-3.5 text-orange-500" />)}
+                        className="inline-flex items-center gap-0.5 bg-orange-500/15 px-1.5 py-0.5 rounded-full border border-orange-500/25 text-[10px] font-bold text-orange-400 cursor-pointer shrink-0"
+                      >
+                        <Flame className="w-2.5 h-2.5 text-orange-500" />
+                        {summary.current_streak}
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={syncNow}
-                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-primary transition-colors"
-                  title="Sync SMS"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => setIsSecurityModalOpen(true)}
-                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-emerald-400 transition-colors"
-                  title="App Security & Biometric Lock"
-                >
-                  <Shield className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={logout}
-                  className="p-2 bg-white/5 text-text-secondary rounded-full hover:bg-white/10 hover:text-error transition-colors"
-                  title="Logout"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                </button>
-
+              {/* Right: Modern Compact Action Pill Hub */}
+              <div className="flex items-center space-x-1.5 shrink-0">
+                {/* 1. Standee QR Scanner Button */}
                 <button 
                   onClick={() => setIsUpiScannerOpen(true)}
-                  className="p-2 bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 rounded-full hover:bg-emerald-500/25 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
+                  className="p-2 sm:px-2.5 sm:py-2 bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 rounded-2xl hover:bg-emerald-500/25 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer flex items-center gap-1"
                   title="Scan Standee QR Code"
                 >
                   <QrCode className="w-4 h-4 text-emerald-400" />
+                  <span className="hidden sm:inline text-xs font-semibold text-emerald-300">Scan</span>
                 </button>
 
+                {/* 2. Fast UPI Pay Button */}
                 <button 
                   onClick={() => {
                     setScannedUpiData(null);
                     setIsUpiModalOpen(true);
                   }}
-                  className="px-3.5 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 rounded-full text-xs font-bold flex items-center space-x-1.5 hover:bg-emerald-500/30 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
+                  className="px-2.5 py-2 sm:px-3.5 bg-gradient-to-r from-emerald-500/25 to-teal-500/25 border border-emerald-500/40 text-emerald-300 rounded-2xl text-xs font-bold flex items-center space-x-1 hover:bg-emerald-500/35 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
                   title="Quick UPI Pay & Auto-Log"
                 >
                   <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-                  <span>UPI Pay</span>
+                  <span>Pay</span>
                 </button>
 
-                <button 
-                  onClick={() => setIsSaveModalOpen(true)}
-                  className="px-4 py-2 bg-[#10b981]/20 text-[#10b981] rounded-full text-sm font-medium flex items-center space-x-1.5 hover:bg-[#10b981]/30 transition-colors"
-                >
-                  <PiggyBank className="w-4 h-4" />
-                  <span className="hidden sm:inline">Save</span>
-                </button>
+                {/* 3. Sleek Quick Utility Menu (Sync, Security, Save, Logout) */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
+                    className="p-2 bg-white/5 border border-white/10 text-white/70 rounded-2xl hover:bg-white/10 hover:text-white transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+                    title="Quick Tools & Actions"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  <AnimatePresence>
+                    {isHeaderMenuOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-30" 
+                          onClick={() => setIsHeaderMenuOpen(false)} 
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 top-11 z-40 w-48 rounded-2xl bg-[#111827]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-1.5 space-y-1 text-xs text-white"
+                        >
+                          <button
+                            onClick={() => {
+                              setIsHeaderMenuOpen(false);
+                              syncNow();
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Sync SMS Expenses</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              setIsHeaderMenuOpen(false);
+                              setIsSecurityModalOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
+                          >
+                            <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Security & Biometrics</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setIsHeaderMenuOpen(false);
+                              setIsSaveModalOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
+                          >
+                            <PiggyBank className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Quick Savings Goal</span>
+                          </button>
+
+                          <div className="h-px bg-white/10 my-1" />
+
+                          <button
+                            onClick={() => {
+                              setIsHeaderMenuOpen(false);
+                              logout();
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-500/20 text-rose-400 transition-colors text-left"
+                          >
+                            <LogOut className="w-3.5 h-3.5" />
+                            <span>Sign Out</span>
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 

@@ -5,7 +5,7 @@ import { formatCurrency, formatDate, getCategoryColor, CATEGORY_COLORS, appNavig
 import {
   Edit2, Trash2, X, Utensils, Film, ShoppingBag, Car, Zap, Home,
   HeartPulse, PiggyBank, CircleEllipsis, ArrowDownLeft, ArrowUpRight,
-  Search, Users, Filter, SlidersHorizontal, ArrowUpDown
+  Search, Users, Filter, SlidersHorizontal, ArrowUpDown, Coffee
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from './ui/Spinner';
@@ -42,6 +42,7 @@ const CategoryIcon = ({ category, className, isCredit }: { category: string; cla
     return <ArrowDownLeft className={cn('text-emerald-400', className)} />;
   }
   switch (category) {
+    case 'Chai & Snacks': return <Coffee className={className} />;
     case 'Food & Dining': return <Utensils className={className} />;
     case 'Entertainment': return <Film className={className} />;
     case 'Shopping': return <ShoppingBag className={className} />;
@@ -63,6 +64,7 @@ interface TransactionListProps {
 
 const ALL_CATEGORIES = [
   'All',
+  'Chai & Snacks',
   'Food & Dining',
   'Shopping',
   'Transport',

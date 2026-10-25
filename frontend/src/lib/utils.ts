@@ -56,6 +56,7 @@ export function formatMonth(monthStr: string): string {
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {
+  "Chai & Snacks": "#f59e0b", // warm amber tea / cutting chai
   "Food & Dining": "#f97316", // cat-food
   "Entertainment": "#a855f7", // cat-entertainment
   "Shopping": "#3b82f6", // cat-shopping
@@ -73,6 +74,7 @@ export function getCategoryColor(category: string): string {
 
 export function getCategoryIcon(category: string): string {
   const icons: Record<string, string> = {
+    "Chai & Snacks": "coffee",
     "Food & Dining": "utensils",
     "Entertainment": "film",
     "Shopping": "shopping-bag",

@@ -1,4 +1,5 @@
 export const CATEGORIES: string[] = [
+  'Chai & Snacks',
   'Food & Dining',
   'Entertainment',
   'Shopping',
@@ -11,10 +12,11 @@ export const CATEGORIES: string[] = [
 ];
 
 const EXACT_LOOKUP = new Map<string, string>([
+  ['Chai Point', 'Chai & Snacks'], ['Chaayos', 'Chai & Snacks'], ['Tea Post', 'Chai & Snacks'], ['Chai Sutta Bar', 'Chai & Snacks'],
   ['Zomato', 'Food & Dining'], ['Swiggy', 'Food & Dining'], ['McDonalds', 'Food & Dining'], ['Dominos', 'Food & Dining'],
   ['Pizza Hut', 'Food & Dining'], ['Starbucks', 'Food & Dining'], ['KFC', 'Food & Dining'], ['Subway', 'Food & Dining'],
   ['Burger King', 'Food & Dining'], ['Haldirams', 'Food & Dining'], ['Barbeque Nation', 'Food & Dining'],
-  ['Chai Point', 'Food & Dining'], ['Chaayos', 'Food & Dining'], ['Dunkin', 'Food & Dining'], ['Baskin Robbins', 'Food & Dining'],
+  ['Dunkin', 'Food & Dining'], ['Baskin Robbins', 'Food & Dining'],
   ['Blinkit', 'Food & Dining'], ['Zepto', 'Food & Dining'], ['BigBasket', 'Food & Dining'], ['EatSure', 'Food & Dining'],
   ['Behrouz Biryani', 'Food & Dining'], ['Faasos', 'Food & Dining'], ['Amul', 'Food & Dining'], ['Mother Dairy', 'Food & Dining'],
 
