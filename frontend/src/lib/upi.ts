@@ -175,3 +175,69 @@ export function validateVpa(vpa: string): boolean {
   const vpaRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
   return vpaRegex.test(trimmed);
 }
+
+export interface ParsedUpiData {
+  pa: string;        // VPA
+  pn?: string;       // Payee Name
+  am?: number;       // Amount if pre-set
+  tn?: string;       // Note
+  mc?: string;       // Merchant Category Code
+  raw: string;
+}
+
+export function parseUpiUri(rawUri: string): ParsedUpiData | null {
+  if (!rawUri || typeof rawUri !== 'string') return null;
+  const trimmed = rawUri.trim();
+
+  // If it's just a raw UPI ID (e.g. user scanned a text QR of someone's VPA)
+  if (validateVpa(trimmed)) {
+    return {
+      pa: trimmed,
+      pn: trimmed.split('@')[0],
+      raw: trimmed
+    };
+  }
+
+  // Handle upi://pay?...
+  if (trimmed.startsWith('upi://pay?') || trimmed.startsWith('upi://pay/')) {
+    try {
+      const urlStr = trimmed.replace('upi://pay/', 'upi://pay?');
+      const url = new URL(urlStr);
+      const pa = url.searchParams.get('pa');
+      if (!pa) return null;
+
+      const pn = url.searchParams.get('pn') ? decodeURIComponent(url.searchParams.get('pn')!) : undefined;
+      const amStr = url.searchParams.get('am');
+      const am = amStr ? parseFloat(amStr) : undefined;
+      const tn = url.searchParams.get('tn') ? decodeURIComponent(url.searchParams.get('tn')!) : undefined;
+      const mc = url.searchParams.get('mc') || undefined;
+
+      return {
+        pa: pa.trim().toLowerCase(),
+        pn,
+        am: am && !isNaN(am) ? am : undefined,
+        tn,
+        mc,
+        raw: trimmed
+      };
+    } catch {
+      // Fallback regex parsing if standard URL parsing fails on custom schemes
+      const paMatch = trimmed.match(/[?&]pa=([^&]+)/i);
+      if (!paMatch) return null;
+      const pa = decodeURIComponent(paMatch[1]);
+      const pnMatch = trimmed.match(/[?&]pn=([^&]+)/i);
+      const amMatch = trimmed.match(/[?&]am=([^&]+)/i);
+      const tnMatch = trimmed.match(/[?&]tn=([^&]+)/i);
+
+      return {
+        pa: pa.trim().toLowerCase(),
+        pn: pnMatch ? decodeURIComponent(pnMatch[1]) : undefined,
+        am: amMatch ? parseFloat(decodeURIComponent(amMatch[1])) : undefined,
+        tn: tnMatch ? decodeURIComponent(tnMatch[1]) : undefined,
+        raw: trimmed
+      };
+    }
+  }
+
+  return null;
+}

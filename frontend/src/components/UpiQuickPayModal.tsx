@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, User, Clock, ArrowRight, Check, Trash2, ShieldCheck, Sparkles } from 'lucide-react';
+import { X, Zap, User, Clock, ArrowRight, Check, Trash2, ShieldCheck, Sparkles, QrCode } from 'lucide-react';
+import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { 
   POPULAR_UPI_APPS, 
   COMMON_UPI_HANDLES, 
