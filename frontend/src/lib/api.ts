@@ -9,7 +9,7 @@
 import { db, generateId, nowISO, todayISO } from './db';
 import type { DBTransaction, DBUser } from './db';
 import { isAuthenticated, getUser } from './auth';
-import { categorize } from './categorizer';
+import { categorize, recordCategoryCorrection } from './categorizer';
 import { cleanMerchantName, normalizeAmount } from './cleaner';
 import { forecastSpending } from './forecaster';
 import { parseCSV } from './csvParser';
@@ -180,6 +180,10 @@ export const createTransaction = async (data: { date: string; merchant: string; 
 };
 
 export const updateTransaction = async (id: string, data: any) => {
+  const existing = await db.transactions.get(id);
+  if (existing && data.category && data.category !== existing.category) {
+    recordCategoryCorrection(existing.merchant_clean || existing.merchant_raw, data.category, existing.category);
+  }
   await db.transactions.update(id, data);
   return db.transactions.get(id);
 };

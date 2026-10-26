@@ -117,6 +117,14 @@ export function categorize(
 
   if (!merchantName) return 'Miscellaneous';
 
+  // 1. Try On-Device Learned ML Model First
+  try {
+    const mlPrediction = learnedCategorizer.predict(merchantName);
+    if (mlPrediction.confidence >= 0.58 && mlPrediction.category && mlPrediction.category !== 'Misc' && mlPrediction.category !== 'Miscellaneous') {
+      return mlPrediction.category;
+    }
+  } catch {}
+
   const cleanLower = merchantName.toLowerCase().trim();
   const exactMatch = EXACT_LOOKUP_LOWER.get(cleanLower);
   if (exactMatch) {
@@ -140,6 +148,15 @@ export function categorize(
   }
 
   return 'Miscellaneous';
+}
+
+/**
+ * Active Learning Feedback Loop:
+ * Call whenever user edits/re-categorizes a transaction.
+ */
+export function recordCategoryCorrection(merchant: string, newCategory: string, oldCategory?: string) {
+  if (!merchant || !newCategory) return;
+  learnedCategorizer.learnFromCorrection(merchant, newCategory, oldCategory);
 }
 
 export function categorizeBatch(merchants: string[]): string[] {
