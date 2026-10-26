@@ -28,7 +28,8 @@ import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
 import { LuminaLogo } from '@/components/LuminaLogo';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
+import { App as CapApp } from '@capacitor/app';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
@@ -50,6 +51,35 @@ export default function Dashboard() {
 
   useEffect(() => {
     setMounted(true);
+
+    // Handle Android Long-Press App Shortcuts (Scan, Pay, Add Expense)
+    const handleShortcutAction = (urlStr: string) => {
+      try {
+        const url = new URL(urlStr);
+        const action = url.searchParams.get('action');
+        if (action === 'scan') {
+          setIsUpiScannerOpen(true);
+        } else if (action === 'pay') {
+          setIsUpiModalOpen(true);
+        } else if (action === 'add') {
+          setIsSaveModalOpen(true);
+        }
+      } catch {}
+    };
+
+    if (typeof window !== 'undefined') {
+      handleShortcutAction(window.location.href);
+    }
+
+    const sub = CapApp.addListener('appUrlOpen', (data) => {
+      if (data?.url) {
+        handleShortcutAction(data.url);
+      }
+    });
+
+    return () => {
+      sub.then(s => s.remove()).catch(() => {});
+    };
   }, []);
 
   useGSAP(() => {
@@ -465,6 +495,17 @@ export default function Dashboard() {
                           >
                             <PiggyBank className="w-3.5 h-3.5 text-amber-400" />
                             <span>Quick Savings Goal</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setIsHeaderMenuOpen(false);
+                              appNavigate('/splits');
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
+                          >
+                            <Users className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>Split Bill with Friends</span>
                           </button>
 
                           <div className="h-px bg-white/10 my-1" />
