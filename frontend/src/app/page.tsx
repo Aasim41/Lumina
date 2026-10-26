@@ -510,6 +510,17 @@ export default function Dashboard() {
                             <span>Split Bill with Friends</span>
                           </button>
 
+                          <button
+                            onClick={() => {
+                              setIsHeaderMenuOpen(false);
+                              setIsSettingsOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
+                          >
+                            <Settings className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Settings & Backup</span>
+                          </button>
+
                           <div className="h-px bg-white/10 my-1" />
 
                           <button
@@ -930,6 +941,7 @@ export default function Dashboard() {
 
         <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
         <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
+        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         <UpiQuickPayModal
           isOpen={isUpiModalOpen}
           onClose={() => {

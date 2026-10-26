@@ -129,6 +129,11 @@ export default function LoginPage() {
               >
                 {signingIn ? <Spinner className="w-6 h-6 text-black" /> : 'Start Journey'}
               </motion.button>
+              <p className="text-[11px] text-white/40 text-center mt-1">
+                By continuing, you agree to Lumina&apos;s{' '}
+                <a href="/terms/" className="underline hover:text-white">Terms</a> &amp;{' '}
+                <a href="/privacy/" className="underline hover:text-white">Privacy Policy</a>
+              </p>
             </form>
           )}
         </div>
