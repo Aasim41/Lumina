@@ -914,7 +914,7 @@ export default function Dashboard() {
         {/* Floating AI Advisor Button */}
         <button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-24 right-6 px-5 h-14 bg-gradient-to-tr from-purple-600 to-indigo-500 text-white rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.6)] hover:scale-105 active:scale-95 transition-all z-[60] overflow-hidden group"
+          className="fixed bottom-22 right-4 sm:right-6 px-4 h-12 bg-gradient-to-tr from-purple-600 to-indigo-500 text-white rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.5)] hover:scale-105 active:scale-95 transition-all z-40 overflow-hidden group cursor-pointer text-xs font-semibold"
         >
           <div className="absolute inset-0 bg-white/20 rounded-full animate-ping opacity-75" />
           <div className="relative z-10 flex items-center gap-2">

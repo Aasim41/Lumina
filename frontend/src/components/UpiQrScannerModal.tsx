@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, Image as ImageIcon, Zap, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import jsQR from 'jsqr';
@@ -106,6 +106,16 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
       }
     }
   }, [handleScannedResult]);
+
+  // Auto-launch camera when modal opens for rapid scan-and-pay
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        snapWithNativeCamera();
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, snapWithNativeCamera]);
 
   // Pick from gallery
   const pickFromGallery = useCallback(async () => {
