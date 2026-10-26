@@ -28,6 +28,7 @@ import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
+import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
 import { App as CapApp } from '@capacitor/app';
@@ -549,6 +550,8 @@ export default function Dashboard() {
               onBadgeClick={showInfoToast}
               getBadgeConfig={getBadgeConfig}
             />
+
+            <PendingPaymentBanner onReconciled={() => refresh()} />
 
             <div className="gsap-budget-card glass p-5 rounded-3xl border border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.15)] relative overflow-hidden bg-indigo-500/10">
               <div className="flex justify-between items-end mb-2">

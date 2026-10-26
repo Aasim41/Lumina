@@ -15,7 +15,7 @@ import {
   validateVpa,
   type UpiPayee 
 } from '@/lib/upi';
-import { db, generateId, todayISO } from '@/lib/db';
+import { db, generateId, todayISO, toPaise, nowISO } from '@/lib/db';
 import { soundFX } from '@/lib/soundFx';
 import toast from 'react-hot-toast';
 
@@ -136,19 +136,29 @@ export function UpiQuickPayModal({
         category
       });
 
-      // 2. Auto-record transaction in local IndexedDB
+      // 2. Record transaction with 'pending' status until verified on return or via Bank SMS
       const txId = generateId();
       await db.transactions.add({
         id: txId,
         date: todayISO(),
         amount: parsedAmt,
+        amount_paise: toPaise(parsedAmt),
         category,
-        merchant: cleanName,
+        merchant_raw: cleanName,
         merchant_clean: cleanName,
         source: 'UPI Quick Pay',
         type: 'debit',
-        notes: note || `UPI to ${cleanVpa}`
+        status: 'pending',
+        created_at: nowISO(),
       });
+
+      // Save pending verification flag for when user returns from UPI app
+      localStorage.setItem('lumina_pending_payment', JSON.stringify({
+        id: txId,
+        merchant: cleanName,
+        amount: parsedAmt,
+        time: Date.now()
+      }));
 
       // 3. Launch selected UPI app directly (bypasses system chooser)
       await launchUpiPayment({
@@ -160,8 +170,8 @@ export function UpiQuickPayModal({
         appId: selectedApp
       });
 
-      soundFX.playChaChing();
-      toast.success(`Logged ₹${parsedAmt} to ${category}!`, { icon: '⚡' });
+      soundFX.playSuccess();
+      toast.success(`Opening ${selectedApp} for ₹${parsedAmt}...`, { icon: '⚡' });
       onSuccess?.();
       onClose();
     } catch {
