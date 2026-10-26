@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon, Zap, QrCode, MessageCircle, Copy, Share2 } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BottomNav } from '@/components/BottomNav';
 import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
