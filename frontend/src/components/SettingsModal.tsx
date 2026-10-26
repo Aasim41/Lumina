@@ -107,12 +107,21 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
     }
   };
 
-  const handleExportData = async () => {
-    const toastId = toast.loading('Exporting data...', { icon: '📦' });
+  const handleExportData = async (encrypted: boolean = false) => {
+    let password = '';
+    if (encrypted) {
+      const entered = window.prompt('🔒 Set a password to encrypt your backup file:');
+      if (!entered || !entered.trim()) {
+        toast.error('Export cancelled (password required)');
+        return;
+      }
+      password = entered.trim();
+    }
+    const toastId = toast.loading(encrypted ? 'Encrypting & exporting data...' : 'Exporting data...', { icon: '📦' });
     try {
-      await exportAllData();
+      await exportAllData(password);
       setLastBackupTime(new Date().toISOString());
-      toast.success('Data exported! Check your downloads.', { id: toastId });
+      toast.success(encrypted ? 'AES-GCM Encrypted backup exported! 🔒' : 'Data exported! Check downloads.', { id: toastId });
     } catch (e) {
       toast.error('Export failed', { id: toastId });
     }
@@ -350,13 +359,23 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   )}
                 </div>
                 <div className="space-y-3">
-                  <button
-                    onClick={handleExportData}
-                    className="w-full p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center space-x-3 hover:bg-blue-500/20 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span className="text-sm font-medium">Export All Data (JSON Backup)</span>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleExportData(false)}
+                      className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center space-x-2 hover:bg-blue-500/20 transition-colors text-xs font-semibold"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>JSON Backup</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleExportData(true)}
+                      className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center space-x-2 hover:bg-emerald-500/20 transition-colors text-xs font-semibold"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Encrypted 🔒</span>
+                    </button>
+                  </div>
 
                   <button
                     onClick={() => fileInputRef.current?.click()}

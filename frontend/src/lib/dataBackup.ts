@@ -17,9 +17,52 @@ interface BackupData {
   goals: DBGoal[];
 }
 
-// ── Export All Data ───────────────────────────────────────────────
+// ── Encryption Helpers (PBKDF2 + AES-GCM 256) ─────────────────────
 
-export async function exportAllData(): Promise<{ success: boolean; txCount: number }> {
+async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt as any,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+function bufToB64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function b64ToBuf(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+// ── Export All Data (Plain or Password Encrypted) ──────────────────
+
+export async function exportAllData(password?: string): Promise<{ success: boolean; txCount: number }> {
   const users = await db.users.toArray();
   const transactions = await db.transactions.toArray();
   const subscriptions = await db.subscriptions.toArray();
@@ -46,12 +89,42 @@ export async function exportAllData(): Promise<{ success: boolean; txCount: numb
     goals,
   };
 
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  const rawJson = JSON.stringify(data, null, 2);
+  let fileContent: string;
+  let filename = `smart-expense-backup-${new Date().toISOString().split('T')[0]}`;
+
+  if (password && password.trim().length > 0) {
+    // AES-GCM 256-bit encryption
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(password, salt);
+    const enc = new TextEncoder();
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      enc.encode(rawJson)
+    );
+
+    const encryptedContainer = {
+      encrypted: true,
+      cipher: 'AES-GCM-256',
+      salt: bufToB64(salt.buffer),
+      iv: bufToB64(iv.buffer),
+      ciphertext: bufToB64(ciphertext),
+      exported_at: data.exported_at,
+    };
+    fileContent = JSON.stringify(encryptedContainer, null, 2);
+    filename += '.lumina.enc';
+  } else {
+    fileContent = rawJson;
+    filename += '.json';
+  }
+
+  const blob = new Blob([fileContent], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `smart-expense-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   URL.revokeObjectURL(url);
@@ -80,10 +153,36 @@ export async function getBackupSummaryStats() {
 
 // ── Import Data ──────────────────────────────────────────────────
 
-export async function importData(file: File): Promise<{ success: boolean; message: string }> {
+export async function importData(file: File, providedPassword?: string): Promise<{ success: boolean; message: string }> {
   try {
     const text = await file.text();
-    const data: BackupData = JSON.parse(text);
+    let rawObj: any = JSON.parse(text);
+
+    // Handle Password-Encrypted AES-GCM backup container
+    if (rawObj.encrypted && rawObj.ciphertext) {
+      const password = providedPassword || window.prompt('🔒 Enter the password to decrypt this backup:');
+      if (!password) {
+        return { success: false, message: 'Decryption password is required.' };
+      }
+
+      try {
+        const salt = new Uint8Array(b64ToBuf(rawObj.salt));
+        const iv = new Uint8Array(b64ToBuf(rawObj.iv));
+        const ciphertext = b64ToBuf(rawObj.ciphertext);
+        const key = await deriveKey(password, salt);
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          ciphertext
+        );
+        const decText = new TextDecoder().decode(decrypted);
+        rawObj = JSON.parse(decText);
+      } catch {
+        return { success: false, message: 'Incorrect decryption password or file corrupted.' };
+      }
+    }
+
+    const data: BackupData = rawObj;
 
     if (!data.version || !data.transactions) {
       return { success: false, message: 'Invalid backup file format.' };
