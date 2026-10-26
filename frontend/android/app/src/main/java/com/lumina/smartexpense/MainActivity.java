@@ -1,6 +1,7 @@
 package com.lumina.smartexpense;
 
 import android.os.Bundle;
+import android.view.WindowManager;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
@@ -16,6 +17,12 @@ import java.util.concurrent.TimeUnit;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Prevent recent-apps task switcher snapshot leaks and enforce financial privacy
+        getWindow().setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        );
+
         registerPlugin(NativeSmsPlugin.class);
         registerPlugin(NativeBiometricPlugin.class);
         registerPlugin(NativeUpiPlugin.class);
