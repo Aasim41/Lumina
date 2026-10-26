@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, Image as ImageIcon, Zap, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import jsQR from 'jsqr';
 import { parseUpiUri, type ParsedUpiData } from '@/lib/upi';
+import { soundFX } from '@/lib/soundFx';
 import toast from 'react-hot-toast';
 
 interface UpiQrScannerModalProps {
@@ -53,9 +54,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
   const handleScannedResult = useCallback((rawValue: string) => {
     const parsed = parseUpiUri(rawValue);
     if (parsed) {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([40, 30, 40]);
-      }
+      soundFX.playSuccess();
       setRecognizedPayee(parsed);
 
       // Smooth micro-transition delay (300ms) for visual satisfaction before sliding into payment card
