@@ -98,3 +98,4 @@ export function findTopAnomalies(transactions: DBTransaction[], limit = 3): Arra
     .sort((a, b) => b.anomaly.score - a.anomaly.score)
     .slice(0, limit);
 }
+

@@ -89,3 +89,4 @@ export function detectRecurringSubscriptions(transactions: DBTransaction[]): Inf
 
   return results.sort((a, b) => b.confidence - a.confidence);
 }
+
