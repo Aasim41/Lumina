@@ -134,6 +134,45 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
 
   for (const txn of newTransactions) {
     try {
+      // 1. Check for matching pending UPI payment to reconcile & confirm
+      const pendingMatch = await db.transactions
+        .filter(t => t.status === 'pending' && Math.abs(t.amount - txn.amount) < 0.01)
+        .first();
+
+      if (pendingMatch && pendingMatch.id) {
+        await db.transactions.update(pendingMatch.id, {
+          status: 'confirmed',
+          sms_hash: txn.smsHash,
+          merchant_raw: txn.merchant || pendingMatch.merchant_raw,
+        });
+        localStorage.removeItem('lumina_pending_payment');
+        newHashes.push(txn.smsHash);
+        if (txn.type === 'credit') {
+          syncedCredits++;
+          totalCreditAmount += txn.amount;
+        } else {
+          syncedDebits++;
+          totalDebitAmount += txn.amount;
+        }
+        continue;
+      }
+
+      // 2. Cross-source Deduplication (e.g. manual entry or CSV import with same amount & date)
+      const existingMatch = await db.transactions
+        .filter(t => 
+          t.status !== 'cancelled' &&
+          t.date === txn.date &&
+          Math.abs(t.amount - txn.amount) < 0.01 &&
+          (t.merchant_clean?.toLowerCase().includes(txn.merchant.toLowerCase()) || 
+           txn.merchant.toLowerCase().includes(t.merchant_clean?.toLowerCase() || ''))
+        )
+        .first();
+
+      if (existingMatch) {
+        newHashes.push(txn.smsHash);
+        continue; // Deduplicated, skip duplicate creation
+      }
+
       const category = categorize(txn.merchant, txn.type, txn.rawBody);
       await createTransaction({
         date: txn.date,

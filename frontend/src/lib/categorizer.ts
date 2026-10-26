@@ -1,3 +1,5 @@
+import { learnedCategorizer } from '@/lib/learnedCategorizer';
+
 export const CATEGORIES: string[] = [
   'Chai & Snacks',
   'Food & Dining',
