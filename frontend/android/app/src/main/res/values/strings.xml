@@ -4,4 +4,7 @@
     <string name="title_activity_main">Lumina</string>
     <string name="package_name">com.lumina.smartexpense</string>
     <string name="custom_url_scheme">com.lumina.smartexpense</string>
+    <string name="shortcut_scan">Scan &amp; Pay</string>
+    <string name="shortcut_pay">Quick Pay</string>
+    <string name="shortcut_add">Log Expense</string>
 </resources>

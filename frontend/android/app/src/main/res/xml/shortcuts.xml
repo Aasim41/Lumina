@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="scan_qr"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_scan"
+        android:shortcutShortLabel="@string/shortcut_scan">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.lumina.smartexpense"
+            android:targetClass="com.lumina.smartexpense.MainActivity"
+            android:data="https://localhost/?action=scan" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="quick_pay"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_pay"
+        android:shortcutShortLabel="@string/shortcut_pay">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.lumina.smartexpense"
+            android:targetClass="com.lumina.smartexpense.MainActivity"
+            android:data="https://localhost/?action=pay" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="log_expense"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutShortLabel="@string/shortcut_add">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.lumina.smartexpense"
+            android:targetClass="com.lumina.smartexpense.MainActivity"
+            android:data="https://localhost/?action=add" />
+    </shortcut>
+</shortcuts>
