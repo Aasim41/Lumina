@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText, Zap, ShieldCheck } from 'lucide-react';
+import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText, Zap, ShieldCheck, Trash2 } from 'lucide-react';
 import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
@@ -138,6 +138,20 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
     }
     // Reset file input
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("⚠️ Are you sure you want to delete your Lumina account and wipe all local transaction data? This cannot be undone.")) {
+      return;
+    }
+    try {
+      await db.delete();
+      localStorage.clear();
+      toast.success("All data wiped successfully.");
+      window.location.href = '/login';
+    } catch (e) {
+      toast.error("Failed to wipe data");
+    }
   };
 
   const handleExportCSV = async () => {
@@ -371,6 +385,36 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 <p className="text-xs text-text-secondary mt-3">
                   💡 Tip: Export your data regularly to keep a backup on your phone storage.
                 </p>
+              </div>
+
+              {/* Legal, Privacy & Delete Account */}
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                <h3 className="text-sm font-semibold text-white">Legal & Account</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <a
+                    href="/privacy/"
+                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Privacy Policy</span>
+                  </a>
+                  <a
+                    href="/terms/"
+                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Terms of Use</span>
+                  </a>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  className="w-full p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                  <span>Delete Account & Wipe All Data</span>
+                </button>
               </div>
             </div>
           </motion.div>

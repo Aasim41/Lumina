@@ -22,6 +22,7 @@ import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
 import { SecuritySettingsModal } from '@/components/SecuritySettingsModal';
+import { SettingsModal } from '@/components/SettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
@@ -160,6 +161,7 @@ export default function Dashboard() {
   const [isUpiScannerOpen, setIsUpiScannerOpen] = useState(false);
   const [scannedUpiData, setScannedUpiData] = useState<any>(null);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Month Wrap is only unlocked during the last week of the month
   const isLastWeekOfMonth = useMemo(() => {
