@@ -64,7 +64,48 @@ export function forecastSpending(transactions: Array<{date: string, category: st
     const amount = monthlyTotals[m];
     if (m === currentMonthStr) {
       const currentDay = Math.max(1, today.getDate());
-      const extrapolated = (amount / currentDay) * daysInCurrentMonth;
+
+      // ── Day-of-Week & Payday-Aware Extrapolation ───────────────────
+      let paydaySpikeAmount = 0;
+      let dailyDiscretionaryAmount = 0;
+      let pastWeekdays = 0;
+      let pastWeekends = 0;
+
+      for (const t of transactions) {
+        if (t.date.startsWith(currentMonthStr)) {
+          const day = parseInt(t.date.split('-')[2] || '1');
+          const dayOfWeek = new Date(t.date).getDay();
+          // Fixed payday commitments on days 1-7 (Rent, EMIs, Bills) don't repeat daily
+          if (day <= 7 && ['Housing', 'Utilities', 'Debts', 'Savings'].includes(t.category)) {
+            paydaySpikeAmount += t.amount;
+          } else {
+            dailyDiscretionaryAmount += t.amount;
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+              pastWeekends++;
+            } else {
+              pastWeekdays++;
+            }
+          }
+        }
+      }
+
+      // Weekend spending multiplier: weekend burn is empirically ~1.55x weekday burn
+      const effectivePastDays = Math.max(1, pastWeekdays + (pastWeekends * 1.55));
+      const baseDailyRate = dailyDiscretionaryAmount / effectivePastDays;
+
+      // Project remaining days based on calendar day-of-week composition
+      let remainingWeekdays = 0;
+      let remainingWeekends = 0;
+      for (let d = currentDay + 1; d <= daysInCurrentMonth; d++) {
+        const testDate = new Date(today.getFullYear(), today.getMonth(), d);
+        const dow = testDate.getDay();
+        if (dow === 0 || dow === 6) remainingWeekends++;
+        else remainingWeekdays++;
+      }
+
+      const projectedRemaining = (remainingWeekdays * baseDailyRate) + (remainingWeekends * baseDailyRate * 1.55);
+      const extrapolated = Math.round(amount + projectedRemaining);
+
       historicalData.push({ month: m, amount: amount, extrapolated_amount: extrapolated });
     } else {
       historicalData.push({ month: m, amount: amount, extrapolated_amount: amount });
