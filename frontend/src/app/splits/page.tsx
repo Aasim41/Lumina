@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BottomNav } from '@/components/BottomNav';
 import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import { splitPaiseEqually } from '@/lib/db';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { soundFX } from '@/lib/soundFx';
 import { useAuth } from '@/hooks/useAuth';
@@ -81,13 +82,12 @@ export default function SplitsPage() {
   const splitEqually = () => {
     const amt = parseFloat(totalAmount);
     if (isNaN(amt) || members.length === 0) return;
+    const exactShares = splitPaiseEqually(amt, members.length);
     if (splitMode === 'amount') {
-      const splitAmt = (amt / members.length).toFixed(2);
-      setMembers(members.map(m => ({ ...m, share_amount: splitAmt })));
+      setMembers(members.map((m, idx) => ({ ...m, share_amount: (exactShares[idx] ?? 0).toFixed(2) })));
     } else {
       const splitPct = (100 / members.length).toFixed(2);
-      const splitAmt = (amt / members.length).toFixed(2);
-      setMembers(members.map(m => ({ ...m, percentage: splitPct, share_amount: splitAmt })));
+      setMembers(members.map((m, idx) => ({ ...m, percentage: splitPct, share_amount: (exactShares[idx] ?? 0).toFixed(2) })));
     }
   };
 
