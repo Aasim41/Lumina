@@ -107,15 +107,8 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
     }
   }, [handleScannedResult]);
 
-  // Auto-launch camera when modal opens for rapid scan-and-pay
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        snapWithNativeCamera();
-      }, 250);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, snapWithNativeCamera]);
+  // Ready state: camera is opened by user clicking "📸 Open Camera & Scan" button below,
+  // allowing user to stay on the QR screen comfortably instead of immediately forcing the camera.
 
   // Pick from gallery
   const pickFromGallery = useCallback(async () => {

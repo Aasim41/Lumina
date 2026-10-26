@@ -127,7 +127,7 @@ export function BottomNav() {
       </AnimatePresence>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 sm:px-4 pt-2 pointer-events-none flex justify-center" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 sm:px-4 pointer-events-none flex justify-center" style={{ paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom, 0.4rem))' }}>
         <div className="glass-radio-group w-full max-w-md relative pointer-events-auto">
           {PRIMARY_TABS.map((item) => {
             const isActive = (item.path === '/' && normalizedPath === '/') || (item.path !== '/' && normalizedPath.startsWith(item.path));
