@@ -16,6 +16,7 @@ import {
   type UpiPayee 
 } from '@/lib/upi';
 import { db, generateId, todayISO } from '@/lib/db';
+import { soundFX } from '@/lib/soundFx';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -159,6 +160,7 @@ export function UpiQuickPayModal({
         appId: selectedApp
       });
 
+      soundFX.playChaChing();
       toast.success(`Logged ₹${parsedAmt} to ${category}!`, { icon: '⚡' });
       onSuccess?.();
       onClose();
@@ -333,8 +335,11 @@ export function UpiQuickPayModal({
                     <button
                       key={amt}
                       type="button"
-                      onClick={() => setAmount(String(amt))}
-                      className="px-3 py-1 rounded-xl bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-300 text-xs font-bold text-white/80 border border-white/10 transition-all active:scale-95"
+                      onClick={() => {
+                        soundFX.playCoin();
+                        setAmount(String(amt));
+                      }}
+                      className="px-3 py-1 rounded-xl bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-300 text-xs font-bold text-white/80 border border-white/10 transition-all active:scale-95 cursor-pointer"
                     >
                       +₹{amt}
                     </button>
