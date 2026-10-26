@@ -1,5 +1,14 @@
 import { App } from '@capacitor/app';
+import { registerPlugin } from '@capacitor/core';
 import { db, DBTransaction, generateId, todayISO } from './db';
+
+// Native Android UPI bridge plugin (bypasses system chooser by directly setting intent package)
+interface NativeUpiPluginInterface {
+  launchUpi(options: { uri: string; packageName?: string }): Promise<{ success: boolean; targetedPackage?: string }>;
+  getInstalledUpiApps(): Promise<{ apps: Array<{ packageName: string; name: string }> }>;
+}
+
+const NativeUpi = registerPlugin<NativeUpiPluginInterface>('NativeUpi');
 
 export interface UpiPayee {
   id: string;
@@ -21,31 +30,27 @@ export interface UpiAppConfig {
 }
 
 export const POPULAR_UPI_APPS: UpiAppConfig[] = [
-  { id: 'any', name: 'System Chooser', color: 'from-emerald-500 to-teal-600', accent: '#10b981', iconText: '⚡' },
-  { id: 'gpay', name: 'Google Pay', packageName: 'com.google.android.apps.nbu.paisa.user', color: 'from-blue-500 to-emerald-500', accent: '#4285F4', iconText: 'G' },
   { id: 'phonepe', name: 'PhonePe', packageName: 'com.phonepe.app', color: 'from-purple-600 to-indigo-600', accent: '#5f259f', iconText: 'Pe' },
+  { id: 'gpay', name: 'Google Pay', packageName: 'com.google.android.apps.nbu.paisa.user', color: 'from-blue-500 to-emerald-500', accent: '#4285F4', iconText: 'G' },
   { id: 'paytm', name: 'Paytm', packageName: 'net.one97.paytm', color: 'from-sky-500 to-blue-600', accent: '#00b9f5', iconText: 'P' },
   { id: 'cred', name: 'CRED', packageName: 'com.dreamplug.androidapp', color: 'from-neutral-800 to-neutral-900', accent: '#111111', iconText: 'C' },
+  { id: 'bhim', name: 'BHIM UPI', packageName: 'in.org.npci.upiapp', color: 'from-amber-500 to-orange-600', accent: '#00796B', iconText: 'B' },
   { id: 'navi', name: 'Navi UPI', packageName: 'com.naviapp', color: 'from-blue-600 to-indigo-700', accent: '#0052FF', iconText: 'N' },
   { id: 'mobikwik', name: 'MobiKwik', packageName: 'com.mobikwik_new', color: 'from-sky-500 to-blue-600', accent: '#00A3EF', iconText: 'M' },
   { id: 'fampay', name: 'FamPay', packageName: 'com.fampay.in', color: 'from-amber-400 to-yellow-500', accent: '#FFBE00', iconText: 'Fam' },
-  { id: 'bhim', name: 'BHIM UPI', packageName: 'in.org.npci.upiapp', color: 'from-amber-500 to-orange-600', accent: '#00796B', iconText: 'B' },
+  { id: 'any', name: 'System Chooser', color: 'from-emerald-500 to-teal-600', accent: '#10b981', iconText: '⚡' },
 ];
 
 export const COMMON_UPI_HANDLES = [
   '@okhdfcbank',
-  '@okicici',
   '@okaxis',
-  '@oksbi',
   '@paytm',
   '@ybl',
+  '@oksbi',
+  '@okicici',
   '@ibl',
   '@navi',
-  '@fam',
-  '@ikwik',
-  '@mobikwik',
-  '@axl',
-  '@postbank'
+  '@cred'
 ];
 
 const STORAGE_KEY_DEFAULT_APP = 'lumina_default_upi_app';
@@ -54,8 +59,8 @@ const STORAGE_KEY_SAVED_PAYEES = 'lumina_saved_upi_payees';
 // ── Default UPI App Preference ─────────────────────────────────────
 
 export function getDefaultUpiApp(): string {
-  if (typeof window === 'undefined') return 'any';
-  return localStorage.getItem(STORAGE_KEY_DEFAULT_APP) || 'any';
+  if (typeof window === 'undefined') return 'phonepe';
+  return localStorage.getItem(STORAGE_KEY_DEFAULT_APP) || 'phonepe';
 }
 
 export function setDefaultUpiApp(appId: string): void {
@@ -69,11 +74,11 @@ export function getSavedPayees(): UpiPayee[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SAVED_PAYEES);
-    if (!raw) return getDefaultPresetPayees();
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : getDefaultPresetPayees();
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return getDefaultPresetPayees();
+    return [];
   }
 }
 
@@ -82,7 +87,6 @@ export function savePayee(payee: Omit<UpiPayee, 'id'> & { id?: string }): UpiPay
   const id = payee.id || `payee_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const cleanVpa = payee.vpa.trim().toLowerCase();
   
-  // Update if exists, or prepend
   const idx = existing.findIndex(p => p.vpa.toLowerCase() === cleanVpa);
   const updated: UpiPayee = {
     id,
@@ -98,7 +102,7 @@ export function savePayee(payee: Omit<UpiPayee, 'id'> & { id?: string }): UpiPay
   if (idx >= 0) {
     newList = [updated, ...existing.filter((_, i) => i !== idx)];
   } else {
-    newList = [updated, ...existing].slice(0, 15); // keep top 15
+    newList = [updated, ...existing].slice(0, 10);
   }
 
   localStorage.setItem(STORAGE_KEY_SAVED_PAYEES, JSON.stringify(newList));
@@ -109,10 +113,6 @@ export function deletePayee(id: string): void {
   const existing = getSavedPayees();
   const filtered = existing.filter(p => p.id !== id);
   localStorage.setItem(STORAGE_KEY_SAVED_PAYEES, JSON.stringify(filtered));
-}
-
-function getDefaultPresetPayees(): UpiPayee[] {
-  return [];
 }
 
 const AVATAR_COLORS = [
@@ -155,15 +155,38 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
   const uri = buildUpiUri(params);
   const preferredAppId = params.appId || getDefaultUpiApp();
   const appConfig = POPULAR_UPI_APPS.find(a => a.id === preferredAppId);
+  const targetPackage = (appConfig && appConfig.id !== 'any') ? appConfig.packageName : undefined;
 
   try {
-    // Attempt opening via Capacitor App plugin
     if (typeof window !== 'undefined') {
+      // 1. Primary: Native Capacitor Plugin with target package (BYPASSES system chooser dialog completely!)
+      try {
+        const res = await NativeUpi.launchUpi({
+          uri,
+          packageName: targetPackage
+        });
+        if (res && res.success) {
+          return { success: true, uri };
+        }
+      } catch (nativeErr) {
+        console.warn('NativeUpi plugin call skipped or failed, using intent fallback:', nativeErr);
+      }
+
+      // 2. Android Intent URL format with package specifier
+      if (targetPackage) {
+        try {
+          const queryString = uri.replace('upi://pay?', '');
+          const intentUrl = `intent://pay?${queryString}#Intent;scheme=upi;package=${targetPackage};end`;
+          window.location.href = intentUrl;
+          return { success: true, uri };
+        } catch {}
+      }
+
+      // 3. Fallback to generic App.openUrl or window.location.href
       try {
         await App.openUrl({ url: uri });
         return { success: true, uri };
-      } catch (err) {
-        // Fallback to window navigation
+      } catch {
         window.location.href = uri;
         return { success: true, uri };
       }
@@ -175,10 +198,19 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
   }
 }
 
+export async function getInstalledUpiAppsList(): Promise<string[]> {
+  try {
+    const res = await NativeUpi.getInstalledUpiApps();
+    if (res?.apps?.length) {
+      return res.apps.map(a => a.packageName);
+    }
+  } catch {}
+  return [];
+}
+
 export function validateVpa(vpa: string): boolean {
   if (!vpa) return false;
   const trimmed = vpa.trim();
-  // Standard VPA: name@handle or phone@handle
   const vpaRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
   return vpaRegex.test(trimmed);
 }

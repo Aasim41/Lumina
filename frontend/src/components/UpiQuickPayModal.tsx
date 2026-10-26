@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, User, Clock, ArrowRight, Check, Trash2, ShieldCheck, Sparkles, QrCode } from 'lucide-react';
+import { X, Zap, Check, ArrowRight, ShieldCheck, QrCode, Coffee, ChevronDown, CheckCircle2, Store, Edit2 } from 'lucide-react';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { 
   POPULAR_UPI_APPS, 
   COMMON_UPI_HANDLES, 
   getSavedPayees, 
   savePayee, 
-  deletePayee, 
   getDefaultUpiApp, 
   setDefaultUpiApp, 
   launchUpiPayment, 
@@ -17,22 +16,22 @@ import {
   type UpiPayee 
 } from '@/lib/upi';
 import { db, generateId, todayISO } from '@/lib/db';
-import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
   'Chai & Snacks',
   'Food & Dining',
-  'Groceries',
-  'Transportation',
   'Shopping',
+  'Transport',
+  'Utilities',
   'Entertainment',
-  'Bills & Utilities',
-  'Personal Care',
+  'Housing',
+  'Health & Fitness',
+  'Savings',
   'Others'
 ];
 
-const QUICK_AMOUNTS = [20, 50, 100, 200, 500, 1000];
+const QUICK_AMOUNTS = [20, 50, 100, 200, 500];
 
 interface UpiQuickPayModalProps {
   isOpen: boolean;
@@ -57,17 +56,24 @@ export function UpiQuickPayModal({
   const [name, setName] = useState(prefillName);
   const [amount, setAmount] = useState(prefillAmount ? String(prefillAmount) : '');
   const [note, setNote] = useState(prefillNote);
-  const [category, setCategory] = useState('Food & Dining');
-  const [savedPayees, setSavedPayees] = useState<UpiPayee[]>([]);
-  const [selectedApp, setSelectedApp] = useState('any');
+  const [category, setCategory] = useState('Chai & Snacks');
+  const [selectedApp, setSelectedApp] = useState('phonepe');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isManualEdit, setIsManualEdit] = useState(false);
+  const [showAllApps, setShowAllApps] = useState(false);
+  const [savedPayees, setSavedPayees] = useState<UpiPayee[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       setSavedPayees(getSavedPayees());
       setSelectedApp(getDefaultUpiApp());
-      if (prefillVpa) setVpa(prefillVpa);
+      if (prefillVpa) {
+        setVpa(prefillVpa);
+        setIsManualEdit(false);
+      } else {
+        setIsManualEdit(true);
+      }
       if (prefillName) setName(prefillName);
       if (prefillAmount) setAmount(String(prefillAmount));
       if (prefillNote) setNote(prefillNote);
@@ -77,22 +83,18 @@ export function UpiQuickPayModal({
   const handleSelectApp = (appId: string) => {
     setSelectedApp(appId);
     setDefaultUpiApp(appId);
-    const appName = POPULAR_UPI_APPS.find(a => a.id === appId)?.name;
-    toast.success(`Default UPI app set to ${appName}`, { duration: 1800, icon: '⚡' });
+    const app = POPULAR_UPI_APPS.find(a => a.id === appId);
+    if (app) {
+      toast.success(`Will open ${app.name} directly`, { icon: '⚡', duration: 1500 });
+    }
   };
 
-  const handleSelectPayee = (payee: UpiPayee) => {
+  const handleSelectRecentPayee = (payee: UpiPayee) => {
     setVpa(payee.vpa);
     setName(payee.name);
     if (payee.category) setCategory(payee.category);
     if (payee.last_amount && !amount) setAmount(String(payee.last_amount));
-  };
-
-  const handleDeletePayee = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    deletePayee(id);
-    setSavedPayees(getSavedPayees());
-    toast.success('Payee removed');
+    setIsManualEdit(false);
   };
 
   const handleAppendHandle = (handle: string) => {
@@ -111,11 +113,11 @@ export function UpiQuickPayModal({
     const parsedAmt = parseFloat(amount);
 
     if (!cleanVpa) {
-      toast.error('Please enter a UPI ID (VPA)');
+      toast.error('Please enter recipient UPI ID');
       return;
     }
     if (!validateVpa(cleanVpa)) {
-      toast.error('Invalid UPI format (e.g. mobile@paytm or name@okaxis)');
+      toast.error('Invalid UPI ID format (e.g. name@okaxis or 9876543210@paytm)');
       return;
     }
     if (isNaN(parsedAmt) || parsedAmt <= 0) {
@@ -125,7 +127,7 @@ export function UpiQuickPayModal({
 
     setIsSubmitting(true);
     try {
-      // 1. Save Payee for future quick access
+      // 1. Save Payee for 1-tap autofill in future
       savePayee({
         name: cleanName,
         vpa: cleanVpa,
@@ -147,7 +149,7 @@ export function UpiQuickPayModal({
         notes: note || `UPI to ${cleanVpa}`
       });
 
-      // 3. Launch native UPI app
+      // 3. Launch selected UPI app directly (bypasses system chooser)
       await launchUpiPayment({
         pa: cleanVpa,
         pn: cleanName,
@@ -157,260 +159,182 @@ export function UpiQuickPayModal({
         appId: selectedApp
       });
 
-      toast.success(
-        (t) => (
-          <div className="flex items-center justify-between space-x-2">
-            <span>Logged ₹{parsedAmt} to {category}!</span>
-            <button
-              onClick={async () => {
-                await db.transactions.delete(txId);
-                toast.dismiss(t.id);
-                toast.success('Transaction removed');
-                onSuccess?.();
-              }}
-              className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded hover:bg-red-500/30 font-bold"
-            >
-              Undo
-            </button>
-          </div>
-        ),
-        { duration: 5000, icon: '⚡' }
-      );
-
+      toast.success(`Logged ₹${parsedAmt} to ${category}!`, { icon: '⚡' });
       onSuccess?.();
       onClose();
-    } catch (err: any) {
-      toast.error('Failed to initiate UPI payment');
+    } catch {
+      toast.error('Failed to launch UPI payment');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const currentAppConfig = POPULAR_UPI_APPS.find(a => a.id === selectedApp) || POPULAR_UPI_APPS[0];
+  const primaryApps = POPULAR_UPI_APPS.slice(0, 4); // PhonePe, GPay, Paytm, CRED
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
           />
 
-          {/* Modal Card */}
+          {/* Clean, High-Contrast Payment Sheet */}
           <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="w-full sm:max-w-md bg-[#161f2e] border border-white/10 p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
+            initial={{ opacity: 0, y: 150 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 150 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+            className="w-full sm:max-w-md bg-[#0F172A] border-t sm:border border-white/10 p-5 sm:p-6 rounded-t-[2rem] sm:rounded-3xl shadow-2xl relative z-10 max-h-[92vh] overflow-y-auto"
           >
-            {/* Header */}
-            <div className="flex justify-between items-center pb-4 border-b border-white/5 mb-5">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                  <Zap className="w-5 h-5 fill-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-1.5">
-                    UPI Quick Pay <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">1-Tap Intent</span>
-                  </h2>
-                  <p className="text-xs text-text-secondary">Instant app launch + zero-effort auto-log</p>
-                </div>
+            {/* Top Bar */}
+            <div className="flex justify-between items-center pb-3 border-b border-white/10 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">UPI Quick Pay</h2>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-text-secondary hover:text-white transition-colors"
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Default App Picker Selector */}
-            <div className="mb-5 bg-white/5 border border-white/10 p-3 rounded-2xl">
-              <div className="flex justify-between items-center mb-2.5">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Default UPI App
-                </span>
-                <span className="text-[11px] text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Skips app chooser
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
-                {POPULAR_UPI_APPS.map((app) => {
-                  const isSelected = selectedApp === app.id;
-                  return (
-                    <button
-                      key={app.id}
-                      type="button"
-                      onClick={() => handleSelectApp(app.id)}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
-                        isSelected
-                          ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                          : 'bg-black/30 border-white/5 text-text-secondary hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      <span>{app.iconText}</span>
-                      <span className="truncate">{app.name.split(' ')[0]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Saved Recent Payees Chips */}
-            {savedPayees.length > 0 && (
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" /> Recent Payees
-                  </span>
-                  <span className="text-[10px] text-text-secondary">Tap to autofill</span>
-                </div>
-                <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-none">
-                  {savedPayees.map((p) => {
-                    const isSelected = vpa.toLowerCase() === p.vpa.toLowerCase();
-                    return (
-                      <div
-                        key={p.id}
-                        onClick={() => handleSelectPayee(p)}
-                        className={`group shrink-0 p-2.5 rounded-xl border flex items-center space-x-2.5 cursor-pointer transition-all ${
-                          isSelected
-                            ? 'bg-emerald-500/20 border-emerald-500/50 text-white'
-                            : 'bg-black/20 border-white/5 text-text-secondary hover:bg-white/5 hover:text-white'
-                        }`}
-                      >
-                        <div
-                          className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-sm"
-                          style={{ backgroundColor: p.avatar_color || '#10b981' }}
-                        >
-                          {p.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="text-left">
-                          <p className="text-xs font-bold text-white max-w-[90px] truncate">{p.name}</p>
-                          <p className="text-[10px] text-text-secondary max-w-[90px] truncate">{p.vpa}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeletePayee(e, p.id)}
-                          className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1 transition-opacity"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Payment Form */}
             <form onSubmit={handlePay} className="space-y-4">
-              {/* UPI ID Input & Standee QR Scanner */}
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    UPI ID (VPA)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsScannerOpen(true)}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1.5 hover:bg-emerald-500/30 transition-all shadow-sm active:scale-95 cursor-pointer"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Scan Standee QR</span>
-                  </button>
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 9876543210@paytm or rahul@okaxis"
-                    value={vpa}
-                    onChange={(e) => setVpa(e.target.value)}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white placeholder-text-secondary focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                  {validateVpa(vpa) && (
-                    <span className="absolute right-3 top-3 text-emerald-400 text-xs flex items-center gap-1 font-semibold">
-                      <Check className="w-4 h-4" /> Valid
-                    </span>
-                  )}
-                </div>
-
-                {/* Quick Handle Chips */}
-                <div className="flex flex-wrap gap-1.5 mt-2 max-h-16 overflow-y-auto scrollbar-none">
-                  {COMMON_UPI_HANDLES.map((handle) => (
+              {/* 1. PAYEE CARD (Clean, Bold & Readable) */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                {!isManualEdit && vpa ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500/30 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-base shrink-0">
+                        {name ? name.charAt(0).toUpperCase() : <Store className="w-5 h-5" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Paying To</p>
+                        <h3 className="font-bold text-white text-base leading-tight truncate">
+                          {name || vpa.split('@')[0]}
+                        </h3>
+                        <p className="text-xs text-emerald-400/90 font-mono truncate flex items-center gap-1 mt-0.5">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span>{vpa}</span>
+                        </p>
+                      </div>
+                    </div>
                     <button
-                      key={handle}
                       type="button"
-                      onClick={() => handleAppendHandle(handle)}
-                      className="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-300 text-[11px] text-text-secondary border border-white/5 transition-colors"
+                      onClick={() => setIsManualEdit(true)}
+                      className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/80 hover:text-white transition-colors flex items-center gap-1 shrink-0"
                     >
-                      {handle}
+                      <Edit2 className="w-3 h-3" />
+                      <span>Edit</span>
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-[11px] font-bold text-white/60 uppercase tracking-wider">
+                        Recipient UPI ID or Number
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsScannerOpen(true)}
+                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 active:scale-95 transition-all"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Scan Standee</span>
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. shop@paytm or 9876543210@okaxis"
+                        value={vpa}
+                        onChange={(e) => setVpa(e.target.value)}
+                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500 transition-colors"
+                      />
+                      {validateVpa(vpa) && (
+                        <span className="absolute right-3 top-2.5 text-emerald-400 text-xs font-bold flex items-center gap-1">
+                          <Check className="w-4 h-4" />
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Quick Handle Chips (Only if user hasn't typed an '@' yet) */}
+                    {!vpa.includes('@') && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {COMMON_UPI_HANDLES.slice(0, 5).map((handle) => (
+                          <button
+                            key={handle}
+                            type="button"
+                            onClick={() => handleAppendHandle(handle)}
+                            className="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-300 text-[11px] font-medium text-white/60 border border-white/10 transition-colors"
+                          >
+                            {handle}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Recent Payees Shortcut (Compact) */}
+                {savedPayees.length > 0 && isManualEdit && (
+                  <div className="mt-3 pt-2.5 border-t border-white/10">
+                    <p className="text-[10px] uppercase font-bold text-white/40 mb-1.5">Recent Payees</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                      {savedPayees.slice(0, 4).map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleSelectRecentPayee(p)}
+                          className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/80 shrink-0 flex items-center gap-1.5"
+                        >
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.avatar_color || '#10b981' }} />
+                          <span className="truncate max-w-[80px]">{p.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Payee Name & Category */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                    Payee / Shop Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Chai Point / Friend"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-text-secondary focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                    Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-2.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer"
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c} className="bg-[#1f2937] text-white">
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              {/* 2. THE HERO: HUGE, EASY-TO-READ AMOUNT */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-[11px] font-bold text-white/60 uppercase tracking-wider mb-2">
+                  Enter Payment Amount
+                </p>
 
-              {/* Amount Input & Quick Chips */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                  Amount (₹)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-3 text-lg font-bold text-white/50">₹</span>
+                <div className="flex items-center justify-center gap-1 mb-3">
+                  <span className="text-3xl font-extrabold text-emerald-400">₹</span>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     required
-                    placeholder="0.00"
+                    placeholder="0"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl pl-8 pr-3 py-3 text-xl font-bold text-white placeholder-text-secondary focus:outline-none focus:border-emerald-500"
+                    className="w-48 bg-transparent text-center text-4xl sm:text-5xl font-black text-white placeholder-white/20 focus:outline-none tracking-tight"
+                    autoFocus={!prefillAmount}
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 mt-2">
+                {/* Quick Add Pills */}
+                <div className="flex justify-center flex-wrap gap-2">
                   {QUICK_AMOUNTS.map((amt) => (
                     <button
                       key={amt}
                       type="button"
                       onClick={() => setAmount(String(amt))}
-                      className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-300 text-xs font-medium text-text-secondary border border-white/5 transition-colors"
+                      className="px-3 py-1 rounded-xl bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-300 text-xs font-bold text-white/80 border border-white/10 transition-all active:scale-95"
                     >
                       +₹{amt}
                     </button>
@@ -418,34 +342,91 @@ export function UpiQuickPayModal({
                 </div>
               </div>
 
-              {/* Note / Description */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                  Note (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Samosa & tea with Rahul"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-text-secondary focus:outline-none focus:border-emerald-500"
-                />
+              {/* 3. CATEGORY & NOTE (Clean 2-Column Row) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-white/60 uppercase tracking-wider mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c} className="bg-[#0F172A] text-white">
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-white/60 uppercase tracking-wider mb-1">
+                    Note (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cutting chai"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
-              {/* Action Button */}
+              {/* 4. PREFERRED UPI APP (Clean 1-Tap Row - Bypasses System Chooser) */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider">
+                    Paying With
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Direct Launch (No Popup)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(showAllApps ? POPULAR_UPI_APPS : primaryApps).map((app) => {
+                    const isSelected = selectedApp === app.id;
+                    return (
+                      <button
+                        key={app.id}
+                        type="button"
+                        onClick={() => handleSelectApp(app.id)}
+                        className={`py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border ${
+                          isSelected
+                            ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] scale-[1.02]'
+                            : 'bg-black/30 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-sm">{app.iconText}</span>
+                        <span className="text-[10px] truncate max-w-full">{app.name.split(' ')[0]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAllApps(!showAllApps)}
+                  className="w-full mt-2 text-[10px] font-bold text-white/50 hover:text-white flex items-center justify-center gap-1 pt-1"
+                >
+                  <span>{showAllApps ? 'Show Less' : 'More Apps (Navi, BHIM, CRED, MobiKwik)'}</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showAllApps ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {/* 5. PRIMARY ACTION BUTTON */}
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full mt-2 py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                disabled={isSubmitting || !vpa}
+                className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-sm rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
-                <Zap className="w-4 h-4 fill-white" />
-                <span>Pay via UPI & Log {amount ? `₹${amount}` : ''}</span>
+                <Zap className="w-4 h-4 fill-black" />
+                <span>Pay {amount ? `₹${amount}` : ''} via {currentAppConfig.name}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-
-              <p className="text-[11px] text-center text-text-secondary">
-                Opens your bank UPI app with recipient & amount pre-filled.
-              </p>
             </form>
           </motion.div>
 
@@ -458,6 +439,7 @@ export function UpiQuickPayModal({
               if (data.pn) setName(data.pn);
               if (data.am) setAmount(String(data.am));
               if (data.tn) setNote(data.tn);
+              setIsManualEdit(false);
             }}
           />
         </div>
