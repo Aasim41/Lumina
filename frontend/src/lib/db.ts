@@ -30,6 +30,8 @@ export interface DBTransaction {
   merchant_raw: string;
   merchant_clean: string;
   amount: number;
+  amount_paise?: number; // Integer paise (e.g. ₹100.50 -> 10050)
+  status?: 'confirmed' | 'pending' | 'cancelled'; // Pending payment confirmation status
   currency: string;
   original_amount?: number;
   category: string;
@@ -42,6 +44,8 @@ export interface DBSubscription {
   id?: string;
   merchant: string;
   amount: number;
+  amount_paise?: number; // Integer paise (e.g. ₹100.50 -> 10050)
+  status?: 'confirmed' | 'pending' | 'cancelled'; // Pending payment confirmation status
   billing_day: number;
   created_at: string;
 }
@@ -50,6 +54,8 @@ export interface DBCategoryBudget {
   id?: string;
   category: string;
   amount: number;
+  amount_paise?: number; // Integer paise (e.g. ₹100.50 -> 10050)
+  status?: 'confirmed' | 'pending' | 'cancelled'; // Pending payment confirmation status
   rollover_balance: number;
   month_updated?: string;   // ISO date – first of month
   created_at: string;
@@ -154,6 +160,10 @@ class SmartExpenseDB extends Dexie {
     this.version(3).stores({
       transactions:    'id, date, category, merchant_clean, source, sms_hash, type',
     });
+
+    this.version(4).stores({
+      transactions:    'id, date, category, merchant_clean, source, sms_hash, type, status',
+    });
   }
 }
 
@@ -180,4 +190,27 @@ export function nowISO(): string {
 
 export function todayISO(): string {
   return new Date().toISOString().split('T')[0];
+}
+
+export function toPaise(rupees: number): number {
+  return Math.round(Number(rupees || 0) * 100);
+}
+
+export function fromPaise(paise: number): number {
+  return Math.round(Number(paise || 0)) / 100;
+}
+
+export function splitPaiseEqually(totalRupees: number, count: number): number[] {
+  if (count <= 0) return [];
+  const totalPaise = toPaise(totalRupees);
+  const base = Math.floor(totalPaise / count);
+  let remainder = totalPaise % count;
+
+  const result: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const sharePaise = base + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+    result.push(fromPaise(sharePaise));
+  }
+  return result;
 }
