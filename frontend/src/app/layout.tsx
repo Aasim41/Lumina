@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#0B1021",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -34,14 +34,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="bg-[#0B1021] overflow-x-hidden">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
       </head>
-      <body className="antialiased bg-background text-foreground min-h-screen">
-        <main className="max-w-md mx-auto min-h-screen relative shadow-2xl shadow-black bg-background pb-20">
+      <body className="antialiased bg-[#0B1021] text-foreground min-h-screen overflow-x-hidden w-full">
+        <main className="w-full max-w-md mx-auto min-h-screen relative bg-[#0B1021] pb-20 overflow-x-hidden">
           <BiometricGuard>
             {children}
           </BiometricGuard>
