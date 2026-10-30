@@ -44,9 +44,11 @@ public class NativeSmsPlugin extends Plugin {
 
     private void readSmsAndResolve(PluginCall call) {
         JSArray smsList = new JSArray();
+        Cursor cursor = null;
         try {
             Uri uri = Uri.parse("content://sms/inbox");
-            Cursor cursor = getContext().getContentResolver().query(uri, null, null, null, "date DESC");
+            String[] projection = new String[]{ "body", "address", "date" };
+            cursor = getContext().getContentResolver().query(uri, projection, null, null, "date DESC");
             
             if (cursor != null) {
                 int indexBody = cursor.getColumnIndex("body");
@@ -55,18 +57,29 @@ public class NativeSmsPlugin extends Plugin {
                 int count = 0;
                 
                 while (cursor.moveToNext() && count < 500) {
-                    JSObject sms = new JSObject();
-                    sms.put("body", cursor.getString(indexBody));
-                    sms.put("address", cursor.getString(indexAddress));
-                    sms.put("date", cursor.getString(indexDate));
-                    smsList.put(sms);
-                    count++;
+                    String body = indexBody != -1 ? cursor.getString(indexBody) : "";
+                    String address = indexAddress != -1 ? cursor.getString(indexAddress) : "";
+                    String date = indexDate != -1 ? cursor.getString(indexDate) : "";
+                    
+                    if (body != null && !body.trim().isEmpty()) {
+                        JSObject sms = new JSObject();
+                        sms.put("body", body);
+                        sms.put("address", address != null ? address : "");
+                        sms.put("date", date != null ? date : "");
+                        smsList.put(sms);
+                        count++;
+                    }
                 }
-                cursor.close();
             }
         } catch (Exception e) {
             call.reject("Failed to read SMS: " + e.getMessage(), e);
             return;
+        } finally {
+            if (cursor != null) {
+                try {
+                    cursor.close();
+                } catch (Exception ignored) {}
+            }
         }
         
         JSObject ret = new JSObject();

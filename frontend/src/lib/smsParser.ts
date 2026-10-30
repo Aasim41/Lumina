@@ -108,17 +108,43 @@ const BANK_SENDERS: Record<string, string> = {
   'NIYOX': 'Niyo',
 };
 
-// OTP / promotional / non-transaction keywords to skip
-const IGNORE_PATTERNS = [
-  /\botp\b/i, /one[\s-]*time[\s-]*password/i, /\bverification\s+code\b/i,
-  /\bkyc\b/i, /\baadhaar\b/i, /\bpan\s*card\b/i,
-  /\bapply\s+now\b/i, /\bpre.?approved\b/i, /\bloan\s*offer\b/i,
-  /\bclick\s+here\b/i, /\bdownload\s+app\b/i,
-  /\bbalance\s+enquiry\b/i, /\bmini.?statement\b/i,
-  /\blogin\s+pin\b/i, /\breset\s+password\b/i,
-  /\be-?mandate\b/i, /\bscheduled\s+for\b/i, /\bwill\s+be\s+debited\b/i,
-  /\bdue\s+on\b/i, /\brequest(?:ed)?\s+money\b/i,
+// True non-transactional patterns (OTPs, login security, pure future reminders)
+const TRUE_OTP_PATTERNS = [
+  /\b(?:is\s+your\s+otp|use\s+otp|otp\s+is|secret\s+otp|do\s+not\s+share\s+(?:your\s+)?otp|enter\s+otp|verification\s+code\s+is|one[\s-]*time[\s-]*password\s+is)\b/i,
+  /\b(?:login\s+otp|register\s+otp|netbanking\s+otp)\b/i,
 ];
+
+const FUTURE_OR_REQUEST_PATTERNS = [
+  /\b(?:has\s+requested\s+money|request(?:ed)?\s+to\s+pay|payment\s+request\s+from|mandate\s+created|scheduled\s+to\s+be\s+debited|will\s+be\s+debited\s+on)\b/i,
+];
+
+function isTransactionalSMS(body: string): boolean {
+  if (!body || body.trim().length === 0) return false;
+
+  // 1. If it's a security OTP code, reject immediately
+  for (const pat of TRUE_OTP_PATTERNS) {
+    if (pat.test(body)) return false;
+  }
+
+  // 2. If it's just an OTP code message without debit/credit context
+  if (/\botp\b/i.test(body) && /\b(?:code|pin|share|valid\s+for)\b/i.test(body) && !/\b(?:debited|credited|spent|withdrawn)\b/i.test(body)) {
+    return false;
+  }
+
+  // 3. If it's a future payment request or unpaid mandate reminder
+  for (const pat of FUTURE_OR_REQUEST_PATTERNS) {
+    if (pat.test(body) && !/\b(?:debited|credited|paid\s+to|sent\s+to|spent)\b/i.test(body)) {
+      return false;
+    }
+  }
+
+  // 4. Must have an extractable financial amount
+  if (!parseAmount(body)) return false;
+
+  // 5. Must have debit or credit indicator
+  const allKeywords = [...DEBIT_KEYWORDS, ...CREDIT_KEYWORDS];
+  return allKeywords.some(pat => pat.test(body));
+}
 
 function stripBalanceClauses(text: string): string {
   return text
