@@ -167,6 +167,8 @@ export const createTransaction = async (data: { date: string; merchant: string; 
 
   await db.transactions.add(txn);
 
+  invalidateTransactionCache();
+
   // Invalidate cached data and notify all components
   if (typeof window !== 'undefined') {
     localStorage.removeItem('lumina_transactions');
@@ -180,16 +182,24 @@ export const createTransaction = async (data: { date: string; merchant: string; 
 };
 
 export const updateTransaction = async (id: string, data: any) => {
+  invalidateTransactionCache();
   const existing = await db.transactions.get(id);
   if (existing && data.category && data.category !== existing.category) {
     recordCategoryCorrection(existing.merchant_clean || existing.merchant_raw, data.category, existing.category);
   }
   await db.transactions.update(id, data);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lumina_refresh_data'));
+  }
   return db.transactions.get(id);
 };
 
 export const deleteTransaction = async (id: string) => {
+  invalidateTransactionCache();
   await db.transactions.delete(id);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lumina_refresh_data'));
+  }
   return null;
 };
 
@@ -211,6 +221,7 @@ export const uploadCSV = async (file: File) => {
   }));
 
   await db.transactions.bulkAdd(transactions);
+  invalidateTransactionCache();
 
   const uniqueCategories = new Set(transactions.map(t => t.category));
 
@@ -241,40 +252,75 @@ export const confirmReceipt = async (data: { merchant: string; date: string; ite
   }));
 
   await db.transactions.bulkAdd(transactions);
+  invalidateTransactionCache();
   return transactions;
 };
+
+// ── In-Flight & Short-Lived Transaction Cache (Sub-Millisecond Dashboard Aggregation) ──
+let cachedTxnsPromise: Promise<DBTransaction[]> | null = null;
+let cachedTxnsData: DBTransaction[] | null = null;
+let cachedTxnsTimestamp = 0;
+
+export async function getCachedTransactions(): Promise<DBTransaction[]> {
+  const now = Date.now();
+  if (cachedTxnsData && (now - cachedTxnsTimestamp) < 1200) {
+    return cachedTxnsData;
+  }
+  if (!cachedTxnsPromise) {
+    cachedTxnsPromise = db.transactions.toArray().then(txns => {
+      cachedTxnsData = txns;
+      cachedTxnsTimestamp = Date.now();
+      cachedTxnsPromise = null;
+      return txns;
+    }).catch(err => {
+      cachedTxnsPromise = null;
+      throw err;
+    });
+  }
+  return cachedTxnsPromise;
+}
+
+export function invalidateTransactionCache() {
+  cachedTxnsData = null;
+  cachedTxnsTimestamp = 0;
+  cachedTxnsPromise = null;
+}
 
 // ── Analytics ─────────────────────────────────────────────────────
 
 export const getSummary = async () => {
-  const user = await getLocalUser();
-  return computeSummary(user);
+  const [user, txns] = await Promise.all([getLocalUser(), getCachedTransactions()]);
+  return computeSummary(user, txns);
 };
 
 export const getCategories = async () => {
-  return computeCategories();
+  const txns = await getCachedTransactions();
+  return computeCategories(txns);
 };
 
 export const getTrends = async () => {
-  return computeTrends();
+  const txns = await getCachedTransactions();
+  return computeTrends(txns);
 };
 
 export const getHeatmap = async () => {
-  return computeHeatmap();
+  const txns = await getCachedTransactions();
+  return computeHeatmap(txns);
 };
 
 export const getTopMerchants = async () => {
-  return computeTopMerchants();
+  const txns = await getCachedTransactions();
+  return computeTopMerchants(txns);
 };
 
 export const getForecast = async () => {
-  const txns = await db.transactions.toArray();
+  const txns = await getCachedTransactions();
   return forecastSpending(txns.map(t => ({ date: t.date, category: t.category, amount: t.amount })));
 };
 
 export const getInsights = async () => {
-  const user = await getLocalUser();
-  return computeInsights(user);
+  const [user, txns] = await Promise.all([getLocalUser(), getCachedTransactions()]);
+  return computeInsights(user, txns);
 };
 
 export const getAlerts = async () => {
