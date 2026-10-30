@@ -48,8 +48,8 @@ export function getBudgetCycle(user?: DBUser) {
 export const isCreditTransaction = (t: DBTransaction) => t.type === 'credit' || ['Income', 'Salary', 'Refund'].includes(t.category);
 
 // 1. computeSummary
-export async function computeSummary(user: DBUser) {
-  const allTransactions = await db.transactions.toArray();
+export async function computeSummary(user: DBUser, transactions?: DBTransaction[]) {
+  const allTransactions = transactions || (await db.transactions.toArray());
   const cycle = getBudgetCycle(user);
 
   const thisMonthTxs = allTransactions.filter(t => t.date >= cycle.startStr && t.date <= cycle.endStr);
@@ -223,8 +223,8 @@ export async function computeSummary(user: DBUser) {
 }
 
 // 2. computeCategories
-export async function computeCategories() {
-  const allTransactions = await db.transactions.toArray();
+export async function computeCategories(transactions?: DBTransaction[]) {
+  const allTransactions = transactions || (await db.transactions.toArray());
   const todayDate = new Date(todayISO());
   const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -258,8 +258,8 @@ export async function computeCategories() {
 }
 
 // 3. computeTrends
-export async function computeTrends() {
-  const allTransactions = await db.transactions.toArray();
+export async function computeTrends(transactions?: DBTransaction[]) {
+  const allTransactions = transactions || (await db.transactions.toArray());
   const todayDate = new Date(todayISO());
   const excludeCats = ['Savings', 'SecretVault'];
   
@@ -294,8 +294,8 @@ export async function computeTrends() {
 }
 
 // 4. computeHeatmap
-export async function computeHeatmap() {
-  const allTransactions = await db.transactions.toArray();
+export async function computeHeatmap(transactions?: DBTransaction[]) {
+  const allTransactions = transactions || (await db.transactions.toArray());
   const todayDate = new Date(todayISO());
   const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
   const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -328,8 +328,8 @@ export async function computeHeatmap() {
 }
 
 // 5. computeTopMerchants
-export async function computeTopMerchants() {
-  const allTransactions = await db.transactions.toArray();
+export async function computeTopMerchants(transactions?: DBTransaction[]) {
+  const allTransactions = transactions || (await db.transactions.toArray());
   const excludeCats = ['Savings', 'SecretVault'];
 
   const map: Record<string, { amount: number, count: number }> = {};
@@ -351,8 +351,8 @@ export async function computeTopMerchants() {
 }
 
 // 6. computeInsights
-export async function computeInsights(user: DBUser) {
-  const allTransactions = await db.transactions.toArray();
+export async function computeInsights(user: DBUser, transactions?: DBTransaction[]) {
+  const allTransactions = transactions || (await db.transactions.toArray());
   const excludeCats = ['Savings', 'SecretVault'];
   const todayDate = new Date(todayISO());
   
