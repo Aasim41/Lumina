@@ -464,19 +464,7 @@ function identifyBank(sender: string, body: string): string {
   return 'Bank';
 }
 
-function isTransactionalSMS(body: string): boolean {
-  // Must have an amount
-  if (!parseAmount(body)) return false;
 
-  // Must NOT be OTP/promo/reminder
-  for (const pat of IGNORE_PATTERNS) {
-    if (pat.test(body)) return false;
-  }
-
-  // Must have debit/credit context
-  const allKeywords = [...DEBIT_KEYWORDS, ...CREDIT_KEYWORDS];
-  return allKeywords.some(pat => pat.test(body));
-}
 
 export function parseSMS(body: string, sender: string, dateStr: string): ParsedTransaction | null {
   if (!isTransactionalSMS(body)) return null;
