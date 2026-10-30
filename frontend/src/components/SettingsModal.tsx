@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText, Zap, ShieldCheck, Trash2 } from 'lucide-react';
+import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText, Zap, ShieldCheck, Trash2, RefreshCw } from 'lucide-react';
 import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
@@ -391,6 +391,23 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   >
                     <FileText className="w-4 h-4" />
                     <span className="text-sm font-medium">Export Transactions as CSV</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem('lumina_synced_sms');
+                      localStorage.removeItem('lumina_last_sms_sync');
+                      localStorage.removeItem('lumina_sms_parser_version');
+                      toast.success('SMS cache reset! Starting deep re-scan...');
+                      onClose();
+                      window.dispatchEvent(new Event('lumina_refresh_data'));
+                      window.location.reload();
+                    }}
+                    className="w-full p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center space-x-3 hover:bg-cyan-500/20 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span className="text-sm font-medium">Deep Re-scan SMS Inbox (Past 60 Days)</span>
                   </button>
 
                   <input

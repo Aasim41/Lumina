@@ -470,7 +470,7 @@ export default function Dashboard() {
                           <button
                             onClick={() => {
                               setIsHeaderMenuOpen(false);
-                              syncNow();
+                              syncNow(true);
                             }}
                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
                           >

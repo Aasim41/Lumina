@@ -1,32 +1,22 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { parseMultipleSMS, ParsedTransaction } from '@/lib/smsParser';
 import { categorize } from '@/lib/categorizer';
-import { createTransaction } from '@/lib/api';
-import { db } from '@/lib/db';
-import { isAuthenticated } from '@/lib/auth';
+import { cleanMerchantName, normalizeAmount } from '@/lib/cleaner';
+import { db, DBTransaction, generateId, nowISO, toPaise } from '@/lib/db';
+import { isAuthenticated, getUser } from '@/lib/auth';
 import { parseBillFromSMS, saveTrackedBill } from '@/lib/billTracker';
 import toast from 'react-hot-toast';
 
-const SMS_PARSER_VERSION = 'v5';
+const SMS_PARSER_VERSION = 'v6';
 
-// One-time migration to clean up old SMS transactions that showed bank account names/numbers
+// One-time migration to clean up outdated SMS caches and re-sync cleanly
 async function ensureParserMigration(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
     const currentVersion = localStorage.getItem('lumina_sms_parser_version');
     if (currentVersion === SMS_PARSER_VERSION) return;
 
-    // Remove previously auto-synced SMS transactions so they can be cleanly re-parsed with v5
-    const allTxns = await db.transactions.toArray();
-    const autoSmsIds = allTxns
-      .filter(t => t.source === 'auto_sms' || Boolean(t.sms_hash))
-      .map(t => t.id!)
-      .filter(Boolean);
-
-    if (autoSmsIds.length > 0) {
-      await db.transactions.bulkDelete(autoSmsIds);
-    }
-
+    // Reset synced hashes cache to allow full re-sync of past 60 days
     localStorage.removeItem('lumina_synced_sms');
     localStorage.removeItem('lumina_last_sms_sync');
     localStorage.removeItem('lumina_transactions');
@@ -35,7 +25,7 @@ async function ensureParserMigration(): Promise<void> {
     localStorage.removeItem('lumina_trends');
     localStorage.setItem('lumina_sms_parser_version', SMS_PARSER_VERSION);
 
-    window.dispatchEvent(new Event('lumina-data-changed'));
+    window.dispatchEvent(new Event('lumina_refresh_data'));
   } catch (e) {
     console.warn('SMS parser migration warning:', e);
   }
@@ -58,14 +48,6 @@ function addSyncedHashes(hashes: string[]) {
   localStorage.setItem('lumina_synced_sms', JSON.stringify(trimmed));
 }
 
-function getLastSyncTime(): number {
-  try {
-    return parseInt(localStorage.getItem('lumina_last_sms_sync') || '0');
-  } catch {
-    return 0;
-  }
-}
-
 function setLastSyncTime(time: number) {
   localStorage.setItem('lumina_last_sms_sync', String(time));
 }
@@ -78,27 +60,30 @@ async function readSMSMessages(): Promise<Array<{ body: string; sender: string; 
     }
 
     const NativeSms = registerPlugin<any>('NativeSms');
-
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    const lastSync = getLastSyncTime();
-    const since = Math.max(thirtyDaysAgo, lastSync);
-
     const result = await NativeSms.getSms();
-    if (!result.smsList) return [];
+    if (!result || !result.smsList || !Array.isArray(result.smsList)) return [];
+
+    const sixtyDaysAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
 
     return result.smsList
       .filter((sms: any) => {
-        const smsTime = parseInt(sms.date || '0');
-        return smsTime >= since;
+        let smsTime = parseInt(sms.date || '0');
+        if (smsTime > 0 && smsTime < 1e11) smsTime *= 1000;
+        return smsTime >= sixtyDaysAgo;
       })
-      .map((sms: any) => ({
-        body: sms.body || '',
-        sender: sms.address || '',
-        date: new Date(parseInt(sms.date || Date.now())).toISOString().split('T')[0],
-      }));
+      .map((sms: any) => {
+        let smsTime = parseInt(sms.date || '0');
+        if (smsTime > 0 && smsTime < 1e11) smsTime *= 1000;
+        if (!smsTime || isNaN(smsTime)) smsTime = Date.now();
+        return {
+          body: sms.body || '',
+          sender: sms.address || '',
+          date: new Date(smsTime).toISOString().split('T')[0],
+        };
+      });
   } catch (e) {
     console.warn('SMS read failed (permission likely denied):', e);
-    return []; // Never crash — just return empty
+    return [];
   }
 }
 
@@ -110,8 +95,13 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
   lastCreditMerchant: string;
   lastDebitMerchant: string;
 }> {
-  const syncedHashes = getSyncedHashes();
-  const newTransactions = parsed.filter(t => !syncedHashes.has(t.smsHash));
+  // 1. Fetch all current transactions from IndexedDB in ONE fast query
+  const allExistingTxns = await db.transactions.toArray();
+  const existingHashes = new Set(allExistingTxns.map(t => t.sms_hash).filter(Boolean));
+  const cachedHashes = getSyncedHashes();
+
+  // Filter parsed transactions to only those not already logged
+  const newTransactions = parsed.filter(t => !existingHashes.has(t.smsHash) && !cachedHashes.has(t.smsHash));
 
   if (newTransactions.length === 0) {
     return {
@@ -124,29 +114,55 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
     };
   }
 
+  // Pre-index pending transactions for O(1) matching
+  const pendingTxns = allExistingTxns.filter(t => t.status === 'pending');
+  const pendingUpdates: Array<{ id: string; changes: any }> = [];
+
+  // Pre-index existing non-cancelled transactions for cross-source deduplication
+  const existingKeySet = new Set(
+    allExistingTxns
+      .filter(t => t.status !== 'cancelled')
+      .map(t => `${t.date}_${t.amount}_${(t.merchant_clean || '').toLowerCase().trim()}`)
+  );
+
+  let userId: string | undefined;
+  try {
+    const cachedUser = getUser();
+    if (cachedUser?.id) {
+      userId = cachedUser.id;
+    } else {
+      const dbUser = await db.users.toCollection().first();
+      if (dbUser?.id) userId = dbUser.id;
+    }
+  } catch {}
+
+  const txnsToInsert: DBTransaction[] = [];
+  const newlySyncedHashes: string[] = [];
+
   let syncedCredits = 0;
   let syncedDebits = 0;
   let totalCreditAmount = 0;
   let totalDebitAmount = 0;
   let lastCreditMerchant = '';
   let lastDebitMerchant = '';
-  const newHashes: string[] = [];
 
   for (const txn of newTransactions) {
-    try {
-      // 1. Check for matching pending UPI payment to reconcile & confirm
-      const pendingMatch = await db.transactions
-        .filter(t => t.status === 'pending' && Math.abs(t.amount - txn.amount) < 0.01)
-        .first();
-
-      if (pendingMatch && pendingMatch.id) {
-        await db.transactions.update(pendingMatch.id, {
-          status: 'confirmed',
-          sms_hash: txn.smsHash,
-          merchant_raw: txn.merchant || pendingMatch.merchant_raw,
+    // A. Reconcile with pending manual/UPI payment
+    const pendingIdx = pendingTxns.findIndex(p => Math.abs(p.amount - txn.amount) < 0.01);
+    if (pendingIdx !== -1) {
+      const matchedPending = pendingTxns[pendingIdx];
+      pendingTxns.splice(pendingIdx, 1);
+      if (matchedPending.id) {
+        pendingUpdates.push({
+          id: matchedPending.id,
+          changes: {
+            status: 'confirmed',
+            sms_hash: txn.smsHash,
+            merchant_raw: txn.merchant || matchedPending.merchant_raw,
+          }
         });
         localStorage.removeItem('lumina_pending_payment');
-        newHashes.push(txn.smsHash);
+        newlySyncedHashes.push(txn.smsHash);
         if (txn.type === 'credit') {
           syncedCredits++;
           totalCreditAmount += txn.amount;
@@ -156,54 +172,75 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
         }
         continue;
       }
+    }
 
-      // 2. Cross-source Deduplication (e.g. manual entry or CSV import with same amount & date)
-      const existingMatch = await db.transactions
-        .filter(t => 
-          t.status !== 'cancelled' &&
-          t.date === txn.date &&
-          Math.abs(t.amount - txn.amount) < 0.01 &&
-          (t.merchant_clean?.toLowerCase().includes(txn.merchant.toLowerCase()) || 
-           txn.merchant.toLowerCase().includes(t.merchant_clean?.toLowerCase() || ''))
-        )
-        .first();
+    // B. Cross-source deduplication
+    const cleanMerchant = cleanMerchantName(txn.merchant);
+    const dedupeKey = `${txn.date}_${txn.amount}_${cleanMerchant.toLowerCase().trim()}`;
+    if (cleanMerchant !== 'Upi Payment' && cleanMerchant !== 'Money Received' && existingKeySet.has(dedupeKey)) {
+      newlySyncedHashes.push(txn.smsHash);
+      continue;
+    }
+    existingKeySet.add(dedupeKey);
 
-      if (existingMatch) {
-        newHashes.push(txn.smsHash);
-        continue; // Deduplicated, skip duplicate creation
-      }
+    const category = categorize(txn.merchant, txn.type, txn.rawBody);
+    const normAmount = normalizeAmount(txn.amount);
 
-      const category = categorize(txn.merchant, txn.type, txn.rawBody);
-      await createTransaction({
-        date: txn.date,
-        merchant: txn.merchant,
-        amount: txn.amount,
-        category,
-        type: txn.type, // 'credit' | 'debit'
-        source: 'auto_sms',
-        sms_hash: txn.smsHash,
-      });
-      newHashes.push(txn.smsHash);
+    txnsToInsert.push({
+      id: generateId(),
+      user_id: userId,
+      sms_hash: txn.smsHash,
+      date: txn.date,
+      merchant_raw: txn.merchant,
+      merchant_clean: cleanMerchant,
+      amount: normAmount,
+      amount_paise: toPaise(normAmount),
+      status: 'confirmed',
+      currency: 'INR',
+      category,
+      type: txn.type,
+      source: 'auto_sms',
+      created_at: nowISO(),
+    });
 
-      if (txn.type === 'credit') {
-        syncedCredits++;
-        totalCreditAmount += txn.amount;
-        lastCreditMerchant = txn.merchant;
-      } else {
-        syncedDebits++;
-        totalDebitAmount += txn.amount;
-        lastDebitMerchant = txn.merchant;
-      }
-    } catch (e) {
-      console.error('Failed to sync transaction:', e);
+    newlySyncedHashes.push(txn.smsHash);
+
+    if (txn.type === 'credit') {
+      syncedCredits++;
+      totalCreditAmount += normAmount;
+      lastCreditMerchant = cleanMerchant;
+    } else {
+      syncedDebits++;
+      totalDebitAmount += normAmount;
+      lastDebitMerchant = cleanMerchant;
     }
   }
 
-  if (newHashes.length > 0) {
-    addSyncedHashes(newHashes);
+  // C. Atomic batch write to Dexie
+  if (txnsToInsert.length > 0) {
+    await db.transactions.bulkAdd(txnsToInsert);
+  }
+
+  // D. Update reconciled pending items
+  if (pendingUpdates.length > 0) {
+    await Promise.all(pendingUpdates.map(u => db.transactions.update(u.id, u.changes)));
+  }
+
+  if (newlySyncedHashes.length > 0) {
+    addSyncedHashes(newlySyncedHashes);
+  }
+
+  // Invalidate UI caches and notify all components in ONE broadcast
+  if (typeof window !== 'undefined' && (txnsToInsert.length > 0 || pendingUpdates.length > 0)) {
+    localStorage.removeItem('lumina_transactions');
+    localStorage.removeItem('lumina_summary');
+    localStorage.removeItem('lumina_categories');
+    localStorage.removeItem('lumina_trends');
+    window.dispatchEvent(new Event('lumina_refresh_data'));
   }
 
   setLastSyncTime(Date.now());
+
   return {
     syncedCredits,
     syncedDebits,
@@ -217,19 +254,27 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
 export function useSMSSync(onSyncComplete?: (count: number) => void) {
   const isSyncing = useRef(false);
 
-  const doSync = useCallback(async () => {
+  const doSync = useCallback(async (isManual: boolean = false) => {
     if (isSyncing.current) return;
-
     if (!isAuthenticated()) return;
 
     isSyncing.current = true;
+    let toastId: string | undefined;
+
+    if (isManual) {
+      toastId = toast.loading('Scanning SMS for transactions... 🔍');
+    }
 
     try {
-      // Ensure one-time migration removes old bank-account-named SMS entries
+      // Ensure one-time migration to clean up outdated caches
       await ensureParserMigration();
 
       const messages = await readSMSMessages();
       if (messages.length === 0) {
+        if (isManual) {
+          toast.dismiss(toastId);
+          toast('No bank SMS messages found in the last 60 days.', { icon: 'ℹ️' });
+        }
         isSyncing.current = false;
         return;
       }
@@ -246,6 +291,10 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
 
       const parsed = parseMultipleSMS(messages);
       if (parsed.length === 0) {
+        if (isManual) {
+          toast.dismiss(toastId);
+          toast.success('All transactions are up to date! ✨', { icon: '✅' });
+        }
         isSyncing.current = false;
         return;
       }
@@ -260,6 +309,10 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
       } = await syncTransactions(parsed);
 
       const totalCount = syncedCredits + syncedDebits;
+
+      if (isManual) {
+        toast.dismiss(toastId);
+      }
 
       if (totalCount > 0) {
         let notificationTitle = 'Transactions Tracked! 💰';
@@ -279,7 +332,7 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
           toast.success(notificationBody, { icon: '💰', duration: 4500 });
         }
 
-        // Try native notification but don't crash if it fails
+        // Native notification
         try {
           const { Capacitor } = await import('@capacitor/core');
           if (Capacitor.isNativePlatform()) {
@@ -294,14 +347,18 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
               ],
             });
           }
-        } catch (e) {
-          console.warn('Local notification error (non-fatal):', e);
-        }
+        } catch {}
 
         if (onSyncComplete) onSyncComplete(totalCount);
+      } else if (isManual) {
+        toast.success('All transactions are up to date! ✨', { icon: '✅' });
       }
     } catch (e: any) {
-      console.warn('SMS sync error (non-fatal):', e);
+      console.warn('SMS sync error:', e);
+      if (isManual) {
+        toast.dismiss(toastId);
+        toast.error('Could not sync SMS. Make sure SMS permission is allowed in Android Settings.');
+      }
     } finally {
       isSyncing.current = false;
     }
@@ -310,8 +367,8 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
   // Sync on app open
   useEffect(() => {
     const timer = setTimeout(() => {
-      doSync();
-    }, 1500);
+      doSync(false);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [doSync]);
@@ -319,7 +376,7 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
   // Background sync: re-sync every 15 minutes
   useEffect(() => {
     const interval = setInterval(() => {
-      doSync();
+      doSync(false);
     }, 15 * 60 * 1000);
 
     return () => clearInterval(interval);
@@ -329,7 +386,7 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        doSync();
+        doSync(false);
       }
     };
 
@@ -337,5 +394,5 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [doSync]);
 
-  return { syncNow: doSync };
+  return { syncNow: (isManual: boolean = true) => doSync(isManual) };
 }
