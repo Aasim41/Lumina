@@ -1,4 +1,3 @@
-import { App } from '@capacitor/app';
 import { registerPlugin } from '@capacitor/core';
 import { db, DBTransaction, generateId, todayISO } from './db';
 
@@ -202,14 +201,11 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
         } catch {}
       }
 
-      // 3. Fallback to generic App.openUrl or window.location.href
+      // 3. Fallback to window.location.href
       try {
-        await App.openUrl({ url: uri });
-        return { success: true, uri };
-      } catch {
         window.location.href = uri;
         return { success: true, uri };
-      }
+      } catch {}
     }
     return { success: true, uri };
   } catch (e) {

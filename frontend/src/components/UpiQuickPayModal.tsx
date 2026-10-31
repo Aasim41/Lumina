@@ -147,6 +147,7 @@ export function UpiQuickPayModal({
         date: todayISO(),
         amount: parsedAmt,
         amount_paise: toPaise(parsedAmt),
+        currency: 'INR',
         category,
         merchant_raw: cleanName,
         merchant_clean: cleanName,

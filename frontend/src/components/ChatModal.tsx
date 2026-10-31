@@ -250,7 +250,7 @@ Try asking:
           .sort((a, b) => b.date.localeCompare(a.date))
           .slice(0, 5)
           .map(t => ({
-            merchant: t.merchant_clean || t.merchant,
+            merchant: t.merchant_clean || t.merchant_raw,
             amount: t.amount,
             category: t.category,
             date: t.date,
