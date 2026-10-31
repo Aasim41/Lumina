@@ -110,7 +110,7 @@ export async function computeSummary(user: DBUser, transactions?: DBTransaction[
   
   const dailyTotals: Record<string, number> = {};
   allTransactions.forEach(t => {
-    if (!excludeCats.includes(t.category) && !isCredit(t)) {
+    if (!excludeCats.includes(t.category) && !isCreditTransaction(t)) {
       dailyTotals[t.date.split('T')[0]] = (dailyTotals[t.date.split('T')[0]] || 0) + t.amount;
     }
   });
@@ -275,7 +275,7 @@ export async function computeTrends(transactions?: DBTransaction[]) {
   const twelveMonthsAgo = new Date(todayDate.getFullYear(), todayDate.getMonth() - 11, 1);
 
   allTransactions.forEach(t => {
-    if (!excludeCats.includes(t.category) && !isCredit(t)) {
+    if (!excludeCats.includes(t.category) && !isCreditTransaction(t)) {
       const d = new Date(t.date);
       if (d >= twelveMonthsAgo) {
         const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -648,6 +648,7 @@ export async function computeWrapUp() {
       top_category = cat;
     }
   }
+  const top_category_percentage = total_spent > 0 ? Math.round((top_category_amount / total_spent) * 100) : 0;
 
   // Compute merchant frequency
   const merchantCounts: Record<string, { count: number; amount: number }> = {};
@@ -673,6 +674,8 @@ export async function computeWrapUp() {
     .reduce((sum, t) => sum + t.amount, 0);
 
   const net_savings = thisMonthIncome - total_spent;
+  const savings_vs_last_month = total_last_month - total_spent;
+  const is_positive_savings = savings_vs_last_month >= 0;
 
   // Determine Archetype
   let archetype = {

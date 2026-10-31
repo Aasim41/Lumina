@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { CATEGORY_COLORS } from '@/lib/utils';
 import { Button } from './ui/Button';
 import { X, Camera } from 'lucide-react';
