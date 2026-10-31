@@ -11,7 +11,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { MetricCard } from '@/components/MetricCard';
 import { CategoryDonutChart } from '@/components/CategoryDonutChart';
 import { SpendingLineChart } from '@/components/SpendingLineChart';
-import { ChatModal } from '@/components/ChatModal';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -25,8 +24,6 @@ import { SecuritySettingsModal } from '@/components/SecuritySettingsModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
-import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
-import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
 import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
 import { LuminaLogo } from '@/components/LuminaLogo';
@@ -149,7 +146,6 @@ export default function Dashboard() {
   
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [showReviewBanner, setShowReviewBanner] = useState(true);
   const [insights, setInsights] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -158,9 +154,6 @@ export default function Dashboard() {
   const [isPersonaPickerOpen, setIsPersonaPickerOpen] = useState(false);
   const [personaLoading, setPersonaLoading] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
-  const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
-  const [isUpiScannerOpen, setIsUpiScannerOpen] = useState(false);
-  const [scannedUpiData, setScannedUpiData] = useState<any>(null);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -420,30 +413,7 @@ export default function Dashboard() {
               
               {/* Right: Modern Compact Action Pill Hub */}
               <div className="flex items-center space-x-1.5 shrink-0">
-                {/* 1. Standee QR Scanner Button */}
-                <button 
-                  onClick={() => setIsUpiScannerOpen(true)}
-                  className="p-2 sm:px-2.5 sm:py-2 bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 rounded-2xl hover:bg-emerald-500/25 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer flex items-center gap-1"
-                  title="Scan Standee QR Code"
-                >
-                  <QrCode className="w-4 h-4 text-emerald-400" />
-                  <span className="hidden sm:inline text-xs font-semibold text-emerald-300">Scan</span>
-                </button>
-
-                {/* 2. Fast UPI Pay Button */}
-                <button 
-                  onClick={() => {
-                    setScannedUpiData(null);
-                    setIsUpiModalOpen(true);
-                  }}
-                  className="px-2.5 py-2 sm:px-3.5 bg-gradient-to-r from-emerald-500/25 to-teal-500/25 border border-emerald-500/40 text-emerald-300 rounded-2xl text-xs font-bold flex items-center space-x-1 hover:bg-emerald-500/35 transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
-                  title="Quick UPI Pay & Auto-Log"
-                >
-                  <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-                  <span>Pay</span>
-                </button>
-
-                {/* 3. Sleek Quick Utility Menu (Sync, Security, Save, Logout) */}
+                {/* Sleek Quick Utility Menu (Security, Save, Logout) */}
                 <div className="relative">
                   <button 
                     onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
@@ -467,17 +437,6 @@ export default function Dashboard() {
                           transition={{ duration: 0.15 }}
                           className="absolute right-0 top-11 z-40 w-48 rounded-2xl bg-[#111827]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-1.5 space-y-1 text-xs text-white"
                         >
-                          <button
-                            onClick={() => {
-                              setIsHeaderMenuOpen(false);
-                              syncNow(true);
-                            }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Sync SMS Expenses</span>
-                          </button>
-                          
                           <button
                             onClick={() => {
                               setIsHeaderMenuOpen(false);
@@ -604,81 +563,6 @@ export default function Dashboard() {
               todayTxCount={summary?.today_tx_count || 0}
               onInfoClick={showInfoToast}
             />
-
-            {/* Cash Flow Summary Widget (Inflow, Outflow, Net Balance) */}
-            <div className="mt-4 glass p-4 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <div className="flex items-center justify-between mb-3 px-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                    <ArrowDownLeft className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-semibold text-white/90">Cash Flow This Month</span>
-                </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  (summary?.net_cash_flow ?? 0) >= 0 
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                }`}>
-                  {(summary?.net_cash_flow ?? 0) >= 0 ? 'Cash Positive ✨' : 'Cash Negative ⚠️'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {/* Total Inflow */}
-                <div 
-                  onClick={() => showInfoToast("Total Inflow 📥", "Total money received and credited to your accounts this month.", <ArrowDownLeft className="w-5 h-5 text-emerald-400" />)}
-                  className="gsap-cash-item p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col cursor-pointer hover:bg-emerald-500/15 transition-all"
-                >
-                  <div className="flex items-center gap-1 text-[11px] text-emerald-400/90 font-medium mb-1">
-                    <ArrowDownLeft className="w-3 h-3" />
-                    <span>Inflow</span>
-                  </div>
-                  <AnimatedCounter 
-                    value={summary?.total_income_this_month || 0}
-                    prefix="+"
-                    className="text-sm sm:text-base font-bold text-emerald-400 truncate"
-                  />
-                </div>
-
-                {/* Total Outflow */}
-                <div 
-                  onClick={() => showInfoToast("Total Outflow 📤", "Total money spent and debited from your accounts this month.", <ArrowUpRight className="w-5 h-5 text-rose-400" />)}
-                  className="gsap-cash-item p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-col cursor-pointer hover:bg-rose-500/15 transition-all"
-                >
-                  <div className="flex items-center gap-1 text-[11px] text-rose-400/90 font-medium mb-1">
-                    <ArrowUpRight className="w-3 h-3" />
-                    <span>Outflow</span>
-                  </div>
-                  <AnimatedCounter 
-                    value={totalSpent + totalSubscriptions}
-                    prefix="-"
-                    className="text-sm sm:text-base font-bold text-rose-400 truncate"
-                  />
-                </div>
-
-                {/* Net Savings / Cash Flow */}
-                <div 
-                  onClick={() => showInfoToast("Net Cash Flow 💰", "Total Inflow minus Outflow. Positive means you earned more than you spent!", <Wallet className="w-5 h-5 text-indigo-400" />)}
-                  className={`gsap-cash-item p-3 rounded-2xl border flex flex-col cursor-pointer transition-all ${
-                    (summary?.net_cash_flow ?? 0) >= 0
-                      ? 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15'
-                      : 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/15'
-                  }`}
-                >
-                  <div className="flex items-center gap-1 text-[11px] text-white/70 font-medium mb-1">
-                    <Wallet className="w-3 h-3" />
-                    <span>Net Flow</span>
-                  </div>
-                  <AnimatedCounter
-                    value={summary?.net_cash_flow ?? 0}
-                    prefix={(summary?.net_cash_flow ?? 0) >= 0 ? '+' : ''}
-                    className={`text-sm sm:text-base font-bold truncate ${
-                      (summary?.net_cash_flow ?? 0) >= 0 ? 'text-indigo-300' : 'text-amber-400'
-                    }`}
-                  />
-                </div>
-              </div>
-            </div>
           </header>
 
           <motion.div 
