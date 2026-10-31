@@ -13,6 +13,7 @@ import { categorize, recordCategoryCorrection } from './categorizer';
 import { cleanMerchantName, normalizeAmount } from './cleaner';
 import { forecastSpending } from './forecaster';
 import { parseCSV } from './csvParser';
+import { triggerAutoSnapshot } from './dataBackup';
 import {
   computeSummary,
   computeCategories,
@@ -284,6 +285,7 @@ export function invalidateTransactionCache() {
   cachedTxnsData = null;
   cachedTxnsTimestamp = 0;
   cachedTxnsPromise = null;
+  triggerAutoSnapshot();
 }
 
 // ── Analytics ─────────────────────────────────────────────────────

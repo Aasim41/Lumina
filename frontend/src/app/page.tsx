@@ -30,6 +30,7 @@ import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
 import { App as CapApp } from '@capacitor/app';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
+import { restoreFromAutoFilesystemSnapshotIfEmpty, saveAutoFilesystemSnapshot } from '@/lib/dataBackup';
 
 import { formatCurrency, PERSONA_CONFIGS, formatTitleCase } from '@/lib/utils';
 import { generateMonthlyStatement } from '@/lib/PDFGenerator';
@@ -66,6 +67,23 @@ export default function Dashboard() {
 
     if (typeof window !== 'undefined') {
       handleShortcutAction(window.location.href);
+
+      // Automated cold-start vault recovery (restores data if IndexedDB was wiped)
+      restoreFromAutoFilesystemSnapshotIfEmpty().then((res) => {
+        if (res.restored) {
+          toast.success(`Restored ${res.txCount} transactions from secure backup`, { icon: '🛡️' });
+          refresh();
+        }
+      });
+    }
+
+    const handleVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        saveAutoFilesystemSnapshot().catch(() => {});
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibility);
     }
 
     const sub = CapApp.addListener('appUrlOpen', (data) => {
@@ -76,6 +94,9 @@ export default function Dashboard() {
 
     return () => {
       sub.then(s => s.remove()).catch(() => {});
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibility);
+      }
     };
   }, []);
 

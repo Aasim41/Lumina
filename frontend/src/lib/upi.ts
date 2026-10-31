@@ -241,6 +241,82 @@ export interface ParsedUpiData {
   raw: string;
 }
 
+function parseBharatQr(emv: string): ParsedUpiData | null {
+  if (!emv || !emv.startsWith('000201')) return null;
+
+  try {
+    let index = 0;
+    const tags: Record<string, string> = {};
+
+    while (index < emv.length - 4) {
+      const tag = emv.substring(index, index + 2);
+      const lenStr = emv.substring(index + 2, index + 4);
+      const len = parseInt(lenStr, 10);
+      if (isNaN(len) || index + 4 + len > emv.length) break;
+      const val = emv.substring(index + 4, index + 4 + len);
+      tags[tag] = val;
+      index += 4 + len;
+    }
+
+    // Look for NPCI UPI tags: Tag 26 through 51
+    let pa: string | undefined;
+    const extraParams: Record<string, string> = {};
+
+    for (let t = 26; t <= 51; t++) {
+      const tagKey = t.toString().padStart(2, '0');
+      const data = tags[tagKey];
+      if (data) {
+        if (data.includes('upi://pay') || data.includes('pa=')) {
+          const subParsed = parseUpiUri(data);
+          if (subParsed) return subParsed;
+        }
+
+        // Sub-tags in EMVCo: 00 = AID/GUI, 01 = VPA
+        let subIdx = 0;
+        let isUpi = false;
+        while (subIdx < data.length - 4) {
+          const subTag = data.substring(subIdx, subIdx + 2);
+          const subLen = parseInt(data.substring(subIdx + 2, subIdx + 4), 10);
+          if (isNaN(subLen) || subIdx + 4 + subLen > data.length) break;
+          const subVal = data.substring(subIdx + 4, subIdx + 4 + subLen);
+          if (subTag === '00' && /npci|upi/i.test(subVal)) {
+            isUpi = true;
+          }
+          if (subTag === '01') {
+            pa = subVal;
+          }
+          subIdx += 4 + subLen;
+        }
+        if (isUpi && pa) break;
+      }
+    }
+
+    if (!pa) {
+      // Direct regex fallback for VPA in EMVCo string
+      const vpaMatch = emv.match(/([a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64})/);
+      if (vpaMatch) pa = vpaMatch[1];
+    }
+
+    if (!pa) return null;
+
+    const pn = tags['59'] ? tags['59'].trim() : undefined;
+    const am = tags['54'] ? parseFloat(tags['54']) : undefined;
+    const mc = tags['52'] ? tags['52'].trim() : undefined;
+    if (mc) extraParams['mc'] = mc;
+
+    return {
+      pa: pa.trim(),
+      pn,
+      am: am && !isNaN(am) ? am : undefined,
+      mc,
+      extraParams,
+      raw: emv
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function parseUpiUri(rawUri: string): ParsedUpiData | null {
   if (!rawUri || typeof rawUri !== 'string') return null;
   let trimmed = rawUri.trim();
@@ -253,6 +329,12 @@ export function parseUpiUri(rawUri: string): ParsedUpiData | null {
       extraParams: {},
       raw: trimmed
     };
+  }
+
+  // Check for BharatQR / EMVCo standard terminal QR (starts with 000201)
+  if (trimmed.startsWith('000201')) {
+    const bharatQr = parseBharatQr(trimmed);
+    if (bharatQr) return bharatQr;
   }
 
   // Handle URL-encoded deep links (e.g. https://...?url=upi%3A%2F%2Fpay...)
