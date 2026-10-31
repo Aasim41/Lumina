@@ -170,11 +170,11 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
       const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera');
 
       const photo = await CapCamera.getPhoto({
-        quality: 90,
+        quality: 95,
         resultType: CameraResultType.DataUrl,
         source: CameraSource.Photos,
-        width: 1280,
-        height: 1280,
+        width: 2048,
+        height: 2048,
       });
 
       if (!photo.dataUrl) {
