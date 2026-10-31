@@ -38,7 +38,14 @@ assert(!built1.includes('+'), 'URI builder does NOT use plus signs for spaces (u
 assert(built1.includes('am=350&') || built1.endsWith('am=350'), 'Strips unnecessary trailing zeroes (350, not 350.00)');
 assert(built1.includes('mc=5812'), 'Forwards merchant category code');
 assert(built1.includes('tr=TXN123456'), 'Forwards transaction ref');
-assert(built1.includes('mode=00'), 'Includes NPCI mode=00');
+assert(!built1.includes('mode=00'), 'Does NOT inject artificial mode=00 on generic payments (avoids bank limit rejection)');
+
+const builtWithMode = buildUpiUri({
+  pa: 'merchant@upi',
+  am: 100,
+  extraParams: { mode: '02' }
+});
+assert(builtWithMode.includes('mode=02'), 'Forwards mode parameter when present in extraParams');
 
 // 3. Raw VPA String
 const parsedRaw = parseUpiUri('rahul@okaxis');

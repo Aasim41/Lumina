@@ -154,8 +154,8 @@ export function buildUpiUri(params: UpiPaymentParams): string {
 
   // Add mode=00 if not already present in extraParams
   const extras = params.extraParams || {};
-  if (!extras['mode']) {
-    parts.push('mode=00');
+  if (extras['mode']) {
+    parts.push('mode=' + encodeURIComponent(extras['mode']));
   }
 
   // Forward ALL extra QR params (tr, tid, orgid, mid, msid, mtid, sign, etc.)
@@ -170,7 +170,22 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
   // Always use buildUpiUri when amount is specified or parameters are adjusted.
   // buildUpiUri preserves all extra merchant params (mc, tr, tid, etc.) while
   // ensuring compliant encoding (%20 for spaces, clean decimal amounts, mode=00).
-  const uri = (params.rawQrUri && !params.am) ? params.rawQrUri : buildUpiUri(params);
+  let uri = '';
+  if (params.rawQrUri && params.rawQrUri.startsWith('upi://pay')) {
+    if (params.am) {
+      const amountStr = Number(params.am).toFixed(2).replace(/\.?0+$/, '');
+      if (/[?&]am=/i.test(params.rawQrUri)) {
+        uri = params.rawQrUri.replace(/([?&])am=[^&]*/i, `$1am=${encodeURIComponent(amountStr)}`);
+      } else {
+        const sep = params.rawQrUri.includes('?') ? '&' : '?';
+        uri = `${params.rawQrUri}${sep}am=${encodeURIComponent(amountStr)}&cu=INR`;
+      }
+    } else {
+      uri = params.rawQrUri;
+    }
+  } else {
+    uri = buildUpiUri(params);
+  }
   const preferredAppId = params.appId || getDefaultUpiApp();
   const appConfig = POPULAR_UPI_APPS.find(a => a.id === preferredAppId);
   const targetPackage = (appConfig && appConfig.id !== 'any') ? appConfig.packageName : undefined;
