@@ -28,10 +28,10 @@ function hashSMS(body: string, date: string): string {
 
 // Amount patterns: Rs.500, Rs 500.00, INR 1,500.00, Rs.1,23,456.78, ₹ 500, debited by 120.0
 const AMOUNT_PATTERNS = [
-  /(?:debited|credited|spent|paid|received|sent|withdrawn|deducted|charged|trf|transferred)\s*(?:with|by|for|of|:)?\s*(?:rs\.?|inr\.?|rupees?|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  /(?:debited|credited|spent|paid|received|sent|withdrawn|deducted|charged|trf|transferred|payment)\s*(?:with|by|for|of|:)?\s*(?:rs\.?|inr\.?|rupees?|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
   /(?:rs\.?|inr\.?|rupees?|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:has\s+been|is|was)?\s*(?:debited|credited|spent|paid|received|sent|withdrawn|deducted)/i,
   /(?:debited|credited)\s+(?:by|with|for)\s*(?:rs\.?|inr\.?|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-  /(?:amount|amt|txn|transaction)\s*(?:of|for|:)?\s*(?:rs\.?|inr\.?|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  /(?:amount|amt|txn|transaction|payment)\s*(?:of|for|:)?\s*(?:rs\.?|inr\.?|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
   /([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:has\s+been|is|was)\s*(?:debited|credited)/i,
   /(?:rs\.?|inr\.?|rupees?|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
 ];
@@ -41,6 +41,9 @@ const DEBIT_KEYWORDS = [
   /\bdebited\b/i, /\bspent\b/i, /\bpaid\b/i, /\bsent\b/i, /\bpurchase(?:d)?\b/i,
   /\bwithdrawn\b/i, /\bwithdrawal\b/i, /\btransferred\s+to\b/i, /\btrf\s+to\b/i,
   /\bdeducted\b/i, /\bcharged\b/i, /\bauto.?pay\b/i, /\bdr\.?\b/i,
+  /\bpayment\s+(?:of|towards|was\s+successful)\b/i,
+  /\b(?:transaction|txn)\s+of\b/i,
+  /\bmade\s+on\b/i,
 ];
 
 // Credit indicators
@@ -108,21 +111,24 @@ const BANK_SENDERS: Record<string, string> = {
   'NIYOX': 'Niyo',
 };
 
-// True non-transactional patterns (OTPs, login security, pure future reminders)
-const TRUE_OTP_PATTERNS = [
+// True non-transactional patterns (OTPs, login security, future reminders, payment requests, marketing)
+const NON_TRANSACTIONAL_PATTERNS = [
   /\b(?:is\s+your\s+otp|use\s+otp|otp\s+is|secret\s+otp|do\s+not\s+share\s+(?:your\s+)?otp|enter\s+otp|verification\s+code\s+is|one[\s-]*time[\s-]*password\s+is)\b/i,
   /\b(?:login\s+otp|register\s+otp|netbanking\s+otp)\b/i,
-];
-
-const FUTURE_OR_REQUEST_PATTERNS = [
-  /\b(?:has\s+requested\s+money|request(?:ed)?\s+to\s+pay|payment\s+request\s+from|mandate\s+created|scheduled\s+to\s+be\s+debited|will\s+be\s+debited\s+on)\b/i,
+  /\bpayment\s+request\b/i,
+  /\brequest(?:ed)?\s+(?:to\s+pay|money)\b/i,
+  /\b(?:scheduled|due)\s+to\s+be\s+debited\b/i,
+  /\bwill\s+be\s+debited\s+on\b/i,
+  /\bmandate\s+(?:created|scheduled|active)\b/i,
+  /\bpre-?approved\s+(?:for\s+a\s+)?loan\b/i,
+  /\bapply\s+now\b/i,
 ];
 
 function isTransactionalSMS(body: string): boolean {
   if (!body || body.trim().length === 0) return false;
 
-  // 1. If it's a security OTP code, reject immediately
-  for (const pat of TRUE_OTP_PATTERNS) {
+  // 1. If it matches any non-transactional disqualifier, reject immediately
+  for (const pat of NON_TRANSACTIONAL_PATTERNS) {
     if (pat.test(body)) return false;
   }
 
@@ -131,17 +137,10 @@ function isTransactionalSMS(body: string): boolean {
     return false;
   }
 
-  // 3. If it's a future payment request or unpaid mandate reminder
-  for (const pat of FUTURE_OR_REQUEST_PATTERNS) {
-    if (pat.test(body) && !/\b(?:debited|credited|paid\s+to|sent\s+to|spent)\b/i.test(body)) {
-      return false;
-    }
-  }
-
-  // 4. Must have an extractable financial amount
+  // 3. Must have an extractable financial amount
   if (!parseAmount(body)) return false;
 
-  // 5. Must have debit or credit indicator
+  // 4. Must have debit or credit indicator
   const allKeywords = [...DEBIT_KEYWORDS, ...CREDIT_KEYWORDS];
   return allKeywords.some(pat => pat.test(body));
 }
@@ -250,8 +249,12 @@ function cleanAndValidateMerchant(raw: string): string | null {
   let cleaned = raw
     // Strip anything after pipe marker
     .split('|')[0]
+    // Strip trailing "has been credited / is credited" clauses
+    .replace(/\s+(?:has\s+been|is|was)?\s*(?:debited|credited|deposited|transferred|reversed)\b.*$/i, '')
+    // Strip trailing "using <App>" or "via <App/UPI>" or "thru <UPI>"
+    .replace(/\s+(?:using|via|thru|through)\s+.*$/i, '')
     // Strip trailing reference, date, balance, bank footer, or helpline text
-    .replace(/\s+(?:on|dated|dt|at\s+\d|via\s+upi|thru\s+upi|ref(?:\s*no|\s*id|\.|\b)|upi\s*ref|txn(?:\s*id|\b)|utr|avl|avail|available|bal(?:ance)?|clear|not\s+you|if\s+not|call|sms|block|dispute|helpline|http|www)\b.*$/i, '')
+    .replace(/\s+(?:on|dated|dt|at\s+\d|ref(?:\s*no|\s*id|\.|\b)|upi\s*ref|txn(?:\s*id|\b)|utr|avl|avail|available|bal(?:ance)?|clear|not\s+you|if\s+not|call|sms|block|dispute|helpline|http|www)\b.*$/i, '')
     // Strip trailing "- Bank Name" footer (e.g. "- Axis Bank", "- HDFC Bank", "- SBI")
     .replace(/\s*[-–]\s*(?:sbi|hdfc|icici|axis|kotak|pnb|bob|boi|canara|union|indusind|yes|idfc|federal|rbl|paytm|bank)[A-Za-z\s]*$/i, '')
     // Strip leading prepositions or VPA prefix if still attached
@@ -342,6 +345,16 @@ function parseMerchant(text: string, type: 'debit' | 'credit'): string {
     }
   }
 
+  // 1b. Check Credit Card Bill payments (CRED, Netbanking, Auto-debit)
+  if (/\b(?:credit\s+card\s+bill|card\s+bill|cc\s+bill|bill\s+payment)\b/i.test(text)) {
+    const bankMatch = text.match(/\b(SBI|HDFC|ICICI|Axis|Kotak|PNB|BOB|Canara|IndusInd|IDFC|Federal|RBL|OneCard|Amex)\b/i);
+    if (bankMatch) {
+      const bName = bankMatch[1].toUpperCase();
+      return `${bName === 'ONECARD' ? 'OneCard' : bName} Credit Card Bill`;
+    }
+    return 'Credit Card Bill';
+  }
+
   // 2. Check structured NEFT / IMPS / RTGS format: e.g. NEFT Cr-SBIN0001234-ACME CORP PVT LTD
   const neftMatch = text.match(/\b(?:NEFT|IMPS|RTGS)[/:\s-]+(?:Cr|Dr|[A-Za-z0-9]{4,})[/:\s-]+([A-Za-z][A-Za-z0-9\s&.'-]{2,35})/i);
   if (neftMatch) {
@@ -355,15 +368,17 @@ function parseMerchant(text: string, type: 'debit' | 'credit'): string {
   // 4. Direction-aware extraction on stripped text
   if (type === 'debit') {
     const debitPatterns = [
-      // ICICI style: "; SWIGGY INDIA credited"
-      /;\s*([A-Za-z][A-Za-z0-9\s&.'_-]{1,35}?)\s+credited\b/i,
+      // ICICI style: "; SWIGGY INDIA credited" or ". BLINKIT credited."
+      /(?:[.;,]|\bon\s+\S+|\bdate\s+\S+)\s*([A-Za-z][A-Za-z0-9\s&.'_-]{1,35}?)\s+credited\b/i,
       // BOB / ICICI style: "debited ... and credited to ZOMATO"
       /\bcredited\s+to\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
+      // Kotak / UPI txn style: "towards UPI txn to CHAI POINT" or "for txn to ZOMATO"
+      /\b(?:towards|for)\s+(?:UPI\s+)?(?:txn|payment|transfer|trf)?\s*(?:to\s+)(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
       // SBI / HDFC / Kotak style: "trf to ZOMATO", "transferred to Swiggy", "paid to Rahul", "sent to Swiggy"
       /\b(?:trf|transfer|transferred|paid|sent)\s+to\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
-      // Card / POS style: "spent ... at NETFLIX COM"
-      /\b(?:spent|purchase(?:d)?|used|txn)\b[^|.;]{0,30}?\bat\s+([A-Za-z][A-Za-z0-9\s&.'_-]{1,35})/i,
-      // Generic "towards / to / at <Merchant>" (safe now that bank accounts are stripped)
+      // Card / POS style: "spent ... at NETFLIX COM" or "transaction of ... at STARBUCKS"
+      /\b(?:spent|purchase(?:d)?|used|txn|transaction|made\s+on)\b[^|.;]{0,40}?\bat\s+([A-Za-z][A-Za-z0-9\s&.'_-]{1,35})/i,
+      // Generic "to / at / towards <Merchant>" (safe now that bank accounts are stripped)
       /\b(?:towards|to|at)\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
     ];
 
@@ -382,12 +397,14 @@ function parseMerchant(text: string, type: 'debit' | 'credit'): string {
   } else {
     // Credit / incoming payment patterns
     const creditPatterns = [
+      // Prefix sender style: "IRCTC: Refund of Rs...", "SWIGGY: Cashback of..."
+      /^([A-Za-z][A-Za-z0-9\s&.'_-]{2,30})[:\s-]+(?:Refund|Cashback|Reversal|Credit|Deposit)\b/i,
+      // "refund from SWIGGY", "cashback from GOOGLE PAY"
+      /\b(?:refund|cashback|reversal)\s+(?:of\s+[^|]+?\s+)?(?:from|by|for|towards)\s+([A-Za-z][A-Za-z0-9\s&.'_-]{1,35})/i,
       // "transfer from RAHUL", "received ... from PRIYA", "credited ... from ANKIT", "refund ... from AMAZON"
       /\b(?:transfer(?:red)?|received|credited|deposit(?:ed)?|refund(?:ed)?|cashback|salary)\b[^|.;]{0,40}?\b(?:from|by)\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
       // Generic "from <Sender>" or "by <Sender>" (safe now that bank accounts & amounts are filtered)
       /\b(?:from|by)\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
-      // "refund for/towards <Merchant>"
-      /\b(?:refund|cashback|reversal)\s+(?:of\s+[^|]+?\s+)?(?:for|towards|from)\s+([A-Za-z][A-Za-z0-9\s&.'_-]{1,35})/i,
     ];
 
     for (const pat of creditPatterns) {

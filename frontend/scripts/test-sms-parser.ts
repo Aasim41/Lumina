@@ -24,13 +24,19 @@ const testCases: TestCase[] = [
     name: 'SBI ATM Cash Withdrawal with balance clause',
     sender: 'ATMSBI',
     body: 'Rs 2,000.00 withdrawn from A/c XX1234 on 24-10-26 at ATM KORAMANGALA BLR. Avail Bal: Rs 15,400.00 - SBI',
-    expected: { shouldParse: true, amount: 2000, type: 'debit' }
+    expected: { shouldParse: true, amount: 2000, type: 'debit', merchantSubstring: 'Atm' }
   },
   {
     name: 'SBI Salary Credit',
     sender: 'CBSSBI',
     body: 'Your A/C XX1234 is credited by Rs 75,000.00 on 31-10-26 by salary trf. Avail Bal: Rs 90,400.00',
     expected: { shouldParse: true, amount: 75000, type: 'credit' }
+  },
+  {
+    name: 'SBI Card POS Swipe at Croma',
+    sender: 'SBICRD',
+    body: 'Rs. 4,999.00 spent on your SBI Card ending 3456 at CROMA ELECTRONICS on 24-Oct-26.',
+    expected: { shouldParse: true, amount: 4999, type: 'debit', merchantSubstring: 'Croma' }
   },
 
   // ── HDFC Bank Tests ──────────────────────────────────────────────
@@ -52,6 +58,12 @@ const testCases: TestCase[] = [
     body: 'Rs. 499.00 has been credited to your HDFC Bank A/c ending 1234 on 27-OCT-26 towards refund from MYNTRA. Avail bal: Rs 12,499.00',
     expected: { shouldParse: true, amount: 499, type: 'credit', merchantSubstring: 'MYNTRA' }
   },
+  {
+    name: 'HDFC Autopay OTT Subscription',
+    sender: 'HDFCBK',
+    body: 'Autopay of Rs 649.00 for NETFLIX was debited from HDFC Bank A/C **1234 on 25-10-26. Bal: Rs 8,300.00',
+    expected: { shouldParse: true, amount: 649, type: 'debit', merchantSubstring: 'NETFLIX' }
+  },
 
   // ── ICICI Bank Tests ─────────────────────────────────────────────
   {
@@ -65,6 +77,12 @@ const testCases: TestCase[] = [
     sender: 'ICICIB',
     body: 'Transaction of INR 2,240.00 made on ICICI Bank Card XX4001 at STARBUCKS on 26-Oct-26.',
     expected: { shouldParse: true, amount: 2240, type: 'debit', merchantSubstring: 'STARBUCKS' }
+  },
+  {
+    name: 'ICICI FASTag Auto-Recharge',
+    sender: 'ICICIB',
+    body: 'Rs 1,000.00 debited from ICICI Bank A/c XX987 on 26-10-26 towards ICICI FASTag recharge. Avail Bal: Rs 21,300.00',
+    expected: { shouldParse: true, amount: 1000, type: 'debit', merchantSubstring: 'FASTAG' }
   },
 
   // ── Axis Bank Tests ──────────────────────────────────────────────
@@ -80,6 +98,12 @@ const testCases: TestCase[] = [
     body: 'Spent Rs. 3,599.00 on your Axis Bank Flipkart Credit Card ending 8901 at FLIPKART on 25-10-26.',
     expected: { shouldParse: true, amount: 3599, type: 'debit', merchantSubstring: 'FLIPKART' }
   },
+  {
+    name: 'Axis Bank ATM Cash Withdrawal',
+    sender: 'AXISBK',
+    body: 'Axis Bank: INR 5,000.00 withdrawn from A/c no. XX3456 at ATM INDIRANAGAR on 27-10-26. Available Bal: INR 12,050.00',
+    expected: { shouldParse: true, amount: 5000, type: 'debit', merchantSubstring: 'Atm' }
+  },
 
   // ── Kotak Bank Tests ─────────────────────────────────────────────
   {
@@ -87,6 +111,12 @@ const testCases: TestCase[] = [
     sender: 'KOTAKB',
     body: 'Kotak Bank: Rs 250.00 debited from A/c ...7890 on 26-10-26 towards UPI txn to CHAI POINT. Avl Bal: Rs 3,450.00',
     expected: { shouldParse: true, amount: 250, type: 'debit', merchantSubstring: 'CHAI POINT' }
+  },
+  {
+    name: 'Kotak Debit Card at Zepto',
+    sender: 'KOTAKB',
+    body: 'Kotak Bank: Rs 389.00 spent on Kotak Debit Card ending 4567 at ZEPTO on 26-10-26. Bal: Rs 4,120.00',
+    expected: { shouldParse: true, amount: 389, type: 'debit', merchantSubstring: 'ZEPTO' }
   },
 
   // ── PNB, BOB, Canara, Union, IndusInd, Federal, IDFC ──────────────
@@ -138,13 +168,19 @@ const testCases: TestCase[] = [
     body: 'YES BANK: Rs. 420.00 debited from A/C ending 4567 on 26-10-26 via UPI to CINEPOLIS. Avail Bal: Rs 6,580.00',
     expected: { shouldParse: true, amount: 420, type: 'debit', merchantSubstring: 'CINEPOLIS' }
   },
+  {
+    name: 'Bank of India UPI to Shell Fuel',
+    sender: 'BOIIND',
+    body: 'BOI Alert: Rs 800.00 debited from A/C XX2233 on 25-10-26 to SHELL PETROL via UPI. Bal: Rs 3,400.00',
+    expected: { shouldParse: true, amount: 800, type: 'debit', merchantSubstring: 'SHELL' }
+  },
 
   // ── FinTech Apps & Wallets ───────────────────────────────────────
   {
     name: 'CRED Credit Card Bill Payment',
     sender: 'CRED',
     body: 'CRED: Payment of Rs 15,000.00 towards your HDFC Credit Card bill was successful.',
-    expected: { shouldParse: true, amount: 15000, type: 'debit' }
+    expected: { shouldParse: true, amount: 15000, type: 'debit', merchantSubstring: 'HDFC Credit Card Bill' }
   },
   {
     name: 'Paytm UPI Merchant Payment',
@@ -165,10 +201,62 @@ const testCases: TestCase[] = [
     expected: { shouldParse: true, amount: 450, type: 'debit', merchantSubstring: 'Pizza Hut' }
   },
   {
+    name: 'Amazon Pay Balance for Electricity Bill',
+    sender: 'AMAZONP',
+    body: 'Paid Rs. 1,280.00 for BESCOM Electricity Bill using Amazon Pay balance on 25-10-26.',
+    expected: { shouldParse: true, amount: 1280, type: 'debit', merchantSubstring: 'BESCOM' }
+  },
+  {
     name: 'OneCard Coffee Spends',
     sender: 'FEDBK',
     body: 'OneCard: INR 850.00 spent at BLUE TOKAI COFFEE on 25-Oct-26 with card **4321.',
     expected: { shouldParse: true, amount: 850, type: 'debit', merchantSubstring: 'BLUE TOKAI' }
+  },
+  {
+    name: 'Jupiter Federal Bank UPI to Dunzo',
+    sender: 'JUPITE',
+    body: 'Jupiter: Rs. 95.00 debited from your A/c XX4321 towards payment to DUNZO. Bal Rs 1,450.00',
+    expected: { shouldParse: true, amount: 95, type: 'debit', merchantSubstring: 'DUNZO' }
+  },
+  {
+    name: 'Fi Money Federal Bank UPI to Rapido',
+    sender: 'FIAPP',
+    body: 'Fi: Rs. 55.00 debited from your account to RAPIDO on 26-10-26 via UPI. Bal Rs 6,200.00',
+    expected: { shouldParse: true, amount: 55, type: 'debit', merchantSubstring: 'RAPIDO' }
+  },
+
+  // ── Direct VPA Transfers (P2P) ──────────────────────────────────
+  {
+    name: 'P2P UPI Transfer to VPA Handle',
+    sender: 'HDFCBK',
+    body: 'Paid Rs 700.00 from HDFC Bank A/c XX1234 to rahul.sharma@okaxis on 26-10-26. UPI Ref 39281923.',
+    expected: { shouldParse: true, amount: 700, type: 'debit', merchantSubstring: 'Rahul Sharma' }
+  },
+  {
+    name: 'P2P UPI Transfer to Phone Number VPA',
+    sender: 'SBIBNK',
+    body: 'Sent Rs. 1,000.00 from SBI A/c XX1234 to 9876543210@paytm on 26-10-26. Ref 3918239.',
+    expected: { shouldParse: true, amount: 1000, type: 'debit', merchantSubstring: 'UPI (9876543210)' }
+  },
+
+  // ── Rides & Deliveries ───────────────────────────────────────────
+  {
+    name: 'Ola Cabs Auto-Debit',
+    sender: 'ICICIB',
+    body: 'Rs. 235.00 debited from ICICI Bank A/c XX987 for OLA CABS on 25-10-26. UPI Ref: 391829.',
+    expected: { shouldParse: true, amount: 235, type: 'debit', merchantSubstring: 'OLA' }
+  },
+  {
+    name: 'Blinkit Grocery Order',
+    sender: 'AXISBK',
+    body: 'Axis Bank: Rs. 670.00 debited from A/C no. XX3456 on 26-10-26 to BLINKIT GROCERY. Bal: Rs 3,450.00',
+    expected: { shouldParse: true, amount: 670, type: 'debit', merchantSubstring: 'BLINKIT' }
+  },
+  {
+    name: 'BigBasket Supermarket',
+    sender: 'HDFCBK',
+    body: 'Sent Rs.1,840.00 from HDFC Bank A/C **1234 to BIGBASKET on 26-10-26. UPI Ref 3829102.',
+    expected: { shouldParse: true, amount: 1840, type: 'debit', merchantSubstring: 'BIGBASKET' }
   },
 
   // ── Refunds, Cashbacks & Credits ─────────────────────────────────
@@ -196,6 +284,12 @@ const testCases: TestCase[] = [
     body: 'Your A/C XX1234 is credited with Rs 450.00 on 24-10-26 by Dividend from TATA MOTORS.',
     expected: { shouldParse: true, amount: 450, type: 'credit', merchantSubstring: 'TATA MOTORS' }
   },
+  {
+    name: 'P2P Money Received from Friend',
+    sender: 'ICICIB',
+    body: 'Rs 1,500.00 credited to your ICICI Bank A/c XX987 on 26-10-26 by transfer from PRIYA VERMA. UPI Ref: 391823.',
+    expected: { shouldParse: true, amount: 1500, type: 'credit', merchantSubstring: 'Priya Verma' }
+  },
 
   // ── False Positive Rejections (OTPs, Security, Future Requests) ──
   {
@@ -211,6 +305,12 @@ const testCases: TestCase[] = [
     expected: { shouldParse: false }
   },
   {
+    name: 'Reject Aadhaar OTP',
+    sender: 'UIDAI',
+    body: 'Your OTP for Aadhaar authentication is 918230. Valid for 10 minutes. Do not share.',
+    expected: { shouldParse: false }
+  },
+  {
     name: 'Reject UPI Collect Request Reminder',
     sender: 'BHIM',
     body: 'Payment request of Rs. 500.00 received from rahul@upi. Approve on BHIM app to pay.',
@@ -223,9 +323,21 @@ const testCases: TestCase[] = [
     expected: { shouldParse: false }
   },
   {
+    name: 'Reject Future EMI Due Reminder',
+    sender: 'BAJAJF',
+    body: 'Dear Customer, your EMI of Rs 3,450.00 is due to be debited on 02-Nov-26. Maintain sufficient balance.',
+    expected: { shouldParse: false }
+  },
+  {
     name: 'Reject Spam Loan Marketing',
     sender: 'AXISBK',
     body: 'Congratulations! You are pre-approved for a personal loan of Rs 5,00,000 at 10.5%. Apply now.',
+    expected: { shouldParse: false }
+  },
+  {
+    name: 'Reject Credit Limit Enhancement Offer',
+    sender: 'ICICIB',
+    body: 'Upgrade your ICICI Bank Credit Card limit to Rs 3,50,000 at zero cost. SMS CRUP to 5676766.',
     expected: { shouldParse: false }
   }
 ];
@@ -292,5 +404,5 @@ console.log(`========================================================\n`);
 if (failed > 0) {
   process.exit(1);
 } else {
-  console.log('🎉 100% OF BANK SMS TESTS PASSED WITH ZERO ERRORS!\n');
+  console.log(`🎉 100% OF ALL ${testCases.length} REAL-WORLD BANK SMS TESTS PASSED WITH ZERO ERRORS!\n`);
 }
