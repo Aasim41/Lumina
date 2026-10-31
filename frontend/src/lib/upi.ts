@@ -85,9 +85,9 @@ export function getSavedPayees(): UpiPayee[] {
 export function savePayee(payee: Omit<UpiPayee, 'id'> & { id?: string }): UpiPayee {
   const existing = getSavedPayees();
   const id = payee.id || `payee_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-  const cleanVpa = payee.vpa.trim().toLowerCase();
+  const cleanVpa = payee.vpa.trim();
   
-  const idx = existing.findIndex(p => p.vpa.toLowerCase() === cleanVpa);
+  const idx = existing.findIndex(p => p.vpa.toLowerCase() === cleanVpa.toLowerCase());
   const updated: UpiPayee = {
     id,
     name: payee.name.trim(),
@@ -169,9 +169,10 @@ export function buildUpiUri(params: UpiPaymentParams): string {
 }
 
 export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ success: boolean; uri: string }> {
-  // When rawQrUri is provided (payment from QR scan), use it verbatim
-  // to preserve all merchant params. Only rebuild if it's a manual payment.
-  const uri = params.rawQrUri || buildUpiUri(params);
+  // Always use buildUpiUri when amount is specified or parameters are adjusted.
+  // buildUpiUri preserves all extra merchant params (mc, tr, tid, etc.) while
+  // ensuring compliant encoding (%20 for spaces, clean decimal amounts, mode=00).
+  const uri = (params.rawQrUri && !params.am) ? params.rawQrUri : buildUpiUri(params);
   const preferredAppId = params.appId || getDefaultUpiApp();
   const appConfig = POPULAR_UPI_APPS.find(a => a.id === preferredAppId);
   const targetPackage = (appConfig && appConfig.id !== 'any') ? appConfig.packageName : undefined;
@@ -194,8 +195,7 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
       // 2. Android Intent URL format with package specifier
       if (targetPackage) {
         try {
-          const url = new URL(uri);
-          const queryString = url.search.substring(1); // removes leading '?'
+          const queryString = uri.replace(/^upi:\/\/pay\??/i, '');
           const intentUrl = `intent://pay?${queryString}#Intent;scheme=upi;package=${targetPackage};end`;
           window.location.href = intentUrl;
           return { success: true, uri };
@@ -236,64 +236,133 @@ export function validateVpa(vpa: string): boolean {
 }
 
 export interface ParsedUpiData {
-  pa: string;        // VPA
+  pa: string;        // VPA (case-preserved)
   pn?: string;       // Payee Name
   am?: number;       // Amount if pre-set
   tn?: string;       // Note
   mc?: string;       // Merchant Category Code
+  extraParams?: Record<string, string>; // Extra merchant parameters (tr, tid, orgid, mid, etc.)
   raw: string;
 }
 
 export function parseUpiUri(rawUri: string): ParsedUpiData | null {
   if (!rawUri || typeof rawUri !== 'string') return null;
-  const trimmed = rawUri.trim();
+  let trimmed = rawUri.trim();
 
   // If it's just a raw UPI ID (e.g. user scanned a text QR of someone's VPA)
   if (validateVpa(trimmed)) {
     return {
       pa: trimmed,
       pn: trimmed.split('@')[0],
+      extraParams: {},
       raw: trimmed
     };
   }
 
-  // Handle upi://pay?...
-  if (trimmed.startsWith('upi://pay?') || trimmed.startsWith('upi://pay/')) {
+  // Handle URL-encoded deep links (e.g. https://...?url=upi%3A%2F%2Fpay...)
+  if (trimmed.includes('upi%3A%2F%2Fpay') || trimmed.includes('upi%3a%2f%2fpay')) {
     try {
-      const urlStr = trimmed.replace('upi://pay/', 'upi://pay?');
-      const url = new URL(urlStr);
-      const pa = url.searchParams.get('pa');
-      if (!pa) return null;
+      const decoded = decodeURIComponent(trimmed);
+      const match = decoded.match(/upi:\/\/pay[^"'\s<>]*/i);
+      if (match) {
+        trimmed = match[0];
+      }
+    } catch {}
+  }
 
-      const pn = url.searchParams.get('pn') ? decodeURIComponent(url.searchParams.get('pn')!) : undefined;
-      const amStr = url.searchParams.get('am');
-      const am = amStr ? parseFloat(amStr) : undefined;
-      const tn = url.searchParams.get('tn') ? decodeURIComponent(url.searchParams.get('tn')!) : undefined;
-      const mc = url.searchParams.get('mc') || undefined;
+  // Normalize app-specific custom schemes (tez://, bhim://, phonepe://, paytmmp://)
+  let normalized = trimmed;
+  if (/^(tez|bhim|phonepe|paytmmp|paytm):\/\//i.test(normalized)) {
+    normalized = normalized.replace(/^[a-z0-9_-]+:\/\/(upi\/)?pay\/?\??/i, 'upi://pay?');
+  }
+
+  // Normalize upi://pay/ to upi://pay?
+  if (/^upi:\/\/pay\//i.test(normalized)) {
+    normalized = normalized.replace(/^upi:\/\/pay\//i, 'upi://pay?');
+  }
+
+  // Match UPI pay format or any URI with pa=
+  if (/^upi:\/\/pay/i.test(normalized) || /[?&]pa=/i.test(normalized)) {
+    try {
+      let queryPart = '';
+      const qIndex = normalized.indexOf('?');
+      if (qIndex !== -1) {
+        queryPart = normalized.substring(qIndex + 1);
+      } else {
+        queryPart = normalized.replace(/^upi:\/\/pay\/?/i, '');
+      }
+
+      // Parse query string safely
+      const searchParams = new URLSearchParams(queryPart);
+      let pa = searchParams.get('pa') || searchParams.get('PA');
+
+      if (!pa) {
+        // Fallback regex search for pa
+        const paMatch = normalized.match(/[?&]pa=([^&]+)/i);
+        if (paMatch) {
+          pa = decodeURIComponent(paMatch[1]);
+        }
+      }
+
+      if (!pa) return null;
+      const cleanPa = pa.trim(); // Preserve original case for merchant validation
+
+      const rawPn = searchParams.get('pn') || searchParams.get('PN');
+      const pn = rawPn ? decodeURIComponent(rawPn.replace(/\+/g, ' ')).trim() : undefined;
+
+      const rawAm = searchParams.get('am') || searchParams.get('AM');
+      const am = rawAm ? parseFloat(rawAm) : undefined;
+
+      const rawTn = searchParams.get('tn') || searchParams.get('TN');
+      const tn = rawTn ? decodeURIComponent(rawTn.replace(/\+/g, ' ')).trim() : undefined;
+
+      const mc = searchParams.get('mc') || searchParams.get('MC') || undefined;
+
+      // Extract all extra parameters (tr, tid, orgid, mid, msid, mtid, sign, mode, etc.)
+      const standardKeys = new Set(['pa', 'pn', 'am', 'tn', 'mc', 'cu', 'PA', 'PN', 'AM', 'TN', 'MC', 'CU']);
+      const extraParams: Record<string, string> = {};
+
+      searchParams.forEach((val, key) => {
+        if (!standardKeys.has(key) && val) {
+          extraParams[key] = decodeURIComponent(val.replace(/\+/g, ' '));
+        }
+      });
+
+      // If mc is present, also keep it in extraParams for buildUpiUri
+      if (mc) {
+        extraParams['mc'] = mc;
+      }
 
       return {
-        pa: pa.trim().toLowerCase(),
+        pa: cleanPa,
         pn,
         am: am && !isNaN(am) ? am : undefined,
         tn,
         mc,
-        raw: trimmed
+        extraParams,
+        raw: rawUri.trim()
       };
     } catch {
-      // Fallback regex parsing if standard URL parsing fails on custom schemes
-      const paMatch = trimmed.match(/[?&]pa=([^&]+)/i);
+      // Direct regex fallback
+      const paMatch = normalized.match(/[?&]pa=([^&]+)/i);
       if (!paMatch) return null;
-      const pa = decodeURIComponent(paMatch[1]);
-      const pnMatch = trimmed.match(/[?&]pn=([^&]+)/i);
-      const amMatch = trimmed.match(/[?&]am=([^&]+)/i);
-      const tnMatch = trimmed.match(/[?&]tn=([^&]+)/i);
+      const cleanPa = decodeURIComponent(paMatch[1]).trim();
+      const pnMatch = normalized.match(/[?&]pn=([^&]+)/i);
+      const amMatch = normalized.match(/[?&]am=([^&]+)/i);
+      const tnMatch = normalized.match(/[?&]tn=([^&]+)/i);
+      const mcMatch = normalized.match(/[?&]mc=([^&]+)/i);
+
+      const extraParams: Record<string, string> = {};
+      if (mcMatch) extraParams['mc'] = decodeURIComponent(mcMatch[1]);
 
       return {
-        pa: pa.trim().toLowerCase(),
-        pn: pnMatch ? decodeURIComponent(pnMatch[1]) : undefined,
+        pa: cleanPa,
+        pn: pnMatch ? decodeURIComponent(pnMatch[1].replace(/\+/g, ' ')).trim() : undefined,
         am: amMatch ? parseFloat(decodeURIComponent(amMatch[1])) : undefined,
-        tn: tnMatch ? decodeURIComponent(tnMatch[1]) : undefined,
-        raw: trimmed
+        tn: tnMatch ? decodeURIComponent(tnMatch[1].replace(/\+/g, ' ')).trim() : undefined,
+        mc: mcMatch ? decodeURIComponent(mcMatch[1]).trim() : undefined,
+        extraParams,
+        raw: rawUri.trim()
       };
     }
   }
