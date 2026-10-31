@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/db';
 import { exportAllData, importData, exportTransactionsCSV, getLastBackupTime } from '@/lib/dataBackup';
 import { POPULAR_UPI_APPS, getDefaultUpiApp, setDefaultUpiApp } from '@/lib/upi';
+import { appNavigate } from '@/lib/utils';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user, refreshUser } = useAuth();
@@ -344,20 +345,28 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
               <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
                 <h3 className="text-sm font-semibold text-white">Legal & Account</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  <a
-                    href="/privacy/"
-                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      appNavigate('/privacy');
+                    }}
+                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Privacy Policy</span>
-                  </a>
-                  <a
-                    href="/terms/"
-                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      appNavigate('/terms');
+                    }}
+                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95"
                   >
                     <FileText className="w-3.5 h-3.5 text-cyan-400" />
                     <span>Terms of Use</span>
-                  </a>
+                  </button>
                 </div>
 
                 <button

@@ -159,17 +159,9 @@ export function UpiQuickPayModal({
         merchant_clean: cleanName,
         source: 'UPI Quick Pay',
         type: 'debit',
-        status: 'pending',
+        status: 'confirmed',
         created_at: nowISO(),
       });
-
-      // Save pending verification flag for when user returns from UPI app
-      localStorage.setItem('lumina_pending_payment', JSON.stringify({
-        id: txId,
-        merchant: cleanName,
-        amount: parsedAmt,
-        time: Date.now()
-      }));
 
       // 3. Launch selected UPI app directly (bypasses system chooser)
       await launchUpiPayment({

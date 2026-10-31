@@ -394,5 +394,35 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [doSync]);
 
+  // Real-time automatic SMS listening (zero-click auto sync on message arrival)
+  useEffect(() => {
+    let listenerHandle: any = null;
+    let isCancelled = false;
+
+    (async () => {
+      try {
+        const { Capacitor, registerPlugin } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const NativeSms = registerPlugin<any>('NativeSms');
+          listenerHandle = await NativeSms.addListener('smsReceived', () => {
+            if (!isCancelled) {
+              // Automatically sync and record transaction immediately without asking for confirmation
+              doSync(false);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Real-time SMS listener setup:', err);
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+      if (listenerHandle && typeof listenerHandle.remove === 'function') {
+        listenerHandle.remove();
+      }
+    };
+  }, [doSync]);
+
   return { syncNow: (isManual: boolean = true) => doSync(isManual) };
 }

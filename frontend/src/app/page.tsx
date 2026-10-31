@@ -25,7 +25,6 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
-import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
 import { App as CapApp } from '@capacitor/app';
@@ -176,11 +175,17 @@ export default function Dashboard() {
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Month Wrap is only unlocked during the last week of the month
-  const isLastWeekOfMonth = useMemo(() => {
+  // Month Wrap is unlocked from 27th of the month to the 3rd of next month (7-8 day window)
+  const wrapWindowInfo = useMemo(() => {
     const today = new Date();
-    const totalDaysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    return today.getDate() >= (totalDaysInMonth - 6); // Last 7 days of current month
+    const day = today.getDate();
+    const isAvailable = (day >= 27 || day <= 3);
+    let targetDate = today;
+    if (day <= 3) {
+      targetDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    }
+    const monthName = targetDate.toLocaleString('default', { month: 'long' });
+    return { isAvailable, monthName };
   }, []);
 
   const handlePersonaChange = async (persona: string) => {
@@ -480,17 +485,6 @@ export default function Dashboard() {
                           <button
                             onClick={() => {
                               setIsHeaderMenuOpen(false);
-                              appNavigate('/splits');
-                            }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
-                          >
-                            <Users className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>Split Bill with Friends</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setIsHeaderMenuOpen(false);
                               setIsSettingsOpen(true);
                             }}
                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
@@ -519,16 +513,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Dynamic Spotlight Banner: Cycles Wrapped (last week only), Streak & Badges at different times */}
+            {/* Dynamic Spotlight Banner: Cycles Wrapped (27th-3rd window), Streak & Badges */}
             <HeroSpotlightBanner
               summary={summary}
-              isLastWeekOfMonth={isLastWeekOfMonth}
-              monthName={now.toLocaleString('default', { month: 'long' })}
+              isLastWeekOfMonth={wrapWindowInfo.isAvailable}
+              monthName={wrapWindowInfo.monthName}
               onBadgeClick={showInfoToast}
               getBadgeConfig={getBadgeConfig}
             />
-
-            <PendingPaymentBanner onReconciled={() => refresh()} />
 
             <div className="gsap-budget-card glass p-5 rounded-3xl border border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.15)] relative overflow-hidden bg-indigo-500/10">
               <div className="flex justify-between items-end mb-2">

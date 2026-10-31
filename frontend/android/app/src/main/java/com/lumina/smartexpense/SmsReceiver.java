@@ -35,6 +35,7 @@ public class SmsReceiver extends BroadcastReceiver {
                         String messageBody = smsMessage.getMessageBody();
                         
                         if (TRANSACTION_PATTERN.matcher(messageBody).find()) {
+                            NativeSmsPlugin.onSmsReceived(messageBody, smsMessage.getOriginatingAddress());
                             sendNotification(context);
                             break; // Avoid multiple notifications for multipart SMS
                         }

@@ -23,6 +23,22 @@ import com.getcapacitor.annotation.PermissionCallback;
     }
 )
 public class NativeSmsPlugin extends Plugin {
+    private static NativeSmsPlugin instance;
+
+    @Override
+    public void load() {
+        super.load();
+        instance = this;
+    }
+
+    public static void onSmsReceived(String body, String address) {
+        if (instance != null) {
+            JSObject ret = new JSObject();
+            ret.put("body", body != null ? body : "");
+            ret.put("address", address != null ? address : "");
+            instance.notifyListeners("smsReceived", ret);
+        }
+    }
 
     @PluginMethod
     public void getSms(PluginCall call) {
