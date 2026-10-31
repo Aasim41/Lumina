@@ -1,4 +1,4 @@
-import { parseUpiUri, buildUpiUri, validateVpa } from '../src/lib/upi.ts';
+import { parseUpiUri, buildUpiUri, launchUpiPayment, validateVpa } from '../src/lib/upi.ts';
 
 console.log('\n========================================================');
 console.log('🚀 RUNNING LUMINA UPI ENGINE & BHARATQR TEST MATRIX');
@@ -65,6 +65,29 @@ assert(parsedBharat !== null && parsedBharat.pa === 'supermarket@hdfcbank', 'Par
 assert(parsedBharat?.pn === 'Super Mart BLR', 'Parse BharatQR merchant name tag 59');
 assert(parsedBharat?.am === 120, 'Parse BharatQR amount tag 54');
 assert(parsedBharat?.mc === '5411', 'Parse BharatQR MCC tag 52');
+
+// 6. Launch UPI Payment URI Builder & Merchant Standee Preservation
+const launchStandeeNoAm = await launchUpiPayment({
+  pa: 'shop@paytm',
+  pn: 'Chai Wala',
+  am: 45,
+  rawQrUri: 'upi://pay?pa=shop@paytm&pn=Chai%20Wala&mc=5499&tr=PTM98765'
+});
+assert(launchStandeeNoAm.success, 'Launch UPI payment succeeds');
+assert(launchStandeeNoAm.uri.includes('mc=5499'), 'Preserves merchant MCC in scanned standee URI');
+assert(launchStandeeNoAm.uri.includes('tr=PTM98765'), 'Preserves merchant transaction reference in standee URI');
+assert(launchStandeeNoAm.uri.includes('am=45'), 'Injects entered amount into standee URI');
+assert(!launchStandeeNoAm.uri.includes('mode=00'), 'Does NOT inject artificial mode=00 into standee URI');
+
+const launchStandeeWithAm = await launchUpiPayment({
+  pa: 'store@upi',
+  pn: 'Book Store',
+  am: 350,
+  rawQrUri: 'upi://pay?pa=store@upi&pn=Book%20Store&am=100&cu=INR&mc=5942'
+});
+assert(launchStandeeWithAm.uri.includes('am=350'), 'Replaces original standee amount with updated amount');
+assert(!launchStandeeWithAm.uri.includes('am=100'), 'Removes old standee amount completely');
+assert(launchStandeeWithAm.uri.includes('mc=5942'), 'Preserves store MCC');
 
 console.log('\n========================================================');
 console.log(`🏁 UPI ENGINE RESULTS: ${passed} PASSED, ${failed} FAILED`);

@@ -180,7 +180,7 @@ export function UpiQuickPayModal({
         category,
         appId: selectedApp,
         extraParams,
-        rawQrUri: (rawQrUri && rawQrUri.includes(`pa=${cleanVpa}`) && rawQrUri.includes(`am=${parsedAmt}`)) ? rawQrUri : undefined,
+        rawQrUri: (rawQrUri && rawQrUri.toLowerCase().includes(cleanVpa.toLowerCase())) ? rawQrUri : undefined,
       });
 
       soundFX.playSuccess();
