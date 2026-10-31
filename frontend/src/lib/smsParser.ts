@@ -249,8 +249,9 @@ function cleanAndValidateMerchant(raw: string): string | null {
   let cleaned = raw
     // Strip anything after pipe marker
     .split('|')[0]
-    // Strip trailing "has been credited / is credited" clauses
-    .replace(/\s+(?:has\s+been|is|was)?\s*(?:debited|credited|deposited|transferred|reversed)\b.*$/i, '')
+    // Strip trailing "has been credited / is credited / was debited" clauses
+    .replace(/\s+(?:has\s+been|is|was)\b.*$/i, '')
+    .replace(/\s+(?:debited|credited|deposited|transferred|reversed)\b.*$/i, '')
     // Strip trailing "using <App>" or "via <App/UPI>" or "thru <UPI>"
     .replace(/\s+(?:using|via|thru|through)\s+.*$/i, '')
     // Strip trailing reference, date, balance, bank footer, or helpline text
@@ -372,14 +373,14 @@ function parseMerchant(text: string, type: 'debit' | 'credit'): string {
       /(?:[.;,]|\bon\s+\S+|\bdate\s+\S+)\s*([A-Za-z][A-Za-z0-9\s&.'_-]{1,35}?)\s+credited\b/i,
       // BOB / ICICI style: "debited ... and credited to ZOMATO"
       /\bcredited\s+to\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
-      // Kotak / UPI txn style: "towards UPI txn to CHAI POINT" or "for txn to ZOMATO"
-      /\b(?:towards|for)\s+(?:UPI\s+)?(?:txn|payment|transfer|trf)?\s*(?:to\s+)(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
+      // Kotak / Canara / UPI txn style: "towards UPI txn to CHAI POINT" or "for UPI/P2M to MCDONALDS"
+      /\b(?:towards|for)\s+(?:UPI(?:\/[A-Za-z0-9_-]+)?\s+)?(?:txn|payment|transfer|trf)?\s*(?:to\s+)(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
       // SBI / HDFC / Kotak style: "trf to ZOMATO", "transferred to Swiggy", "paid to Rahul", "sent to Swiggy"
       /\b(?:trf|transfer|transferred|paid|sent)\s+to\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
       // Card / POS style: "spent ... at NETFLIX COM" or "transaction of ... at STARBUCKS"
       /\b(?:spent|purchase(?:d)?|used|txn|transaction|made\s+on)\b[^|.;]{0,40}?\bat\s+([A-Za-z][A-Za-z0-9\s&.'_-]{1,35})/i,
-      // Generic "to / at / towards <Merchant>" (safe now that bank accounts are stripped)
-      /\b(?:towards|to|at)\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
+      // Generic "towards / to / at / for <Merchant>" (safe now that bank accounts are stripped)
+      /\b(?:towards|to|at|for)\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9\s&.'_@-]{1,35})/i,
     ];
 
     for (const pat of debitPatterns) {

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "node --experimental-strip-types scripts/test-sms-parser.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

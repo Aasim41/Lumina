@@ -1,8 +1,10 @@
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { db, type DBUser, type DBTransaction, type DBSubscription, type DBCategoryBudget, type DBWishlistItem, type DBSplitBill, type DBSplitMember, type DBDebt, type DBInvestment, type DBGoal } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────
 
-interface BackupData {
+export interface BackupData {
   version: number;
   exported_at: string;
   users: DBUser[];
@@ -60,9 +62,9 @@ function b64ToBuf(b64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-// ── Export All Data (Plain or Password Encrypted) ──────────────────
+// ── Database Serialization & Restore Primitives ───────────────────
 
-export async function exportAllData(password?: string): Promise<{ success: boolean; txCount: number }> {
+export async function exportDatabasePayload(): Promise<BackupData> {
   const users = await db.users.toArray();
   const transactions = await db.transactions.toArray();
   const subscriptions = await db.subscriptions.toArray();
@@ -74,7 +76,7 @@ export async function exportAllData(password?: string): Promise<{ success: boole
   const investments = await db.investments.toArray();
   const goals = await db.goals.toArray();
 
-  const data: BackupData = {
+  return {
     version: 1,
     exported_at: new Date().toISOString(),
     users,
@@ -88,6 +90,145 @@ export async function exportAllData(password?: string): Promise<{ success: boole
     investments,
     goals,
   };
+}
+
+export async function restoreDatabaseFromPayload(data: BackupData): Promise<{ success: boolean; txCount: number }> {
+  if (!data || !Array.isArray(data.transactions)) {
+    return { success: false, txCount: 0 };
+  }
+
+  // Clear all tables first, then bulk insert in a single Dexie transaction
+  await (db as any).transaction('rw', [
+    db.users, db.transactions, db.subscriptions, db.categoryBudgets,
+    db.wishlistItems, db.splitBills, db.splitMembers, db.debts,
+    db.investments, db.goals
+  ], async () => {
+    await db.users.clear();
+    await db.transactions.clear();
+    await db.subscriptions.clear();
+    await db.categoryBudgets.clear();
+    await db.wishlistItems.clear();
+    await db.splitBills.clear();
+    await db.splitMembers.clear();
+    await db.debts.clear();
+    await db.investments.clear();
+    await db.goals.clear();
+
+    if (data.users?.length) await db.users.bulkAdd(data.users);
+    if (data.transactions?.length) await db.transactions.bulkAdd(data.transactions);
+    if (data.subscriptions?.length) await db.subscriptions.bulkAdd(data.subscriptions);
+    if (data.categoryBudgets?.length) await db.categoryBudgets.bulkAdd(data.categoryBudgets);
+    if (data.wishlistItems?.length) await db.wishlistItems.bulkAdd(data.wishlistItems);
+    if (data.splitBills?.length) await db.splitBills.bulkAdd(data.splitBills);
+    if (data.splitMembers?.length) await db.splitMembers.bulkAdd(data.splitMembers);
+    if (data.debts?.length) await db.debts.bulkAdd(data.debts);
+    if (data.investments?.length) await db.investments.bulkAdd(data.investments);
+    if (data.goals?.length) await db.goals.bulkAdd(data.goals);
+  });
+
+  return { success: true, txCount: data.transactions.length };
+}
+
+// ── Automated Filesystem Vault Snapshot (Anti-Wipe Recovery) ───────
+
+const SNAPSHOT_FILE = 'lumina_vault_autosave.json';
+const SNAPSHOT_LOCALSTORAGE_KEY = 'lumina_vault_autosave';
+let snapshotDebounceTimer: any = null;
+
+export function triggerAutoSnapshot(): void {
+  if (snapshotDebounceTimer) clearTimeout(snapshotDebounceTimer);
+  snapshotDebounceTimer = setTimeout(() => {
+    saveAutoFilesystemSnapshot().catch(err => console.warn('Auto snapshot failed:', err));
+  }, 2000);
+}
+
+export async function saveAutoFilesystemSnapshot(): Promise<boolean> {
+  try {
+    const payload = await exportDatabasePayload();
+    // Do not overwrite a healthy backup with an empty database
+    if (!payload.transactions || payload.transactions.length === 0) {
+      return false;
+    }
+
+    const json = JSON.stringify(payload);
+
+    // 1. Write to Native App Filesystem (Directory.Data - persistent private storage)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Filesystem.writeFile({
+          path: SNAPSHOT_FILE,
+          data: json,
+          directory: Directory.Data,
+        });
+      } catch (fsErr) {
+        console.warn('Native filesystem snapshot failed:', fsErr);
+      }
+    }
+
+    // 2. LocalStorage mirror as redundancy
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(SNAPSHOT_LOCALSTORAGE_KEY, json);
+        localStorage.setItem('lumina_last_snapshot_time', new Date().toISOString());
+      } catch {}
+    }
+
+    return true;
+  } catch (err) {
+    console.error('saveAutoFilesystemSnapshot failed:', err);
+    return false;
+  }
+}
+
+export async function restoreFromAutoFilesystemSnapshotIfEmpty(): Promise<{ restored: boolean; txCount: number }> {
+  try {
+    const count = await db.transactions.count();
+    if (count > 0) {
+      return { restored: false, txCount: count };
+    }
+
+    let rawJson: string | null = null;
+
+    // 1. Attempt recovery from Native private Filesystem
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const fileRes = await Filesystem.readFile({
+          path: SNAPSHOT_FILE,
+          directory: Directory.Data,
+        });
+        if (typeof fileRes.data === 'string' && fileRes.data.length > 10) {
+          rawJson = fileRes.data;
+        }
+      } catch {}
+    }
+
+    // 2. Fallback to LocalStorage mirror
+    if (!rawJson && typeof window !== 'undefined') {
+      rawJson = localStorage.getItem(SNAPSHOT_LOCALSTORAGE_KEY);
+    }
+
+    if (!rawJson) {
+      return { restored: false, txCount: 0 };
+    }
+
+    const parsed: BackupData = JSON.parse(rawJson);
+    if (!parsed || !Array.isArray(parsed.transactions) || parsed.transactions.length === 0) {
+      return { restored: false, txCount: 0 };
+    }
+
+    const restoreRes = await restoreDatabaseFromPayload(parsed);
+    console.log(`[Lumina Anti-Wipe Engine] Automatically restored ${restoreRes.txCount} transactions from persistent vault!`);
+    return { restored: true, txCount: restoreRes.txCount };
+  } catch (err) {
+    console.error('[Lumina Anti-Wipe Engine] Restore error:', err);
+    return { restored: false, txCount: 0 };
+  }
+}
+
+// ── Export All Data (Plain or Password Encrypted) ──────────────────
+
+export async function exportAllData(password?: string): Promise<{ success: boolean; txCount: number }> {
+  const data = await exportDatabasePayload();
 
   const rawJson = JSON.stringify(data, null, 2);
   let fileContent: string;
@@ -134,7 +275,7 @@ export async function exportAllData(password?: string): Promise<{ success: boole
     localStorage.setItem('lumina_last_backup_time', new Date().toISOString());
   }
 
-  return { success: true, txCount: transactions.length };
+  return { success: true, txCount: data.transactions.length };
 }
 
 export function getLastBackupTime(): string | null {
@@ -188,29 +329,8 @@ export async function importData(file: File, providedPassword?: string): Promise
       return { success: false, message: 'Invalid backup file format.' };
     }
 
-    // Clear all tables first, then bulk insert
-    await db.users.clear();
-    await db.transactions.clear();
-    await db.subscriptions.clear();
-    await db.categoryBudgets.clear();
-    await db.wishlistItems.clear();
-    await db.splitBills.clear();
-    await db.splitMembers.clear();
-    await db.debts.clear();
-    await db.investments.clear();
-    await db.goals.clear();
-
-    // Bulk insert all data
-    if (data.users?.length) await db.users.bulkAdd(data.users);
-    if (data.transactions?.length) await db.transactions.bulkAdd(data.transactions);
-    if (data.subscriptions?.length) await db.subscriptions.bulkAdd(data.subscriptions);
-    if (data.categoryBudgets?.length) await db.categoryBudgets.bulkAdd(data.categoryBudgets);
-    if (data.wishlistItems?.length) await db.wishlistItems.bulkAdd(data.wishlistItems);
-    if (data.splitBills?.length) await db.splitBills.bulkAdd(data.splitBills);
-    if (data.splitMembers?.length) await db.splitMembers.bulkAdd(data.splitMembers);
-    if (data.debts?.length) await db.debts.bulkAdd(data.debts);
-    if (data.investments?.length) await db.investments.bulkAdd(data.investments);
-    if (data.goals?.length) await db.goals.bulkAdd(data.goals);
+    const restoreRes = await restoreDatabaseFromPayload(data);
+    triggerAutoSnapshot();
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('lumina_last_backup_time', new Date().toISOString());
@@ -218,7 +338,7 @@ export async function importData(file: File, providedPassword?: string): Promise
 
     return {
       success: true,
-      message: `Restored ${data.transactions.length} transactions and all associated data.`,
+      message: `Restored ${restoreRes.txCount} transactions and all associated data.`,
     };
   } catch (e: any) {
     return { success: false, message: `Import failed: ${e.message}` };
