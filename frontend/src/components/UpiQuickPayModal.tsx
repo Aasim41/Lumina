@@ -64,6 +64,8 @@ export function UpiQuickPayModal({
   const [isManualEdit, setIsManualEdit] = useState(false);
   const [showAllApps, setShowAllApps] = useState(false);
   const [savedPayees, setSavedPayees] = useState<UpiPayee[]>([]);
+  const [extraParams, setExtraParams] = useState<Record<string, string>>({});
+  const [rawQrUri, setRawQrUri] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -93,6 +95,8 @@ export function UpiQuickPayModal({
   const handleSelectRecentPayee = (payee: UpiPayee) => {
     setVpa(payee.vpa);
     setName(payee.name);
+    setExtraParams({});
+    setRawQrUri('');
     if (payee.category) setCategory(payee.category);
     if (payee.last_amount && !amount) setAmount(String(payee.last_amount));
     setIsManualEdit(false);
@@ -109,7 +113,7 @@ export function UpiQuickPayModal({
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanVpa = vpa.trim().toLowerCase();
+    const cleanVpa = vpa.trim();
     const cleanName = (name.trim() || cleanVpa.split('@')[0] || 'Merchant');
     const parsedAmt = parseFloat(amount);
 
@@ -167,7 +171,9 @@ export function UpiQuickPayModal({
         am: parsedAmt,
         tn: note || `Payment to ${cleanName}`,
         category,
-        appId: selectedApp
+        appId: selectedApp,
+        extraParams,
+        rawQrUri: (rawQrUri && rawQrUri.includes(`pa=${cleanVpa}`) && rawQrUri.includes(`am=${parsedAmt}`)) ? rawQrUri : undefined,
       });
 
       soundFX.playSuccess();
@@ -270,7 +276,11 @@ export function UpiQuickPayModal({
                         required
                         placeholder="e.g. shop@paytm or 9876543210@okaxis"
                         value={vpa}
-                        onChange={(e) => setVpa(e.target.value)}
+                        onChange={(e) => {
+                          setVpa(e.target.value);
+                          setExtraParams({});
+                          setRawQrUri('');
+                        }}
                         className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500 transition-colors"
                       />
                       {validateVpa(vpa) && (
@@ -454,6 +464,8 @@ export function UpiQuickPayModal({
               if (data.pn) setName(data.pn);
               if (data.am) setAmount(String(data.am));
               if (data.tn) setNote(data.tn);
+              if (data.extraParams) setExtraParams(data.extraParams);
+              if (data.raw) setRawQrUri(data.raw);
               setIsManualEdit(false);
             }}
           />
