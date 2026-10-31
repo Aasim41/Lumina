@@ -277,6 +277,8 @@ export function BottomNav() {
         prefillName={scannedUpi?.pn}
         prefillAmount={scannedUpi?.am}
         prefillNote={scannedUpi?.tn}
+        prefillExtraParams={scannedUpi?.extraParams}
+        prefillRawQrUri={scannedUpi?.raw}
       />
     </>
   );

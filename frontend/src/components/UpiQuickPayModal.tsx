@@ -42,6 +42,8 @@ interface UpiQuickPayModalProps {
   prefillName?: string;
   prefillAmount?: number;
   prefillNote?: string;
+  prefillExtraParams?: Record<string, string>;
+  prefillRawQrUri?: string;
 }
 
 export function UpiQuickPayModal({
@@ -51,7 +53,9 @@ export function UpiQuickPayModal({
   prefillVpa = '',
   prefillName = '',
   prefillAmount,
-  prefillNote = ''
+  prefillNote = '',
+  prefillExtraParams,
+  prefillRawQrUri = '',
 }: UpiQuickPayModalProps) {
   const [vpa, setVpa] = useState(prefillVpa);
   const [name, setName] = useState(prefillName);
@@ -64,8 +68,8 @@ export function UpiQuickPayModal({
   const [isManualEdit, setIsManualEdit] = useState(false);
   const [showAllApps, setShowAllApps] = useState(false);
   const [savedPayees, setSavedPayees] = useState<UpiPayee[]>([]);
-  const [extraParams, setExtraParams] = useState<Record<string, string>>({});
-  const [rawQrUri, setRawQrUri] = useState<string>('');
+  const [extraParams, setExtraParams] = useState<Record<string, string>>(prefillExtraParams || {});
+  const [rawQrUri, setRawQrUri] = useState<string>(prefillRawQrUri || '');
 
   useEffect(() => {
     if (isOpen) {
@@ -80,8 +84,10 @@ export function UpiQuickPayModal({
       if (prefillName) setName(prefillName);
       if (prefillAmount) setAmount(String(prefillAmount));
       if (prefillNote) setNote(prefillNote);
+      if (prefillExtraParams) setExtraParams(prefillExtraParams);
+      if (prefillRawQrUri) setRawQrUri(prefillRawQrUri);
     }
-  }, [isOpen, prefillVpa, prefillName, prefillAmount, prefillNote]);
+  }, [isOpen, prefillVpa, prefillName, prefillAmount, prefillNote, prefillExtraParams, prefillRawQrUri]);
 
   const handleSelectApp = (appId: string) => {
     setSelectedApp(appId);
