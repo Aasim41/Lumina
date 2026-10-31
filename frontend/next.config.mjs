@@ -1,3 +1,5 @@
+process.env.NODE_OPTIONS = (process.env.NODE_OPTIONS || '') + ' --max-old-space-size=4096';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
@@ -8,6 +10,9 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true
+  },
+  experimental: {
+    cpus: 1
   }
 };
 
