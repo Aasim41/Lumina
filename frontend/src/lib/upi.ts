@@ -132,27 +132,46 @@ export interface UpiPaymentParams {
   tn?: string;        // Note / description
   category?: string;  // Expense category for auto-logging
   appId?: string;     // Explicit app ID or fallback to default
+  extraParams?: Record<string, string>;  // Extra QR params (tr, tid, orgid, etc.)
+  rawQrUri?: string;  // Original QR URI — used verbatim when available
 }
 
 export function buildUpiUri(params: UpiPaymentParams): string {
-  const cleanVpa = params.pa.trim().toLowerCase();
+  const cleanVpa = params.pa.trim(); // preserve original case from QR
   const cleanName = (params.pn || 'Merchant').trim();
-  const amountStr = Number(params.am).toFixed(2);
+  // Strip trailing zeros after decimal (e.g. "100.00" → "100", "99.50" → "99.5")
+  const amountStr = Number(params.am).toFixed(2).replace(/\.?0+$/, '');
   const note = (params.tn || 'Payment').trim();
 
-  const query = new URLSearchParams({
-    pa: cleanVpa,
-    pn: cleanName,
-    am: amountStr,
-    cu: 'INR',
-    tn: note
-  });
+  // Use encodeURIComponent instead of URLSearchParams — URLSearchParams encodes
+  // spaces as '+' which UPI apps (PhonePe, Paytm) REJECT. encodeURIComponent
+  // produces '%20' which all apps accept.
+  const parts: string[] = [
+    `pa=${encodeURIComponent(cleanVpa)}`,
+    `pn=${encodeURIComponent(cleanName)}`,
+    `am=${encodeURIComponent(amountStr)}`,
+    `cu=INR`,
+    `tn=${encodeURIComponent(note)}`,
+  ];
 
-  return `upi://pay?${query.toString()}`;
+  // Add mode=00 if not already present in extraParams
+  const extras = params.extraParams || {};
+  if (!extras['mode']) {
+    parts.push('mode=00');
+  }
+
+  // Forward ALL extra QR params (tr, tid, orgid, mid, msid, mtid, sign, etc.)
+  for (const [key, value] of Object.entries(extras)) {
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+  }
+
+  return `upi://pay?${parts.join('&')}`;
 }
 
 export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ success: boolean; uri: string }> {
-  const uri = buildUpiUri(params);
+  // When rawQrUri is provided (payment from QR scan), use it verbatim
+  // to preserve all merchant params. Only rebuild if it's a manual payment.
+  const uri = params.rawQrUri || buildUpiUri(params);
   const preferredAppId = params.appId || getDefaultUpiApp();
   const appConfig = POPULAR_UPI_APPS.find(a => a.id === preferredAppId);
   const targetPackage = (appConfig && appConfig.id !== 'any') ? appConfig.packageName : undefined;
@@ -175,7 +194,8 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
       // 2. Android Intent URL format with package specifier
       if (targetPackage) {
         try {
-          const queryString = uri.replace('upi://pay?', '');
+          const url = new URL(uri);
+          const queryString = url.search.substring(1); // removes leading '?'
           const intentUrl = `intent://pay?${queryString}#Intent;scheme=upi;package=${targetPackage};end`;
           window.location.href = intentUrl;
           return { success: true, uri };
