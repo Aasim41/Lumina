@@ -26,11 +26,8 @@ export function HeroSpotlightBanner({
   const availableSlides = useMemo<SlideType[]>(() => {
     const list: SlideType[] = [];
 
-    // 1. Month Wrap: ONLY in the last week of the month if user has activity
-    const hasActivity = summary && ((summary.total_this_month || 0) > 0 || (summary.total_income_this_month || 0) > 0);
-    if (isLastWeekOfMonth && hasActivity) {
-      list.push('wrap');
-    }
+    // 1. Month Wrap: Always available so user can view their Financial Wrapped story anytime
+    list.push('wrap');
 
     // 2. Streak Bar: if streak is active
     if (summary && summary.current_streak > 0) {

@@ -212,44 +212,8 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
 
       {/* Filter Tabs & Sort Control */}
       <div className="flex items-center gap-2 mb-2">
-        {/* Type Tabs */}
-        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/5 flex-1">
-          <button
-            onClick={() => setFilterType('all')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all ${
-              filterType === 'all'
-                ? 'bg-white/15 text-white shadow-sm'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilterType('debit')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1 ${
-              filterType === 'debit'
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <ArrowUpRight className="w-3 h-3 text-rose-400" />
-            Outflow
-          </button>
-          <button
-            onClick={() => setFilterType('credit')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1 ${
-              filterType === 'credit'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <ArrowDownLeft className="w-3 h-3 text-emerald-400" />
-            Inflow
-          </button>
-        </div>
-
         {/* Sort Dropdown */}
-        <div className="relative shrink-0">
+        <div className="relative ml-auto shrink-0">
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value as any)}
@@ -285,10 +249,7 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
         <span>
           Showing <strong className="text-white">{stats.count}</strong> transaction{stats.count !== 1 ? 's' : ''}
           {stats.totalOutflow > 0 && (
-            <span className="text-rose-400 ml-1.5">-₹{stats.totalOutflow.toLocaleString('en-IN')}</span>
-          )}
-          {stats.totalInflow > 0 && (
-            <span className="text-emerald-400 ml-1.5">+₹{stats.totalInflow.toLocaleString('en-IN')}</span>
+            <span className="text-white/80 ml-1.5 font-semibold">(Total: ₹{stats.totalOutflow.toLocaleString('en-IN')})</span>
           )}
         </span>
 

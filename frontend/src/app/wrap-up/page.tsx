@@ -6,7 +6,7 @@ import {
   X, ChevronLeft, ChevronRight, Trophy, ArrowDownLeft, ArrowUpRight,
   Sparkles, Share2, Flame, Heart, Store, ShieldCheck
 } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { getWrapUp } from '@/lib/api';
 import { formatCurrency, appNavigate } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -18,13 +18,13 @@ export default function WrapUpPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch('/api/analytics/wrap-up')
+    getWrapUp()
       .then(res => {
         setData(res);
         setLoading(false);
       })
       .catch(err => {
-        console.error(err);
+        console.error('Failed to load wrap up:', err);
         setLoading(false);
       });
   }, []);
@@ -146,10 +146,10 @@ export default function WrapUpPage() {
           <div className="w-28 h-28 bg-amber-500/20 rounded-full flex items-center justify-center mb-6 border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.25)]">
             <Trophy className="w-12 h-12 text-amber-400" />
           </div>
-          <h2 className="text-3xl font-display font-bold text-white mb-2">{data.top_category}</h2>
+          <h2 className="text-3xl font-display font-bold text-white mb-2">{data.top_category || 'Smart Budgeting'}</h2>
           <p className="text-lg text-text-secondary">
-            took up <span className="text-amber-400 font-bold">{data.top_category_percentage.toFixed(1)}%</span> of your expenses (
-            {formatCurrency(data.top_category_amount)}).
+            took up <span className="text-amber-400 font-bold">{(data.top_category_percentage || 0).toFixed(1)}%</span> of your expenses (
+            {formatCurrency(data.top_category_amount || 0)}).
           </p>
         </div>
       ),
@@ -164,12 +164,12 @@ export default function WrapUpPage() {
           <p className="text-sm text-rose-300 font-semibold mb-6 uppercase tracking-wider">Your #1 Splurge</p>
           <div className="p-6 rounded-3xl bg-white/5 border border-white/10 w-full max-w-xs mb-4">
             <span className="text-xs text-text-secondary">Biggest Single Transaction</span>
-            <h3 className="text-2xl font-bold text-white mt-1 mb-2">{data.biggest_splurge_merchant}</h3>
+            <h3 className="text-2xl font-bold text-white mt-1 mb-2">{data.biggest_splurge_merchant || 'Mindful Spender'}</h3>
             <p className="text-3xl font-display font-bold text-rose-400">
-              {formatCurrency(data.biggest_splurge_amount)}
+              {formatCurrency(data.biggest_splurge_amount || 0)}
             </p>
           </div>
-          {data.top_merchant?.count > 1 && (
+          {data.top_merchant?.count > 0 && (
             <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 w-full max-w-xs text-xs text-text-secondary">
               🏪 Most visited vendor: <strong className="text-white">{data.top_merchant.name}</strong> ({data.top_merchant.count} times)
             </div>
