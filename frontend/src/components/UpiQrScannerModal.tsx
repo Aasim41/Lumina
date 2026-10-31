@@ -12,6 +12,7 @@ interface UpiQrScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onScanSuccess: (data: ParsedUpiData) => void;
+  onOpenManualPay?: () => void;
 }
 
 /**
@@ -97,7 +98,7 @@ function decodeQrFromImageSrc(src: string): Promise<string | null> {
   });
 }
 
-export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScannerModalProps) {
+export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManualPay }: UpiQrScannerModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [recognizedPayee, setRecognizedPayee] = useState<ParsedUpiData | null>(null);
@@ -333,6 +334,18 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess }: UpiQrScann
                 <ImageIcon className="w-4 h-4 text-emerald-400" />
                 <span>Upload QR Screenshot</span>
               </button>
+
+              {onOpenManualPay && (
+                <button
+                  type="button"
+                  onClick={onOpenManualPay}
+                  disabled={isScanning || !!recognizedPayee}
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white font-medium text-xs rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Enter UPI ID / Number Manually</span>
+                </button>
+              )}
             </div>
 
             <div className="mt-5 flex items-center gap-1.5">
