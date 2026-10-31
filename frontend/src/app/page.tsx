@@ -812,45 +812,8 @@ export default function Dashboard() {
         </div>
 
         {/* Floating AI Advisor Button */}
-        <button
-          onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-22 right-4 sm:right-6 px-4 h-12 bg-gradient-to-tr from-purple-600 to-indigo-500 text-white rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.5)] hover:scale-105 active:scale-95 transition-all z-40 overflow-hidden group cursor-pointer text-xs font-semibold"
-        >
-          <div className="absolute inset-0 bg-white/20 rounded-full animate-ping opacity-75" />
-          <div className="relative z-10 flex items-center gap-2">
-            <div className="relative">
-              <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-              <Sparkles className="w-3 h-3 absolute -top-1 -right-2 text-yellow-300 animate-pulse" />
-            </div>
-            <span className="font-medium pr-1">Ask AI</span>
-          </div>
-        </button>
-
-        <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
         <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-        <UpiQuickPayModal
-          isOpen={isUpiModalOpen}
-          onClose={() => {
-            setIsUpiModalOpen(false);
-            setScannedUpiData(null);
-          }}
-          onSuccess={() => refresh()}
-          prefillVpa={scannedUpiData?.pa}
-          prefillName={scannedUpiData?.pn}
-          prefillAmount={scannedUpiData?.am}
-          prefillNote={scannedUpiData?.tn}
-        />
-
-        <UpiQrScannerModal
-          isOpen={isUpiScannerOpen}
-          onClose={() => setIsUpiScannerOpen(false)}
-          onScanSuccess={(data) => {
-            setScannedUpiData(data);
-            setIsUpiScannerOpen(false);
-            setIsUpiModalOpen(true);
-          }}
-        />
 
         <BottomNav />
       </AuthGuard>

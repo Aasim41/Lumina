@@ -14,9 +14,6 @@ import { POPULAR_UPI_APPS, getDefaultUpiApp, setDefaultUpiApp } from '@/lib/upi'
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [apiKeySaved, setApiKeySaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [budgetAmount, setBudgetAmount] = useState('');
@@ -25,19 +22,9 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [defaultUpiApp, setDefaultUpiAppState] = useState('any');
   const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
 
-  // Load the saved API key when modal opens
-  const loadApiKey = async () => {
-    const dbUser = await db.users.toCollection().first();
-    if (dbUser?.groq_api_key) {
-      setApiKey(dbUser.groq_api_key);
-      setApiKeySaved(true);
-    }
-  };
-
   // Load on first render when open
   useEffect(() => {
     if (isOpen) {
-      loadApiKey();
       setDefaultUpiAppState(getDefaultUpiApp());
       setLastBackupTime(getLastBackupTime());
       if (user) {
@@ -87,23 +74,6 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       toast.error('Failed to change currency', { id: toastId });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
-      toast.error('Please enter a valid API key');
-      return;
-    }
-    try {
-      const dbUser = await db.users.toCollection().first();
-      if (dbUser?.id) {
-        await db.users.update(dbUser.id, { groq_api_key: apiKey.trim() });
-        setApiKeySaved(true);
-        toast.success('API key saved! You can now chat with Lumina AI.', { icon: '🔑' });
-      }
-    } catch (e) {
-      toast.error('Failed to save API key');
     }
   };
 
