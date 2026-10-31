@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -49,6 +49,12 @@ export function BottomNav() {
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [isQuickPayOpen, setIsQuickPayOpen] = useState(false);
   const [scannedUpi, setScannedUpiData] = useState<ParsedUpiData | null>(null);
+
+  useEffect(() => {
+    const handleOpenScanner = () => setIsQrScannerOpen(true);
+    window.addEventListener('lumina_open_upi_scanner', handleOpenScanner);
+    return () => window.removeEventListener('lumina_open_upi_scanner', handleOpenScanner);
+  }, []);
 
   // Normalize current path
   const cleanPath = pathname.replace(/^\/+/, '').replace(/\/+$/, '').replace(/(^|\/)index\.html$/, '');

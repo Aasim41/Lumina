@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, Key, FileText, Zap, ShieldCheck, Trash2, RefreshCw } from 'lucide-react';
+import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, FileText, Zap, ShieldCheck, Trash2 } from 'lucide-react';
 import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
@@ -242,42 +242,6 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 </button>
               </div>
 
-              {/* Advanced / Groq API Key */}
-              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Key className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-sm font-semibold text-white">AI Chat API Key</h3>
-                </div>
-                <p className="text-xs text-text-secondary mb-3">
-                  Get a free Groq API key from <span className="text-emerald-400">console.groq.com</span> to enable AI chat.
-                </p>
-                <div className="flex space-x-2">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={apiKey}
-                    onChange={(e) => { setApiKey(e.target.value); setApiKeySaved(false); }}
-                    placeholder="gsk_..."
-                    className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
-                  />
-                  <button
-                    onClick={handleSaveApiKey}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                      apiKeySaved
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
-                        : 'bg-emerald-500 text-white hover:bg-emerald-400'
-                    }`}
-                  >
-                    {apiKeySaved ? '✓ Saved' : 'Save'}
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="text-xs text-text-secondary mt-2 hover:text-white transition-colors"
-                >
-                  {showApiKey ? 'Hide key' : 'Show key'}
-                </button>
-              </div>
-
               {/* Preferred UPI App Setting */}
               <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
@@ -361,23 +325,6 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   >
                     <FileText className="w-4 h-4" />
                     <span className="text-sm font-medium">Export Transactions as CSV</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      localStorage.removeItem('lumina_synced_sms');
-                      localStorage.removeItem('lumina_last_sms_sync');
-                      localStorage.removeItem('lumina_sms_parser_version');
-                      toast.success('SMS cache reset! Starting deep re-scan...');
-                      onClose();
-                      window.dispatchEvent(new Event('lumina_refresh_data'));
-                      window.location.reload();
-                    }}
-                    className="w-full p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center space-x-3 hover:bg-cyan-500/20 transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    <span className="text-sm font-medium">Deep Re-scan SMS Inbox (Past 60 Days)</span>
                   </button>
 
                   <input

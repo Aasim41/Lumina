@@ -56,10 +56,8 @@ export default function Dashboard() {
       try {
         const url = new URL(urlStr);
         const action = url.searchParams.get('action');
-        if (action === 'scan') {
-          setIsUpiScannerOpen(true);
-        } else if (action === 'pay') {
-          setIsUpiModalOpen(true);
+        if (action === 'scan' || action === 'pay') {
+          window.dispatchEvent(new CustomEvent('lumina_open_upi_scanner'));
         } else if (action === 'add') {
           setIsSaveModalOpen(true);
         }
@@ -292,7 +290,6 @@ export default function Dashboard() {
           onSuccess={refresh}
         />
         <RolloverModal onSuccess={refresh} />
-        <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
         <AchievementModal isOpen={!!unlockedBadge} onClose={() => setUnlockedBadge(null)} badgeId={unlockedBadge || ''} />
         
         {/* Persona Picker Modal */}
