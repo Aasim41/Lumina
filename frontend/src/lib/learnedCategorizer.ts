@@ -221,7 +221,7 @@ class LearnedCategorizer {
     const scores: Map<string, number> = new Map();
 
     // Compute log probabilities for each category: log P(C) + sum log P(w|C)
-    for (const [category, docCount] of this.classDocCounts.entries()) {
+    for (const [category, docCount] of Array.from(this.classDocCounts.entries())) {
       // Prior P(C)
       let logProb = Math.log((docCount + 1) / (this.totalDocs + this.classDocCounts.size));
       const wordMap = this.classWordCounts.get(category);
@@ -243,7 +243,7 @@ class LearnedCategorizer {
 
     // Softmax normalization for calibrated confidence [0, 1]
     let sumExp = 0;
-    for (const logProb of scores.values()) {
+    for (const logProb of Array.from(scores.values())) {
       sumExp += Math.exp(logProb - bestScore);
     }
     const confidence = Math.min(Math.max(1 / sumExp, 0), 1);

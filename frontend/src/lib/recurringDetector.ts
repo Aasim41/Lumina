@@ -35,7 +35,7 @@ export function detectRecurringSubscriptions(transactions: DBTransaction[]): Inf
 
   const results: InferredSubscription[] = [];
 
-  for (const [merchant, txns] of byMerchant.entries()) {
+  for (const [merchant, txns] of Array.from(byMerchant.entries())) {
     if (txns.length < 2) continue;
 
     // Sort chronologically ascending
@@ -72,7 +72,7 @@ export function detectRecurringSubscriptions(transactions: DBTransaction[]): Inf
 
       const capitalizedMerchant = merchant
         .split(' ')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
 
       results.push({
