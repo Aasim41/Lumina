@@ -52,7 +52,7 @@ const parsedPhonePe = parseUpiUri('phonepe://pay?pa=chai@ybl&pn=Chai%20Point&am=
 assert(parsedPhonePe !== null && parsedPhonePe.pa === 'chai@ybl', 'Normalize and parse PhonePe custom scheme');
 
 // 5. BharatQR / EMVCo Merchant Standee
-const emvQr = '00020101021226500011in.npci.upi0123supermarket@hdfcbank520454115406120.005802IN5913Super Mart BLR6304ABCD';
+const emvQr = '00020101021226390011in.npci.upi0120supermarket@hdfcbank520454115406120.005802IN5914Super Mart BLR6304ABCD';
 const parsedBharat = parseUpiUri(emvQr);
 assert(parsedBharat !== null && parsedBharat.pa === 'supermarket@hdfcbank', 'Parse BharatQR / EMVCo tag 26 NPCI UPI VPA');
 assert(parsedBharat?.pn === 'Super Mart BLR', 'Parse BharatQR merchant name tag 59');

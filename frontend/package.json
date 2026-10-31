@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types scripts/test-sms-parser.ts"
+    "test": "node --experimental-strip-types scripts/test-sms-parser.ts && node --experimental-strip-types scripts/test-upi.ts",
+    "test:sms": "node --experimental-strip-types scripts/test-sms-parser.ts",
+    "test:upi": "node --experimental-strip-types scripts/test-upi.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

@@ -1,5 +1,4 @@
 import { registerPlugin } from '@capacitor/core';
-import { db, DBTransaction, generateId, todayISO } from './db';
 
 // Native Android UPI bridge plugin (bypasses system chooser by directly setting intent package)
 interface NativeUpiPluginInterface {
