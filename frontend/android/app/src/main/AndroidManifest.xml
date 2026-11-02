@@ -37,6 +37,13 @@
 
         </activity>
 
+        <!-- Fast Native ML Kit QR Scanner Activity -->
+        <activity
+            android:name=".QrScannerActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

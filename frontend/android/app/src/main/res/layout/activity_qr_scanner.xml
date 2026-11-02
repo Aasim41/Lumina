@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Live Camera Preview (Hardware Accelerated) -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Semi-transparent overlay with center viewfinder aperture -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#33000000" />
+
+    <!-- Scanning target frame overlay (centered 260dp square) -->
+    <FrameLayout
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:layout_gravity="center">
+
+        <!-- Top-left corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="top|start"
+            android:background="#FF10B981" />
+        <View
+            android:layout_width="4dp"
+            android:layout_height="40dp"
+            android:layout_gravity="top|start"
+            android:background="#FF10B981" />
+
+        <!-- Top-right corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="top|end"
+            android:background="#FF10B981" />
+        <View
+            android:layout_width="4dp"
+            android:layout_height="40dp"
+            android:layout_gravity="top|end"
+            android:background="#FF10B981" />
+
+        <!-- Bottom-left corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="bottom|start"
+            android:background="#FF10B981" />
+        <View
+            android:layout_width="4dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|start"
+            android:background="#FF10B981" />
+
+        <!-- Bottom-right corner -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="bottom|end"
+            android:background="#FF10B981" />
+        <View
+            android:layout_width="4dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|end"
+            android:background="#FF10B981" />
+    </FrameLayout>
+
+    <!-- Instruction hint text -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="100dp"
+        android:text="Align any UPI QR code"
+        android:textColor="#EEFFFFFF"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium" />
+
+    <!-- Close button (top-left) -->
+    <ImageButton
+        android:id="@+id/btnClose"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="48dp"
+        android:background="@drawable/bg_scanner_button"
+        android:src="@drawable/ic_close"
+        android:contentDescription="Close scanner"
+        android:padding="10dp" />
+
+    <!-- Flash toggle button (top-right) -->
+    <ImageButton
+        android:id="@+id/btnFlash"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="48dp"
+        android:background="@drawable/bg_scanner_button"
+        android:src="@drawable/ic_flash"
+        android:contentDescription="Toggle flashlight"
+        android:alpha="0.7"
+        android:padding="10dp" />
+
+</FrameLayout>

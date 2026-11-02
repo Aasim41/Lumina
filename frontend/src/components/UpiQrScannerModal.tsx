@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, Image as ImageIcon, Zap, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import jsQR from 'jsqr';
 import { parseUpiUri, type ParsedUpiData } from '@/lib/upi';
+import { scanQrNative } from '@/lib/nativeQrScanner';
 import { soundFX } from '@/lib/soundFx';
 import toast from 'react-hot-toast';
 
@@ -16,8 +17,8 @@ interface UpiQrScannerModalProps {
 }
 
 /**
- * Multi-strategy QR decoder — handles Indian shop standee QR codes
- * photographed at angles, with glare, branding, or reflective surfaces.
+ * Multi-strategy QR decoder — used for gallery image uploads and screenshots.
+ * Handles Indian shop standee QR codes photographed at angles, with glare or branding.
  */
 function decodeQrFromImageSrc(src: string): Promise<string | null> {
   return new Promise((resolve) => {
@@ -31,7 +32,7 @@ function decodeQrFromImageSrc(src: string): Promise<string | null> {
       let w = img.naturalWidth || img.width;
       let h = img.naturalHeight || img.height;
 
-      // Strategy 1: Full resolution (up to 2048px) — handles high-res photos
+      // Strategy 1: Full resolution (up to 2048px)
       const maxDim = 2048;
       let sw = w, sh = h;
       if (sw > maxDim || sh > maxDim) {
@@ -45,7 +46,7 @@ function decodeQrFromImageSrc(src: string): Promise<string | null> {
       let code = jsQR(imageData.data, sw, sh, { inversionAttempts: 'attemptBoth' });
       if (code?.data) { resolve(code.data); return; }
 
-      // Strategy 2: Center crop 60% — QR is usually in the center of standee photos
+      // Strategy 2: Center crop 60%
       const cropRatio = 0.6;
       const cx = Math.round(sw * (1 - cropRatio) / 2);
       const cy = Math.round(sh * (1 - cropRatio) / 2);
@@ -55,23 +56,21 @@ function decodeQrFromImageSrc(src: string): Promise<string | null> {
       code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
       if (code?.data) { resolve(code.data); return; }
 
-      // Strategy 3: Grayscale + contrast enhancement — handles glare/reflections
+      // Strategy 3: Grayscale + contrast enhancement
       canvas.width = sw;
       canvas.height = sh;
       ctx.drawImage(img, 0, 0, sw, sh);
       imageData = ctx.getImageData(0, 0, sw, sh);
       const data = imageData.data;
       for (let i = 0; i < data.length; i += 4) {
-        // Convert to grayscale
         const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        // Increase contrast: stretch histogram
         const enhanced = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128));
         data[i] = data[i + 1] = data[i + 2] = enhanced;
       }
       code = jsQR(data, sw, sh, { inversionAttempts: 'attemptBoth' });
       if (code?.data) { resolve(code.data); return; }
 
-      // Strategy 4: Aggressive binarization — pure black/white threshold
+      // Strategy 4: Aggressive binarization
       for (let i = 0; i < data.length; i += 4) {
         const v = data[i] > 140 ? 255 : 0;
         data[i] = data[i + 1] = data[i + 2] = v;
@@ -79,7 +78,7 @@ function decodeQrFromImageSrc(src: string): Promise<string | null> {
       code = jsQR(data, sw, sh, { inversionAttempts: 'attemptBoth' });
       if (code?.data) { resolve(code.data); return; }
 
-      // Strategy 5: Lower resolution (640px) — some QR decoders work better at lower res
+      // Strategy 5: Lower resolution (640px)
       const lowDim = 640;
       let lw = w, lh = h;
       if (lw > lh) { lh = Math.round((lh * lowDim) / lw); lw = lowDim; }
@@ -102,6 +101,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [recognizedPayee, setRecognizedPayee] = useState<ParsedUpiData | null>(null);
+  const autoStartedRef = useRef(false);
 
   const handleScannedResult = useCallback((rawValue: string) => {
     const parsed = parseUpiUri(rawValue);
@@ -122,11 +122,24 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
     }
   }, [onScanSuccess, onClose]);
 
-  // Snap photo with native device camera
-  const snapWithNativeCamera = useCallback(async () => {
+  // Primary Scan Trigger — uses ultra-fast Native ML Kit scanner with fallback
+  const startScan = useCallback(async () => {
     setIsScanning(true);
     setRecognizedPayee(null);
 
+    // 1. Try Native ML Kit Camera Scanner (30fps hardware-accelerated decode)
+    const nativeResult = await scanQrNative();
+    if (nativeResult) {
+      if (nativeResult.success && nativeResult.value) {
+        handleScannedResult(nativeResult.value);
+        return;
+      }
+      // User cancelled or exited scanner
+      setIsScanning(false);
+      return;
+    }
+
+    // 2. Fallback to @capacitor/camera (web preview / emulator fallback)
     try {
       const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera');
 
@@ -159,10 +172,21 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
     }
   }, [handleScannedResult]);
 
-  // Ready state: camera is opened by user clicking "📸 Open Camera & Scan" button below,
-  // allowing user to stay on the QR screen comfortably instead of immediately forcing the camera.
+  // Auto-launch native camera scanner immediately when opened (Google Pay / PhonePe speed)
+  useEffect(() => {
+    if (isOpen) {
+      if (!autoStartedRef.current) {
+        autoStartedRef.current = true;
+        startScan();
+      }
+    } else {
+      autoStartedRef.current = false;
+      setIsScanning(false);
+      setRecognizedPayee(null);
+    }
+  }, [isOpen, startScan]);
 
-  // Pick from gallery
+  // Pick from gallery / screenshot
   const pickFromGallery = useCallback(async () => {
     setIsScanning(true);
     setRecognizedPayee(null);
@@ -236,7 +260,10 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
                 <Zap className="w-4 h-4 fill-emerald-400 text-emerald-400" />
               </div>
-              <h2 className="text-sm font-bold text-white tracking-wide">Scan UPI Standee</h2>
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-wide">Scan UPI Standee</h2>
+                <p className="text-[10px] text-emerald-400 font-medium">Real-time ML Scanner</p>
+              </div>
             </div>
             <button
               onClick={() => {
@@ -275,21 +302,21 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
                     </div>
                   </motion.div>
                 ) : isScanning ? (
-                  /* Decoding / Processing State */
+                  /* Scanning / Viewfinder Active State */
                   <div className="flex flex-col items-center gap-3 z-10">
                     <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
-                    <p className="text-xs font-semibold text-emerald-300">Reading Standee QR...</p>
+                    <p className="text-xs font-semibold text-emerald-300">Scanning in real-time...</p>
                   </div>
                 ) : (
-                  /* Idle Ready State */
+                  /* Ready to Scan State */
                   <div className="flex flex-col items-center gap-2.5 text-center px-4 z-10">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
                       <Camera className="w-7 h-7" />
                     </div>
                     <p className="text-xs font-bold text-white/80 leading-snug">
-                      Align any Paytm, PhonePe or GPay Standee QR
+                      Tap below to scan any Paytm, PhonePe or GPay Standee
                     </p>
-                    <p className="text-[10px] text-white/50">1-tap auto-capture</p>
+                    <p className="text-[10px] text-white/50">Instant ML Kit detection</p>
                   </div>
                 )}
 
@@ -318,7 +345,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
             {/* Action Buttons */}
             <div className="w-full max-w-xs space-y-2.5">
               <button
-                onClick={snapWithNativeCamera}
+                onClick={startScan}
                 disabled={isScanning || !!recognizedPayee}
                 className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 text-black font-black text-sm rounded-2xl transition-all shadow-[0_0_25px_rgba(16,185,129,0.35)] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2.5 cursor-pointer"
               >

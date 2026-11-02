@@ -77,3 +77,4 @@ public class NativeQrScannerPlugin extends Plugin {
         }
     }
 }
+
