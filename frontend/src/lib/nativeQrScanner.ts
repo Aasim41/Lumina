@@ -27,3 +27,4 @@ export async function scanQrNative(): Promise<NativeQrScannerResult | null> {
     return null;
   }
 }
+
