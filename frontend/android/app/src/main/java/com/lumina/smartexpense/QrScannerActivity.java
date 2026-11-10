@@ -54,6 +54,9 @@ public class QrScannerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Zero-latency instant window transition (bypasses Android default 300ms window animation)
+        overridePendingTransition(0, 0);
+
         // Full-screen immersive
         getWindow().setFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
@@ -69,6 +72,7 @@ public class QrScannerActivity extends AppCompatActivity {
         btnClose.setOnClickListener(v -> {
             setResult(RESULT_CANCELED);
             finish();
+            overridePendingTransition(0, 0);
         });
 
         btnFlash.setOnClickListener(v -> {
@@ -165,11 +169,18 @@ public class QrScannerActivity extends AppCompatActivity {
         // Haptic feedback — short vibration burst
         vibrateShort();
 
-        // Return result to the Capacitor plugin
+        // Return result to the Capacitor plugin instantly without window exit lag
         Intent resultIntent = new Intent();
         resultIntent.putExtra("qr_value", rawValue);
         setResult(RESULT_OK, resultIntent);
         finish();
+        overridePendingTransition(0, 0);
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        overridePendingTransition(0, 0);
     }
 
     private void vibrateShort() {

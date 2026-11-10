@@ -34,8 +34,9 @@ public class NativeUpiPlugin extends Plugin {
                 intent.setPackage(packageName);
             }
 
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             getActivity().startActivity(intent);
+            getActivity().overridePendingTransition(0, 0);
 
             JSObject ret = new JSObject();
             ret.put("success", true);
@@ -45,8 +46,9 @@ public class NativeUpiPlugin extends Plugin {
             // If opening targeted package fails (e.g. app uninstalled), fallback to system chooser
             try {
                 Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(uriStr));
-                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 getActivity().startActivity(fallback);
+                getActivity().overridePendingTransition(0, 0);
 
                 JSObject ret = new JSObject();
                 ret.put("success", true);
