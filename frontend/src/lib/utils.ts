@@ -7,12 +7,12 @@ export function appNavigate(path: string) {
   const clean = path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/(^|\/)index\.html$/, '');
   if (Capacitor.isNativePlatform()) {
     if (!clean) {
-      window.location.href = '/index.html';
+      window.location.replace('/index.html');
     } else {
-      window.location.href = `/${clean}/index.html`;
+      window.location.replace(`/${clean}/index.html`);
     }
   } else {
-    window.location.href = clean ? `/${clean}/` : '/';
+    window.location.replace(clean ? `/${clean}/` : '/');
   }
 }
 

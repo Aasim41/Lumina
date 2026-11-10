@@ -146,9 +146,22 @@ export function UpiQuickPayModal({
         category
       });
 
-      // 2. Record transaction with 'pending' status until verified on return or via Bank SMS
       const txId = generateId();
-      await db.transactions.add({
+
+      // 2. Fire UPI payment launch IMMEDIATELY (zero lag, no DB wait)
+      const launchPromise = launchUpiPayment({
+        pa: cleanVpa,
+        pn: cleanName,
+        am: parsedAmt,
+        tn: note || `Payment to ${cleanName}`,
+        category,
+        appId: selectedApp,
+        extraParams,
+        rawQrUri: (rawQrUri && rawQrUri.toLowerCase().includes(cleanVpa.toLowerCase())) ? rawQrUri : undefined,
+      });
+
+      // 3. Record transaction in Dexie in background without blocking the intent
+      const dbPromise = db.transactions.add({
         id: txId,
         date: todayISO(),
         amount: parsedAmt,
@@ -161,24 +174,15 @@ export function UpiQuickPayModal({
         type: 'debit',
         status: 'confirmed',
         created_at: nowISO(),
-      });
-
-      // 3. Launch selected UPI app directly (bypasses system chooser)
-      await launchUpiPayment({
-        pa: cleanVpa,
-        pn: cleanName,
-        am: parsedAmt,
-        tn: note || `Payment to ${cleanName}`,
-        category,
-        appId: selectedApp,
-        extraParams,
-        rawQrUri: (rawQrUri && rawQrUri.toLowerCase().includes(cleanVpa.toLowerCase())) ? rawQrUri : undefined,
-      });
+      }).catch(err => console.warn('Dexie background write warning:', err));
 
       soundFX.playSuccess();
       toast.success(`Opening ${selectedApp} for ₹${parsedAmt}...`, { icon: '⚡' });
       onSuccess?.();
       onClose();
+
+      await launchPromise;
+      await dbPromise;
     } catch {
       toast.error('Failed to launch UPI payment');
     } finally {

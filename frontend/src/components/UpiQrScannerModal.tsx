@@ -103,19 +103,25 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
   const [recognizedPayee, setRecognizedPayee] = useState<ParsedUpiData | null>(null);
   const autoStartedRef = useRef(false);
 
-  const handleScannedResult = useCallback((rawValue: string) => {
+  const handleScannedResult = useCallback((rawValue: string, isInstant: boolean = false) => {
     const parsed = parseUpiUri(rawValue);
     if (parsed) {
       soundFX.playSuccess();
-      setRecognizedPayee(parsed);
-
-      // Smooth micro-transition delay (300ms) for visual satisfaction before sliding into payment card
-      setTimeout(() => {
+      if (isInstant) {
+        // Zero-latency instant redirect into Quick Pay card
         onScanSuccess(parsed);
         onClose();
         setRecognizedPayee(null);
         setIsScanning(false);
-      }, 350);
+      } else {
+        setRecognizedPayee(parsed);
+        setTimeout(() => {
+          onScanSuccess(parsed);
+          onClose();
+          setRecognizedPayee(null);
+          setIsScanning(false);
+        }, 120);
+      }
     } else {
       toast.error('Not a valid UPI QR code. Please try again.', { duration: 2500 });
       setIsScanning(false);
@@ -131,7 +137,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
     const nativeResult = await scanQrNative();
     if (nativeResult) {
       if (nativeResult.success && nativeResult.value) {
-        handleScannedResult(nativeResult.value);
+        handleScannedResult(nativeResult.value, true);
         return;
       }
       // User cancelled or exited scanner
