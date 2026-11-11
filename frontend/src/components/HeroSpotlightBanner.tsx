@@ -110,35 +110,11 @@ export function HeroSpotlightBanner({
     return () => clearInterval(timer);
   }, [availableSlides.length, isPaused]);
 
-  // Touch Swipe Handlers for mobile
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsPaused(true);
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    setIsPaused(false);
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-
-    // Detect horizontal swipe
-    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (deltaX < 0) {
-        paginate(1); // Swipe left -> next
-      } else {
-        paginate(-1); // Swipe right -> prev
-      }
-    }
-    touchStartX.current = null;
-    touchStartY.current = null;
-  };
-
   // Framer Motion Pan gesture
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const swipeThreshold = 35;
-    const velocityThreshold = 200;
+    setIsPaused(false);
+    const swipeThreshold = 40;
+    const velocityThreshold = 250;
 
     if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
       paginate(1);
@@ -156,8 +132,6 @@ export function HeroSpotlightBanner({
       className="mb-5 relative touch-pan-y select-none"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       <div className="overflow-hidden rounded-2xl relative min-h-[72px]">
         <AnimatePresence initial={false} custom={direction} mode="wait">

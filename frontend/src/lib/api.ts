@@ -217,6 +217,7 @@ export const uploadCSV = async (file: File) => {
     amount: row.amount,
     currency: 'INR',
     category: row.category,
+    type: row.type || 'debit',
     source: 'csv_upload',
     created_at: nowISO(),
   }));
@@ -286,6 +287,13 @@ export function invalidateTransactionCache() {
   cachedTxnsTimestamp = 0;
   cachedTxnsPromise = null;
   triggerAutoSnapshot();
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('lumina_transactions');
+    localStorage.removeItem('lumina_summary');
+    localStorage.removeItem('lumina_categories');
+    localStorage.removeItem('lumina_trends');
+    window.dispatchEvent(new Event('lumina_refresh_data'));
+  }
 }
 
 // ── Analytics ─────────────────────────────────────────────────────
@@ -504,8 +512,10 @@ export const convertCurrency = async (amount: number, from: string) => {
 // ── Budgets ───────────────────────────────────────────────────────
 
 export const getCategoryBudgets = async () => {
-  const budgets = await db.categoryBudgets.toArray();
-  const allTransactions = await db.transactions.toArray();
+  const [budgets, allTransactions] = await Promise.all([
+    db.categoryBudgets.toArray(),
+    getCachedTransactions(),
+  ]);
   const results = [];
 
   for (const b of budgets) {
@@ -535,7 +545,8 @@ export const createCategoryBudget = async (data: { category: string; amount: num
   };
 
   await db.categoryBudgets.add(budget);
-  const spent = await computeSpentThisMonth(data.category);
+  const txns = await getCachedTransactions();
+  const spent = await computeSpentThisMonth(data.category, txns);
   return { ...budget, spent_this_month: spent };
 };
 
@@ -543,7 +554,8 @@ export const updateCategoryBudget = async (id: string, data: { amount: number })
   await db.categoryBudgets.update(id, { amount: data.amount });
   const budget = await db.categoryBudgets.get(id);
   if (!budget) throw new Error('Budget not found');
-  const spent = await computeSpentThisMonth(budget.category);
+  const txns = await getCachedTransactions();
+  const spent = await computeSpentThisMonth(budget.category, txns);
   return { ...budget, spent_this_month: spent };
 };
 
@@ -600,14 +612,19 @@ export const deleteDebt = async (id: string) => {
 
 export const getInvestments = async () => {
   const investments = await db.investments.toArray();
-  return investments.map(inv => ({
-    ...inv,
-    current_price: null,
-    current_value: null,
-  }));
+  return investments.map(inv => {
+    const val = (inv as any).current_value != null && !isNaN((inv as any).current_value)
+      ? (inv as any).current_value
+      : (inv.invested_amount || 0);
+    return {
+      ...inv,
+      current_price: (inv as any).current_price || null,
+      current_value: val,
+    };
+  });
 };
 
-export const createInvestment = async (data: { name: string; ticker?: string; asset_class: string; quantity?: number; average_buy_price?: number; invested_amount?: number }) => {
+export const createInvestment = async (data: { name: string; ticker?: string; asset_class: string; quantity?: number; average_buy_price?: number; invested_amount?: number; current_value?: number }) => {
   const inv = {
     id: generateId(),
     name: data.name,
@@ -616,16 +633,21 @@ export const createInvestment = async (data: { name: string; ticker?: string; as
     quantity: data.quantity || 0,
     average_buy_price: data.average_buy_price || 0,
     invested_amount: data.invested_amount || 0,
+    current_value: data.current_value != null ? data.current_value : (data.invested_amount || 0),
     created_at: nowISO(),
   };
   await db.investments.add(inv);
-  return { ...inv, current_price: null, current_value: null };
+  return { ...inv, current_price: null };
 };
 
 export const updateInvestment = async (id: string, data: any) => {
   await db.investments.update(id, data);
   const inv = await db.investments.get(id);
-  return inv ? { ...inv, current_price: null, current_value: null } : null;
+  if (!inv) return null;
+  const val = (inv as any).current_value != null && !isNaN((inv as any).current_value)
+    ? (inv as any).current_value
+    : (inv.invested_amount || 0);
+  return { ...inv, current_price: null, current_value: val };
 };
 
 export const deleteInvestment = async (id: string) => {

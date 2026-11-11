@@ -190,7 +190,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#061813] flex flex-col justify-between p-6 select-none">
+    <div className="fixed inset-0 z-[99999] bg-[#061813] flex flex-col justify-between p-6 select-none">
       {/* Header */}
       <div className="flex flex-col items-center pt-12">
         <motion.div

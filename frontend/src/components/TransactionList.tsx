@@ -211,13 +211,50 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
       </div>
 
       {/* Filter Tabs & Sort Control */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        {/* Type Filter Pills: All / Expense / Income */}
+        <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setFilterType('all')}
+            className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
+              filterType === 'all'
+                ? 'bg-white/15 text-white shadow-sm'
+                : 'text-white/50 hover:text-white'
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterType('debit')}
+            className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
+              filterType === 'debit'
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm'
+                : 'text-white/50 hover:text-white'
+            }`}
+          >
+            Expense
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterType('credit')}
+            className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
+              filterType === 'credit'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm'
+                : 'text-white/50 hover:text-white'
+            }`}
+          >
+            Income
+          </button>
+        </div>
+
         {/* Sort Dropdown */}
-        <div className="relative ml-auto shrink-0">
+        <div className="relative shrink-0">
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value as any)}
-            className="bg-white/5 border border-white/10 rounded-2xl text-[11px] font-medium py-2 px-2.5 text-white/80 focus:outline-none focus:border-emerald-400 cursor-pointer appearance-none pr-6"
+            className="bg-white/5 border border-white/10 rounded-xl text-[11px] font-medium py-1.5 px-2.5 text-white/80 focus:outline-none focus:border-emerald-400 cursor-pointer appearance-none pr-6"
           >
             <option value="latest" className="bg-[#0b1b16]">Latest</option>
             <option value="highest" className="bg-[#0b1b16]">Highest</option>
@@ -398,7 +435,7 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
                         <div className="flex space-x-1.5 mt-1 opacity-80 md:opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleDelete(txn.id)}
-                            className="p-1 text-white/40 hover:text-rose-400 rounded transition-colors"
+                            className="p-1.5 text-white/40 hover:text-rose-400 active:text-rose-400 active:scale-95 rounded-lg transition-all min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
                             disabled={updatingId === txn.id}
                             title="Delete"
                           >

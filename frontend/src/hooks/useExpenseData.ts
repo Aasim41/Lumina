@@ -58,17 +58,22 @@ export function useExpenseData() {
   }, [fetchData, pathname]);
 
   useEffect(() => {
-    const handleGlobalRefresh = () => fetchData(true);
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
+    const handleGlobalRefresh = () => {
+      fetchData(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchData(true);
       }
     };
+
     window.addEventListener('lumina_refresh_data', handleGlobalRefresh);
-    document.addEventListener('visibilitychange', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       window.removeEventListener('lumina_refresh_data', handleGlobalRefresh);
-      document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchData]);
 

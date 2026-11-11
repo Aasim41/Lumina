@@ -4,6 +4,20 @@ import { db, type DBUser, type DBTransaction, type DBSubscription, type DBCatego
 
 // ── Types ─────────────────────────────────────────────────────────
 
+export interface AppPreferences {
+  defaultUpiApp?: string;
+  appLockEnabled?: boolean;
+  appLockPin?: string;
+  preferredCurrency?: string;
+  soundFx?: boolean;
+  learnedModel?: any;
+  seenBadges?: string[];
+  theme?: string;
+  biometricEnabled?: boolean;
+  activePersona?: string;
+  [key: string]: any;
+}
+
 export interface BackupData {
   version: number;
   exported_at: string;
@@ -17,9 +31,11 @@ export interface BackupData {
   debts: DBDebt[];
   investments: DBInvestment[];
   goals: DBGoal[];
+  trackedBills?: any[];
+  savedPayees?: any[];
   tracked_bills?: any[];
   saved_upi_payees?: any[];
-  preferences?: Record<string, string | null>;
+  preferences?: AppPreferences | Record<string, any>;
 }
 
 // ── Encryption Helpers (PBKDF2 + AES-GCM 256) ─────────────────────
@@ -79,25 +95,58 @@ export async function exportDatabasePayload(): Promise<BackupData> {
   const investments = await db.investments.toArray();
   const goals = await db.goals.toArray();
 
-  let tracked_bills: any[] = [];
-  let saved_upi_payees: any[] = [];
-  const preferences: Record<string, string | null> = {};
+  let trackedBills: any[] = [];
+  let savedPayees: any[] = [];
+  const preferences: AppPreferences = {};
 
   if (typeof window !== 'undefined') {
     try {
-      const tb = localStorage.getItem('lumina_tracked_bills');
-      if (tb) tracked_bills = JSON.parse(tb);
-      const sup = localStorage.getItem('lumina_saved_upi_payees');
-      if (sup) saved_upi_payees = JSON.parse(sup);
-      const keys = ['lumina_theme', 'lumina_biometric_enabled', 'lumina_active_persona', 'lumina_user'];
-      keys.forEach(k => {
-        preferences[k] = localStorage.getItem(k);
-      });
+      const rawBills = localStorage.getItem('lumina_tracked_bills');
+      if (rawBills) trackedBills = JSON.parse(rawBills);
     } catch {}
+
+    try {
+      const rawPayees = localStorage.getItem('lumina_saved_upi_payees');
+      if (rawPayees) savedPayees = JSON.parse(rawPayees);
+    } catch {}
+
+    const defaultUpiApp = localStorage.getItem('lumina_default_upi_app');
+    if (defaultUpiApp) preferences.defaultUpiApp = defaultUpiApp;
+
+    const appLockEnabled = localStorage.getItem('lumina_app_lock_enabled');
+    if (appLockEnabled !== null) preferences.appLockEnabled = appLockEnabled === 'true';
+
+    const appLockPin = localStorage.getItem('lumina_app_lock_pin');
+    if (appLockPin) preferences.appLockPin = appLockPin;
+
+    const preferredCurrency = localStorage.getItem('preferred_currency');
+    if (preferredCurrency) preferences.preferredCurrency = preferredCurrency;
+
+    const soundFx = localStorage.getItem('lumina_sound_fx');
+    if (soundFx !== null) preferences.soundFx = soundFx === 'true';
+
+    const learnedModel = localStorage.getItem('lumina_learned_model_v1');
+    if (learnedModel) {
+      try { preferences.learnedModel = JSON.parse(learnedModel); } catch { preferences.learnedModel = learnedModel; }
+    }
+
+    const seenBadges = localStorage.getItem('seen_badges');
+    if (seenBadges) {
+      try { preferences.seenBadges = JSON.parse(seenBadges); } catch {}
+    }
+
+    const theme = localStorage.getItem('lumina_theme');
+    if (theme) preferences.theme = theme;
+
+    const bio = localStorage.getItem('lumina_biometric_enabled');
+    if (bio !== null) preferences.biometricEnabled = bio === 'true';
+
+    const persona = localStorage.getItem('lumina_active_persona');
+    if (persona) preferences.activePersona = persona;
   }
 
   return {
-    version: 1,
+    version: 2,
     exported_at: new Date().toISOString(),
     users,
     transactions,
@@ -109,8 +158,10 @@ export async function exportDatabasePayload(): Promise<BackupData> {
     debts,
     investments,
     goals,
-    tracked_bills,
-    saved_upi_payees,
+    trackedBills,
+    savedPayees,
+    tracked_bills: trackedBills,
+    saved_upi_payees: savedPayees,
     preferences,
   };
 }
@@ -151,19 +202,68 @@ export async function restoreDatabaseFromPayload(data: BackupData): Promise<{ su
 
   if (typeof window !== 'undefined') {
     try {
-      if (Array.isArray(data.tracked_bills)) {
-        localStorage.setItem('lumina_tracked_bills', JSON.stringify(data.tracked_bills));
+      const bills = data.trackedBills || data.tracked_bills;
+      if (Array.isArray(bills)) {
+        localStorage.setItem('lumina_tracked_bills', JSON.stringify(bills));
       }
-      if (Array.isArray(data.saved_upi_payees)) {
-        localStorage.setItem('lumina_saved_upi_payees', JSON.stringify(data.saved_upi_payees));
+      const payees = data.savedPayees || data.saved_upi_payees;
+      if (Array.isArray(payees)) {
+        localStorage.setItem('lumina_saved_upi_payees', JSON.stringify(payees));
       }
       if (data.preferences && typeof data.preferences === 'object') {
-        Object.entries(data.preferences).forEach(([k, v]) => {
-          if (v !== null && v !== undefined) localStorage.setItem(k, v);
+        const prefs = data.preferences as any;
+        if (typeof prefs.defaultUpiApp === 'string') {
+          localStorage.setItem('lumina_default_upi_app', prefs.defaultUpiApp);
+        }
+        if (typeof prefs.appLockEnabled === 'boolean') {
+          localStorage.setItem('lumina_app_lock_enabled', prefs.appLockEnabled ? 'true' : 'false');
+        }
+        if (typeof prefs.appLockPin === 'string') {
+          localStorage.setItem('lumina_app_lock_pin', prefs.appLockPin);
+        }
+        if (typeof prefs.preferredCurrency === 'string') {
+          localStorage.setItem('preferred_currency', prefs.preferredCurrency);
+        }
+        if (typeof prefs.soundFx === 'boolean') {
+          localStorage.setItem('lumina_sound_fx', String(prefs.soundFx));
+        }
+        if (prefs.learnedModel) {
+          const modelStr = typeof prefs.learnedModel === 'string'
+            ? prefs.learnedModel
+            : JSON.stringify(prefs.learnedModel);
+          localStorage.setItem('lumina_learned_model_v1', modelStr);
+        }
+        if (Array.isArray(prefs.seenBadges)) {
+          localStorage.setItem('seen_badges', JSON.stringify(prefs.seenBadges));
+        }
+        if (typeof prefs.theme === 'string') {
+          localStorage.setItem('lumina_theme', prefs.theme);
+        }
+        if (typeof prefs.biometricEnabled === 'boolean') {
+          localStorage.setItem('lumina_biometric_enabled', String(prefs.biometricEnabled));
+        }
+        if (typeof prefs.activePersona === 'string') {
+          localStorage.setItem('lumina_active_persona', prefs.activePersona);
+        }
+        // Also restore raw string keys if present from v1
+        Object.entries(prefs).forEach(([k, v]) => {
+          if (v !== null && v !== undefined && typeof v === 'string' && !k.startsWith('defaultUpi') && !k.startsWith('appLock') && !k.startsWith('soundFx')) {
+            localStorage.setItem(k, v);
+          }
         });
       }
     } catch {}
+
+    localStorage.removeItem('lumina_transactions');
+    localStorage.removeItem('lumina_summary');
+    localStorage.removeItem('lumina_categories');
+    localStorage.removeItem('lumina_trends');
+    window.dispatchEvent(new Event('lumina_refresh_data'));
   }
+
+  // Invalidate in-memory transaction cache
+  const { invalidateTransactionCache } = await import('./api');
+  invalidateTransactionCache();
 
   return { success: true, txCount: data.transactions.length };
 }
@@ -384,6 +484,17 @@ export async function importData(file: File, providedPassword?: string): Promise
   }
 }
 
+export function csvEscape(value?: string | number | null): string {
+  if (value === null || value === undefined) {
+    return '""';
+  }
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 // ── Export Transactions as CSV ────────────────────────────────────
 
 export async function exportTransactionsCSV(): Promise<void> {
@@ -392,25 +503,22 @@ export async function exportTransactionsCSV(): Promise<void> {
   const header = 'Date,Merchant,Amount,Category,Type,Source\n';
   const rows = transactions.map(t => {
     const txnType = t.type || (['Income', 'Salary', 'Refund'].includes(t.category) ? 'credit' : 'debit');
-    return `${t.date},${csvEscape(t.merchant_clean)},${t.amount},${csvEscape(t.category)},${txnType},${t.source}`;
+    const merchant = t.merchant_clean || t.merchant_raw || 'Unknown Merchant';
+    const category = t.category || 'General';
+    const date = t.date || '';
+    const amount = t.amount ?? 0;
+    const source = t.source || 'manual';
+    return `${date},${csvEscape(merchant)},${amount},${csvEscape(category)},${txnType},${source}`;
   }).join('\n');
 
   const csv = header + rows;
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'transactions_export.csv';
+  a.download = `transactions_export_${toLocalDateStr(new Date())}.csv`;
   document.body.appendChild(a);
   a.click();
   URL.revokeObjectURL(url);
   document.body.removeChild(a);
-}
-
-function csvEscape(value: any): string {
-  const str = value == null ? '' : String(value);
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
 }
