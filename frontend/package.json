@@ -39,6 +39,7 @@
     "lucide-react": "^0.468.0",
     "next": "latest",
     "papaparse": "^5.5.4",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^19.0.0",
