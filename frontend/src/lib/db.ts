@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import { formatLocalDate } from './utils';
 
 // ── Type definitions ──────────────────────────────────────────────
 
@@ -185,10 +186,7 @@ export function generateId(): string {
 }
 
 export function toLocalDateStr(d: Date = new Date()): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatLocalDate(d);
 }
 
 export function nowISO(): string {
@@ -196,7 +194,7 @@ export function nowISO(): string {
 }
 
 export function todayISO(): string {
-  return toLocalDateStr(new Date());
+  return formatLocalDate(new Date());
 }
 
 export function toPaise(rupees: number): number {

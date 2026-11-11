@@ -512,7 +512,7 @@ export async function computeAlerts(user: DBUser) {
 
   const categories = await db.categoryBudgets.toArray();
   for (const cat of categories) {
-    const spent = await computeSpentThisMonth(cat.category);
+    const spent = await computeSpentThisMonth(cat.category, allTransactions);
     if (cat.amount > 0 && spent >= cat.amount * 0.8) {
       alerts.push({
         id: generateId(),

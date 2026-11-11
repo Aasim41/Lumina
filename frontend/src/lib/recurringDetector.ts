@@ -5,7 +5,7 @@
  * by analyzing historical transaction intervals and amount stability.
  */
 
-import { DBTransaction } from './db';
+import type { DBTransaction } from './db';
 
 export interface InferredSubscription {
   merchant: string;

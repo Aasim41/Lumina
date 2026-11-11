@@ -7,7 +7,7 @@
  * Flags statistically anomalous expenses per category without being distorted by historical spikes.
  */
 
-import { DBTransaction } from './db';
+import type { DBTransaction } from './db';
 
 export interface AnomalyReport {
   isAnomaly: boolean;
