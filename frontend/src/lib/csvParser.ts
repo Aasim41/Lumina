@@ -101,7 +101,7 @@ export function parseCSV(fileOrText: File | string): Promise<ParsedCsvTransactio
   return new Promise((resolve, reject) => {
     Papa.parse(fileOrText as any, {
       skipEmptyLines: true,
-      complete: (results) => {
+      complete: (results: any) => {
         const data = results.data as string[][];
         if (!data || data.length === 0) {
           return resolve([]);

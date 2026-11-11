@@ -63,6 +63,18 @@ const SUITES: SuiteConfig[] = [
     script: 'scripts/test-tier4-scenarios.ts',
     useLoader: true,
   },
+  {
+    name: 'Milestone 1 Integrity Suite',
+    tier: 'Tier 1',
+    script: 'scripts/test-m1-integrity.ts',
+    useLoader: true,
+  },
+  {
+    name: 'Indian Bank Statement CSV Suite',
+    tier: 'Tier 1',
+    script: 'scripts/test-bank-csv.ts',
+    useLoader: true,
+  },
 ];
 
 interface SuiteResult {

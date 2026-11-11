@@ -4,11 +4,14 @@ import { todayISO } from '../src/lib/db.ts';
 import { normalizeBankDate, parseCSV } from '../src/lib/csvParser.ts';
 import { csvEscape } from '../src/lib/dataBackup.ts';
 
+let passedCount = 0;
+
 function assert(condition: boolean, message: string) {
   if (!condition) {
     console.error(`❌ [FAIL] ${message}`);
     process.exit(1);
   }
+  passedCount++;
   console.log(`✅ [PASS] ${message}`);
 }
 
@@ -94,7 +97,7 @@ async function runTests() {
   assert(csvEscape(500) === '500', 'csvEscape number returns stringified');
 
   console.log('\n========================================================');
-  console.log('🏁 ALL MILESTONE 1 INTEGRITY TESTS PASSED SUCCESSFULLY!');
+  console.log(`🏁 TEST RESULTS: ${passedCount} PASSED, 0 FAILED (TOTAL: ${passedCount})`);
   console.log('========================================================\n');
 }
 

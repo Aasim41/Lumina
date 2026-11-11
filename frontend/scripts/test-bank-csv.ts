@@ -1,10 +1,13 @@
 import { normalizeBankDate, parseCSV } from '../src/lib/csvParser.ts';
 
+let passedCount = 0;
+
 function assert(condition: boolean, message: string) {
   if (!condition) {
     console.error(`❌ [FAIL] ${message}`);
     process.exit(1);
   }
+  passedCount++;
   console.log(`✅ [PASS] ${message}`);
 }
 
@@ -76,7 +79,7 @@ async function runBankCsvTests() {
   assert(axisParsed[1].amount === 5000, 'Axis: Row 1 amount 5000');
 
   console.log('\n========================================================');
-  console.log('🏁 ALL REAL-WORLD BANK CSV PARSING TESTS PASSED!');
+  console.log(`🏁 TEST RESULTS: ${passedCount} PASSED, 0 FAILED (TOTAL: ${passedCount})`);
   console.log('========================================================\n');
 }
 
