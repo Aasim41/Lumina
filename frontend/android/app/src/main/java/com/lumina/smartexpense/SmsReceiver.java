@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Telephony;
 import android.telephony.SmsMessage;
 import androidx.core.app.NotificationCompat;
 import java.util.regex.Pattern;
@@ -18,26 +19,39 @@ public class SmsReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")) {
-            Bundle bundle = intent.getExtras();
-            if (bundle != null) {
-                Object[] pdus = (Object[]) bundle.get("pdus");
-                if (pdus != null) {
-                    for (Object pdu : pdus) {
-                        SmsMessage smsMessage;
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            String format = bundle.getString("format");
-                            smsMessage = SmsMessage.createFromPdu((byte[]) pdu, format);
-                        } else {
-                            smsMessage = SmsMessage.createFromPdu((byte[]) pdu);
+        if ("android.provider.Telephony.SMS_RECEIVED".equals(intent.getAction())) {
+            try {
+                SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
+                if (messages != null && messages.length > 0) {
+                    StringBuilder fullBody = new StringBuilder();
+                    String sender = messages[0].getOriginatingAddress();
+                    for (SmsMessage msg : messages) {
+                        if (msg != null && msg.getMessageBody() != null) {
+                            fullBody.append(msg.getMessageBody());
                         }
-                        
-                        String messageBody = smsMessage.getMessageBody();
-                        
-                        if (TRANSACTION_PATTERN.matcher(messageBody).find()) {
-                            NativeSmsPlugin.onSmsReceived(messageBody, smsMessage.getOriginatingAddress());
-                            sendNotification(context);
-                            break; // Avoid multiple notifications for multipart SMS
+                    }
+                    String messageBody = fullBody.toString();
+                    if (TRANSACTION_PATTERN.matcher(messageBody).find()) {
+                        NativeSmsPlugin.onSmsReceived(messageBody, sender);
+                        sendNotification(context);
+                    }
+                }
+            } catch (Exception e) {
+                // Fallback for older legacy devices
+                Bundle bundle = intent.getExtras();
+                if (bundle != null) {
+                    Object[] pdus = (Object[]) bundle.get("pdus");
+                    if (pdus != null) {
+                        for (Object pdu : pdus) {
+                            SmsMessage smsMessage = SmsMessage.createFromPdu((byte[]) pdu);
+                            if (smsMessage != null && smsMessage.getMessageBody() != null) {
+                                String body = smsMessage.getMessageBody();
+                                if (TRANSACTION_PATTERN.matcher(body).find()) {
+                                    NativeSmsPlugin.onSmsReceived(body, smsMessage.getOriginatingAddress());
+                                    sendNotification(context);
+                                    break;
+                                }
+                            }
                         }
                     }
                 }

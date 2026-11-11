@@ -6,9 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types scripts/test-sms-parser.ts && node --experimental-strip-types scripts/test-upi.ts",
+    "test": "node --experimental-strip-types scripts/run-all-tests.ts",
+    "test:all": "node --experimental-strip-types scripts/run-all-tests.ts",
+    "test:baseline": "node --experimental-strip-types scripts/test-sms-parser.ts && node --experimental-strip-types scripts/test-upi.ts",
     "test:sms": "node --experimental-strip-types scripts/test-sms-parser.ts",
-    "test:upi": "node --experimental-strip-types scripts/test-upi.ts"
+    "test:upi": "node --experimental-strip-types scripts/test-upi.ts",
+    "test:tier1": "node --experimental-strip-types --import ./scripts/loader.mjs scripts/test-tier1-features.ts",
+    "test:tier2": "node --experimental-strip-types --import ./scripts/loader.mjs scripts/test-tier2-boundaries.ts",
+    "test:tier3": "node --experimental-strip-types --import ./scripts/loader.mjs scripts/test-tier3-combinations.ts",
+    "test:tier4": "node --experimental-strip-types --import ./scripts/loader.mjs scripts/test-tier4-scenarios.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

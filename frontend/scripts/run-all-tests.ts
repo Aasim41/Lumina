@@ -147,16 +147,7 @@ function main() {
   console.log('📊 EXECUTIVE TEST SUMMARY REPORT');
   console.log('================================================================================');
   console.log(
-    '%-35s | %-10s | %-8s | %-8s | %-10s | %-6s'.replace(
-      /%-?(\d+)s/g,
-      (_, w) => `%-` + w + `s`
-    ),
-    'Suite Name',
-    'Tier',
-    'Passed',
-    'Failed',
-    'Time',
-    'Status'
+    `${'Suite Name'.padEnd(35)} | ${'Tier'.padEnd(10)} | ${'Passed'.padStart(6)}   | ${'Failed'.padStart(6)}   | ${'Time'.padStart(8)}   | Status`
   );
   console.log('--------------------------------------------------------------------------------');
 
