@@ -35,8 +35,10 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return 'N/A';
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return String(dateStr);
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -44,10 +46,15 @@ export function formatDate(dateStr: string): string {
   }).format(date);
 }
 
-export function formatMonth(monthStr: string): string {
-  // expects "YYYY-MM"
-  const [year, month] = monthStr.split('-');
-  const date = new Date(Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, 1));
+export function formatMonth(monthStr?: string | null): string {
+  if (!monthStr) return 'N/A';
+  const parts = String(monthStr).split('-');
+  if (parts.length < 2) return String(monthStr);
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  if (isNaN(year) || isNaN(month) || month < 1 || month > 12) return String(monthStr);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  if (isNaN(date.getTime())) return String(monthStr);
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     year: 'numeric',

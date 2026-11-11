@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSummary, getCategories, getTrends, getForecast, getSubscriptions } from '../lib/api';
 import { isAuthenticated } from '../lib/auth';
 import { scheduleDailyEveningRecap } from '../lib/notifications';
@@ -13,15 +13,18 @@ export function useExpenseData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const pathname = usePathname();
+  const hasLoadedRef = useRef(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     try {
       if (!isAuthenticated()) {
         setLoading(false);
         return;
       }
 
-      setLoading(true);
+      if (!silent && !hasLoadedRef.current) {
+        setLoading(true);
+      }
       setError(null);
       
       const [sumData, catData, trendData, forecastData, subData] = await Promise.all([
@@ -37,6 +40,7 @@ export function useExpenseData() {
       setTrends(trendData || []);
       setForecast(forecastData);
       setSubscriptions(subData || []);
+      hasLoadedRef.current = true;
 
       if (sumData) {
         scheduleDailyEveningRecap(sumData.spent_today, sumData.daily_allowance, sumData.today_tx_count);
@@ -54,14 +58,17 @@ export function useExpenseData() {
   }, [fetchData, pathname]);
 
   useEffect(() => {
-    const handleGlobalRefresh = () => fetchData();
+    const handleGlobalRefresh = () => fetchData(true);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData(true);
+      }
+    };
     window.addEventListener('lumina_refresh_data', handleGlobalRefresh);
-    window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') fetchData();
-    });
+    document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       window.removeEventListener('lumina_refresh_data', handleGlobalRefresh);
-      window.removeEventListener('visibilitychange', () => {});
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [fetchData]);
 
@@ -73,6 +80,6 @@ export function useExpenseData() {
     subscriptions,
     loading,
     error,
-    refresh: fetchData
+    refresh: () => fetchData(false)
   };
 }

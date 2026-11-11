@@ -539,12 +539,13 @@ export default function SplitsPage() {
                   <p className="text-2xl font-black text-emerald-400 mt-1">₹{qrModal.amount}</p>
                 </div>
 
-                {/* QR Code Graphic */}
+                {/* QR Code Graphic (100% Offline Client-Side SVG) */}
                 <div className="w-52 h-52 mx-auto bg-white p-3 rounded-2xl shadow-xl flex items-center justify-center">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrModal.upiUri)}`}
-                    alt="UPI QR Code"
-                    className="w-full h-full object-contain"
+                  <QRCodeSVG
+                    value={qrModal.upiUri}
+                    size={192}
+                    level="M"
+                    includeMargin={false}
                   />
                 </div>
 
