@@ -7,14 +7,14 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BottomNav } from '@/components/BottomNav';
 import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatLocalDate } from '@/lib/utils';
 import { splitPaiseEqually } from '@/lib/db';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { soundFX } from '@/lib/soundFx';
 import { useAuth } from '@/hooks/useAuth';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
-import { QRCodeSVG } from 'qrcode.react';
+import { generateQrDataUrl } from '@/lib/qr';
 
 export default function SplitsPage() {
   const { user } = useAuth();
@@ -29,19 +29,28 @@ export default function SplitsPage() {
   // Form state
   const [title, setTitle] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => formatLocalDate(new Date()));
   const [payerName, setPayerName] = useState('You');
   const [members, setMembers] = useState([{ name: '', share_amount: '', percentage: '' }]);
   const [splitMode, setSplitMode] = useState<'amount' | 'percentage'>('amount');
   
   const [settleModalOpen, setSettleModalOpen] = useState<any>(null);
   const [qrModal, setQrModal] = useState<{ isOpen: boolean; memberName: string; amount: number; title: string; upiUri: string } | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [upiPayModal, setUpiPayModal] = useState<{ isOpen: boolean; name: string; amount: number; note: string }>({
     isOpen: false,
     name: '',
     amount: 0,
     note: ''
   });
+
+  useEffect(() => {
+    if (qrModal?.upiUri) {
+      generateQrDataUrl(qrModal.upiUri, 220).then(setQrDataUrl);
+    } else {
+      setQrDataUrl('');
+    }
+  }, [qrModal?.upiUri]);
 
   const fetchData = async () => {
     try {
@@ -539,14 +548,19 @@ export default function SplitsPage() {
                   <p className="text-2xl font-black text-emerald-400 mt-1">₹{qrModal.amount}</p>
                 </div>
 
-                {/* QR Code Graphic (100% Offline Client-Side SVG) */}
+                {/* QR Code Graphic (100% Offline Client-Side Render) */}
                 <div className="w-52 h-52 mx-auto bg-white p-3 rounded-2xl shadow-xl flex items-center justify-center">
-                  <QRCodeSVG
-                    value={qrModal.upiUri}
-                    size={192}
-                    level="M"
-                    includeMargin={false}
-                  />
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="UPI QR Code"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 pt-1">

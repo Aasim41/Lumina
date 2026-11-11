@@ -256,25 +256,27 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="custom-form">
-                  <p className="title">
-                    {txnType === 'credit' ? 'Add Income' : 'Add Expense'}{' '}
-                    <span>{txnType === 'credit' ? 'Track your incoming money & earnings' : 'Keep track of your spending'}</span>
-                  </p>
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label>Amount (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                    />
+                    <label className="block text-xs font-semibold text-white/70 uppercase tracking-wider mb-1.5">
+                      Amount (₹)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lg font-bold text-white/40">₹</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-lg font-bold text-white placeholder-white/20 focus:outline-none focus:border-indigo-500/70 focus:bg-white/[0.07] transition-all"
+                      />
+                    </div>
                     <div className="flex items-center gap-2 mt-2">
                       <button type="button" onClick={() => setShowCurrency(!showCurrency)}
-                        className="text-xs text-primary hover:text-primary/80 transition-colors">
-                        💱 {showCurrency ? 'Remove' : 'Add'} Currency Conversion
+                        className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium cursor-pointer">
+                        💱 {showCurrency ? 'Hide' : 'Add'} Currency Conversion
                       </button>
                     </div>
                     {showCurrency && (
@@ -292,30 +294,39 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                   </div>
 
                   <div>
-                    <label>{txnType === 'credit' ? 'Source / Payer (Optional)' : 'Merchant / Description (Optional)'}</label>
+                    <label className="block text-xs font-semibold text-white/70 uppercase tracking-wider mb-1.5">
+                      {txnType === 'credit' ? 'Source / Payer (Optional)' : 'Merchant / Description (Optional)'}
+                    </label>
                     <input
                       type="text"
                       value={merchant}
                       onChange={(e) => setMerchant(e.target.value)}
                       placeholder={txnType === 'credit' ? 'e.g. Salary, Client payment, Friend transfer' : 'e.g. Zomato, Rent, Uber'}
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-indigo-500/70 focus:bg-white/[0.07] transition-all"
                     />
                   </div>
 
                   <div>
-                    <label>Date</label>
+                    <label className="block text-xs font-semibold text-white/70 uppercase tracking-wider mb-1.5">
+                      Date
+                    </label>
                     <input
                       type="date"
                       required
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500/70 focus:bg-white/[0.07] transition-all"
                     />
                   </div>
 
                   <div>
-                    <label>Category (Optional)</label>
+                    <label className="block text-xs font-semibold text-white/70 uppercase tracking-wider mb-1.5">
+                      Category (Optional)
+                    </label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-800/90 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500/70 transition-all"
                     >
                       <option value="">Auto-predict</option>
                       {txnType === 'credit' ? (
@@ -336,17 +347,21 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                     </select>
                   </div>
 
-                  <div className="w-full mt-4">
+                  <div className="w-full pt-2">
                     {overdraftWarning !== null && txnType === 'debit' && (
-                      <div className="mb-4 p-4 bg-warning/10 border border-warning/30 rounded-xl">
-                        <p className="text-amber-700 text-sm font-bold mb-1">Budget Exceeded!</p>
-                        <p className="text-[var(--font-color-sub)] text-xs font-semibold">
+                      <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+                        <p className="text-amber-400 text-sm font-bold mb-1">Budget Exceeded!</p>
+                        <p className="text-white/70 text-xs font-medium">
                           You are exceeding your remaining budget by ₹{overdraftWarning.toFixed(2)}. 
                           This will be automatically deducted from your Savings.
                         </p>
                       </div>
                     )}
-                    <button type="submit" disabled={loading} className="oauthButton">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                    >
                       {loading ? "Saving..." : (overdraftWarning !== null ? "Confirm & Deduct from Savings" : (txnType === 'credit' ? "Save Income" : "Save Expense"))}
                     </button>
                   </div>
@@ -355,7 +370,7 @@ export function ManualEntryForm({ isOpen, onClose, onSubmit, initialData, isRoas
                     <button 
                       type="button" 
                       onClick={() => setOverdraftWarning(null)} 
-                      className="w-full text-[var(--font-color-sub)] font-semibold text-sm hover:text-error transition-colors text-center mt-2"
+                      className="w-full text-white/50 font-semibold text-xs hover:text-rose-400 transition-colors text-center mt-2 cursor-pointer"
                     >
                       Cancel
                     </button>

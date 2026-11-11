@@ -36,12 +36,16 @@ export function forecastSpending(transactions: Array<{date: string, category: st
       continue;
     }
     let monthStr = '';
-    const parts = t.date.split(/[-/]/);
-    if (parts.length >= 2 && parts[0].length === 4) {
-      monthStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+    if (typeof t.date === 'string' && /^\d{4}-\d{2}/.test(t.date)) {
+      monthStr = t.date.slice(0, 7);
     } else {
-      const d = new Date(t.date);
-      monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const parts = String(t.date).split(/[-/]/);
+      if (parts.length >= 2 && parts[0].length === 4) {
+        monthStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+      } else {
+        const d = new Date(t.date);
+        monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
     }
 
     monthlyTotals[monthStr] = (monthlyTotals[monthStr] || 0) + t.amount;
@@ -77,8 +81,11 @@ export function forecastSpending(transactions: Array<{date: string, category: st
 
       for (const t of transactions) {
         if (t.date.startsWith(currentMonthStr)) {
-          const day = parseInt(t.date.split('-')[2] || '1');
-          const dayOfWeek = new Date(t.date).getDay();
+          const parts = t.date.split('-').map(Number);
+          const day = parts[2] || 1;
+          const dayOfWeek = (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2]))
+            ? new Date(parts[0], parts[1] - 1, parts[2]).getDay()
+            : new Date(t.date).getDay();
           // Fixed payday commitments on days 1-7 (Rent, EMIs, Bills) don't repeat daily
           if (day <= 7 && ['Housing', 'Utilities', 'Debts', 'Savings'].includes(t.category)) {
             paydaySpikeAmount += t.amount;

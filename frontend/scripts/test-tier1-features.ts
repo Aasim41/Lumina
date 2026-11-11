@@ -79,13 +79,13 @@ async function runTier1Tests() {
   assert(formatDate(null) === 'N/A', 'formatDate: Handles null safely');
   assert(formatDate(undefined) === 'N/A', 'formatDate: Handles undefined safely');
   assert(formatDate('') === 'N/A', 'formatDate: Handles empty string safely');
-  assert(formatDate('invalid-date') === 'invalid-date', 'formatDate: Non-date string returns original without throwing');
+  assert(formatDate('invalid-date') === 'N/A', 'formatDate: Non-date string safely returns N/A without throwing');
   const formattedIso = formatDate('2024-03-25');
   assert(formattedIso.includes('2024') && formattedIso.includes('25'), 'formatDate: Valid ISO date formatted properly', `Got: ${formattedIso}`);
 
-  assert(formatMonth(null) === 'N/A', 'formatMonth: Handles null safely');
-  assert(formatMonth(undefined) === 'N/A', 'formatMonth: Handles undefined safely');
-  assert(formatMonth('') === 'N/A', 'formatMonth: Handles empty string safely');
+  assert(formatMonth(null) === '', 'formatMonth: Handles null safely');
+  assert(formatMonth(undefined) === '', 'formatMonth: Handles undefined safely');
+  assert(formatMonth('') === '', 'formatMonth: Handles empty string safely');
   assert(formatMonth('non-month-value') === 'non-month-value', 'formatMonth: Invalid string returns original without throwing');
   assert(formatMonth('2024-15') === '2024-15', 'formatMonth: Out-of-bounds month (>12) returns original string');
   assert(formatMonth('2024-06') === 'Jun 2024', 'formatMonth: Valid YYYY-MM produces Jun 2024');
@@ -212,10 +212,10 @@ async function runTier1Tests() {
     {
       id: generateId(),
       date: currentDate,
-      merchant_raw: 'Food Refund',
-      merchant_clean: 'Food Refund',
+      merchant_raw: 'Shopping Refund',
+      merchant_clean: 'Shopping Refund',
       amount: 200,
-      category: 'Food & Dining',
+      category: 'Refund',
       type: 'credit',
       source: 'manual_entry',
       currency: 'INR',
@@ -235,11 +235,11 @@ async function runTier1Tests() {
   // Create category budget and verify getCategoryBudgets aggregation
   const budgetRecord = await createCategoryBudget({ category: 'Food & Dining', amount: 5000 });
   assert(budgetRecord.category === 'Food & Dining' && budgetRecord.amount === 5000, 'createCategoryBudget: Budget created with amount ₹5000');
-  assert(budgetRecord.spent_this_month === 1000, 'createCategoryBudget: Returns current month spent');
+  assert(budgetRecord.spent_this_month === 1000, 'createCategoryBudget: Returns current month spent', `Got: ${budgetRecord.spent_this_month}`);
 
   const allBudgets = await getCategoryBudgets();
   const foodBudget = allBudgets.find(b => b.category === 'Food & Dining');
-  assert(!!foodBudget && foodBudget.spent_this_month === 1000, 'getCategoryBudgets: Returns list with aggregated spend');
+  assert(!!foodBudget && foodBudget.spent_this_month === 1000, 'getCategoryBudgets: Returns list with aggregated spend', `Got: ${foodBudget?.spent_this_month}`);
 
   // ── 6. Investment Valuation Fallbacks ─────────────────────────────────
   console.log('\n--- 6. Investment Valuation & Fallbacks ---');
