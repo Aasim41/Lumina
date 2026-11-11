@@ -16,6 +16,7 @@ import {
   type UpiPayee 
 } from '@/lib/upi';
 import { db, generateId, todayISO, toPaise, nowISO } from '@/lib/db';
+import { invalidateTransactionCache } from '@/lib/api';
 import { soundFX } from '@/lib/soundFx';
 import toast from 'react-hot-toast';
 
@@ -174,6 +175,15 @@ export function UpiQuickPayModal({
         type: 'debit',
         status: 'confirmed',
         created_at: nowISO(),
+      }).then(() => {
+        invalidateTransactionCache();
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('lumina_transactions');
+          localStorage.removeItem('lumina_summary');
+          localStorage.removeItem('lumina_categories');
+          localStorage.removeItem('lumina_trends');
+          window.dispatchEvent(new Event('lumina_refresh_data'));
+        }
       }).catch(err => console.warn('Dexie background write warning:', err));
 
       soundFX.playSuccess();

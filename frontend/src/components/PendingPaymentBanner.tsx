@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, CheckCircle2, XCircle, Zap, ShieldAlert } from 'lucide-react';
 import { db } from '@/lib/db';
+import { invalidateTransactionCache } from '@/lib/api';
 import { soundFX } from '@/lib/soundFx';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -55,6 +56,14 @@ export function PendingPaymentBanner({ onReconciled }: { onReconciled?: () => vo
       await db.transactions.update(pending.id, {
         status: 'confirmed'
       });
+      invalidateTransactionCache();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lumina_transactions');
+        localStorage.removeItem('lumina_summary');
+        localStorage.removeItem('lumina_categories');
+        localStorage.removeItem('lumina_trends');
+        window.dispatchEvent(new Event('lumina_refresh_data'));
+      }
       soundFX.playChaChing();
       localStorage.removeItem('lumina_pending_payment');
       setPending(null);
@@ -69,6 +78,14 @@ export function PendingPaymentBanner({ onReconciled }: { onReconciled?: () => vo
     if (!pending) return;
     try {
       await db.transactions.delete(pending.id);
+      invalidateTransactionCache();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lumina_transactions');
+        localStorage.removeItem('lumina_summary');
+        localStorage.removeItem('lumina_categories');
+        localStorage.removeItem('lumina_trends');
+        window.dispatchEvent(new Event('lumina_refresh_data'));
+      }
       localStorage.removeItem('lumina_pending_payment');
       setPending(null);
       toast('Payment marked as cancelled / failed.', { icon: 'ℹ️' });

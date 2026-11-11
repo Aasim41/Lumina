@@ -5,7 +5,7 @@ import { register } from 'node:module';
 import { isMainThread } from 'node:worker_threads';
 
 if (isMainThread) {
-  // Main thread: initialize in-memory IndexedDB & localStorage mock
+  // Main thread: initialize in-memory IndexedDB & browser mocks
   await import('fake-indexeddb/auto');
 
   if (!globalThis.localStorage) {
@@ -17,6 +17,33 @@ if (isMainThread) {
       clear: () => store.clear(),
       key: (i) => Array.from(store.keys())[i] ?? null,
       get length() { return store.size; },
+    };
+  }
+
+  // Set window alias and event dispatchers for headless Node
+  if (typeof globalThis.window === 'undefined') {
+    globalThis.window = globalThis;
+  }
+  if (!globalThis.dispatchEvent) {
+    globalThis.dispatchEvent = () => true;
+  }
+  if (!globalThis.addEventListener) {
+    globalThis.addEventListener = () => {};
+  }
+  if (!globalThis.removeEventListener) {
+    globalThis.removeEventListener = () => {};
+  }
+  if (!globalThis.Event) {
+    globalThis.Event = class Event {
+      constructor(type) { this.type = type; }
+    };
+  }
+  if (!globalThis.CustomEvent) {
+    globalThis.CustomEvent = class CustomEvent extends globalThis.Event {
+      constructor(type, params) {
+        super(type);
+        this.detail = params?.detail;
+      }
     };
   }
 
