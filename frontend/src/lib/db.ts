@@ -184,12 +184,19 @@ export function generateId(): string {
   });
 }
 
+export function toLocalDateStr(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function nowISO(): string {
   return new Date().toISOString();
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().split('T')[0];
+  return toLocalDateStr(new Date());
 }
 
 export function toPaise(rupees: number): number {

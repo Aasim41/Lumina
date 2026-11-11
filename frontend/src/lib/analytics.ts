@@ -1,8 +1,8 @@
-import { db, generateId, nowISO, todayISO, DBUser, DBTransaction, DBSubscription, DBCategoryBudget, DBGoal } from './db';
+import { db, generateId, nowISO, todayISO, toLocalDateStr, DBUser, DBTransaction, DBSubscription, DBCategoryBudget, DBGoal } from './db';
 
 export function getBudgetCycle(user?: DBUser) {
   const today = new Date();
-  const defaultStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const defaultStart = toLocalDateStr(new Date(today.getFullYear(), today.getMonth(), 1));
   const startStr = (user?.last_budget_update && !isNaN(new Date(user.last_budget_update).getTime()))
     ? user.last_budget_update
     : defaultStart;
@@ -36,10 +36,10 @@ export function getBudgetCycle(user?: DBUser) {
   prevEnd.setDate(prevEnd.getDate() - 1);
   
   return { 
-    startStr: currentStart.toISOString().split('T')[0], 
-    endStr: endDate.toISOString().split('T')[0], 
-    prevStartStr: prevStart.toISOString().split('T')[0],
-    prevEndStr: prevEnd.toISOString().split('T')[0],
+    startStr: toLocalDateStr(currentStart), 
+    endStr: toLocalDateStr(endDate), 
+    prevStartStr: toLocalDateStr(prevStart),
+    prevEndStr: toLocalDateStr(prevEnd),
     days,
     elapsedDays: Math.min(elapsedDays, days)
   };
@@ -125,7 +125,7 @@ export async function computeSummary(user: DBUser, transactions?: DBTransaction[
   let streakSafety = 0;
   while (d >= minDate && streakSafety < 60) {
     streakSafety++;
-    const dStr = d.toISOString().split('T')[0];
+    const dStr = toLocalDateStr(d);
     if ((dailyTotals[dStr] || 0) <= daily_budget) {
       current_streak++;
       d.setDate(d.getDate() - 1);
@@ -143,7 +143,7 @@ export async function computeSummary(user: DBUser, transactions?: DBTransaction[
     let runSafety = 0;
     while (tmpD <= todayDate && runSafety < 365) {
       runSafety++;
-      const dStr = tmpD.toISOString().split('T')[0];
+      const dStr = toLocalDateStr(tmpD);
       if ((dailyTotals[dStr] || 0) <= daily_budget) {
         current_run++;
         if (current_run > best_streak) best_streak = current_run;
