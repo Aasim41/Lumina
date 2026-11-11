@@ -101,35 +101,29 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [recognizedPayee, setRecognizedPayee] = useState<ParsedUpiData | null>(null);
-  const autoStartedRef = useRef(false);
 
-  const handleScannedResult = useCallback((rawValue: string, isInstant: boolean = false) => {
+  // Stable refs to avoid re-render loops in useEffect
+  const onCloseRef = useRef(onClose);
+  const onScanSuccessRef = useRef(onScanSuccess);
+  onCloseRef.current = onClose;
+  onScanSuccessRef.current = onScanSuccess;
+
+  const handleScannedResult = useCallback((rawValue: string, autoCloseOnFail: boolean = false) => {
     const parsed = parseUpiUri(rawValue);
     if (parsed) {
       soundFX.playSuccess();
-      if (isInstant) {
-        // Zero-latency instant redirect into Quick Pay card
-        onScanSuccess(parsed);
-        onClose();
-        setRecognizedPayee(null);
-        setIsScanning(false);
-      } else {
-        setRecognizedPayee(parsed);
-        setTimeout(() => {
-          onScanSuccess(parsed);
-          onClose();
-          setRecognizedPayee(null);
-          setIsScanning(false);
-        }, 120);
-      }
+      onScanSuccessRef.current(parsed);
+      onCloseRef.current();
+      setRecognizedPayee(null);
+      setIsScanning(false);
     } else {
       toast.error('Not a valid UPI QR code. Please try again.', { duration: 2500 });
       setIsScanning(false);
     }
-  }, [onScanSuccess, onClose]);
+  }, []);
 
   // Primary Scan Trigger — uses ultra-fast Native ML Kit scanner with fallback
-  const startScan = useCallback(async () => {
+  const startScan = useCallback(async (autoLaunched: boolean = false) => {
     setIsScanning(true);
     setRecognizedPayee(null);
 
@@ -137,11 +131,15 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
     const nativeResult = await scanQrNative();
     if (nativeResult) {
       if (nativeResult.success && nativeResult.value) {
-        handleScannedResult(nativeResult.value, true);
+        handleScannedResult(nativeResult.value);
         return;
       }
-      // User cancelled or exited scanner
+      // User cancelled / pressed back from native scanner
       setIsScanning(false);
+      if (autoLaunched) {
+        // Auto-close the entire modal — don't show the old 3-button fallback screen
+        onCloseRef.current();
+      }
       return;
     }
 
@@ -179,18 +177,17 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
   }, [handleScannedResult]);
 
   // Auto-launch native camera scanner immediately when opened (Google Pay / PhonePe speed)
+  // IMPORTANT: No function dependencies — uses refs to avoid infinite re-render loops
   useEffect(() => {
     if (isOpen) {
-      if (!autoStartedRef.current) {
-        autoStartedRef.current = true;
-        startScan();
-      }
+      // Launch native scanner immediately on modal open
+      startScan(true);
     } else {
-      autoStartedRef.current = false;
       setIsScanning(false);
       setRecognizedPayee(null);
     }
-  }, [isOpen, startScan]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Pick from gallery / screenshot
   const pickFromGallery = useCallback(async () => {
@@ -351,7 +348,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
             {/* Action Buttons */}
             <div className="w-full max-w-xs space-y-2.5">
               <button
-                onClick={startScan}
+                onClick={() => startScan(false)}
                 disabled={isScanning || !!recognizedPayee}
                 className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 text-black font-black text-sm rounded-2xl transition-all shadow-[0_0_25px_rgba(16,185,129,0.35)] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2.5 cursor-pointer"
               >
