@@ -244,9 +244,12 @@ export default function WrapUpPage() {
   };
 
   return (
-    <div className={`fixed inset-0 z-[200] overflow-hidden transition-colors duration-700 ${slides[currentSlide].bg} select-none`}>
+    <div className={`fixed inset-0 z-[200] overflow-hidden transition-colors duration-700 ${slides[currentSlide].bg} select-none safe-pb`}>
       {/* Top Progress Bars */}
-      <div className="absolute top-10 left-4 right-4 flex gap-1.5 z-20">
+      <div 
+        className="absolute left-4 right-4 flex gap-1.5 z-20"
+        style={{ top: 'calc(env(safe-area-inset-top, 20px) + 12px)' }}
+      >
         {slides.map((_, idx) => (
           <div key={idx} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
             <motion.div
@@ -270,7 +273,8 @@ export default function WrapUpPage() {
       {/* Close Button */}
       <button
         onClick={() => router.back()}
-        className="absolute top-14 right-4 z-20 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/70 hover:text-white transition-colors"
+        className="absolute z-20 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/70 hover:text-white transition-colors cursor-pointer"
+        style={{ top: 'calc(env(safe-area-inset-top, 20px) + 24px)', right: '16px' }}
       >
         <X className="w-5 h-5" />
       </button>

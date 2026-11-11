@@ -29,11 +29,6 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeQrScannerPlugin.class);
         super.onCreate(savedInstanceState);
 
-        // Proactively request camera permission so WebView getUserMedia can work
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 101);
-        }
-
         // Allow video playback without a user gesture (needed for live camera preview)
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);

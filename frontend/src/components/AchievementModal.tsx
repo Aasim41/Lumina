@@ -9,6 +9,35 @@ interface AchievementModalProps {
   badgeId: string;
 }
 
+function getBadgeDetails(badgeId: string) {
+  switch (badgeId) {
+    case 'First Steps':
+      return {
+        title: 'First Steps',
+        desc: 'Awarded for recording your very first transaction!',
+        icon: <Award className="w-16 h-16 text-sky-400" />
+      };
+    case 'Super Saver':
+      return {
+        title: 'Super Saver',
+        desc: 'Awarded for saving more than 20% of your monthly budget in your Savings.',
+        icon: <Trophy className="w-16 h-16 text-yellow-400" />
+      };
+    case 'On Track':
+      return {
+        title: 'On Track',
+        desc: 'Awarded when your projected spending for the month is below your total budget.',
+        icon: <TrendingUp className="w-16 h-16 text-purple-400" />
+      };
+    default:
+      return {
+        title: badgeId || 'Milestone Achieved',
+        desc: 'You unlocked a new financial achievement!',
+        icon: <Award className="w-16 h-16 text-amber-400" />
+      };
+  }
+}
+
 export function AchievementModal({ isOpen, onClose, badgeId }: AchievementModalProps) {
   useEffect(() => {
     if (isOpen) {

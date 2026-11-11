@@ -259,7 +259,7 @@ async function runTier1Tests() {
   const investmentsList = await getInvestments();
   assert(investmentsList.length >= 1, 'getInvestments: Fetches persisted investments array');
   const persisted = investmentsList.find(i => i.name === 'NIFTY 50 Index Fund');
-  assert(persisted?.current_value === null || persisted?.current_value === undefined, 'getInvestments: Safely defaults unquoted current_value without crashing');
+  assert(persisted?.current_value === 12000, 'getInvestments: Safely defaults current_value to invested_amount (₹12,000) preventing -100% false return', `Got: ${persisted?.current_value}`);
 
   // Format currency check
   const currZero = formatCurrency(0);
