@@ -123,7 +123,7 @@ export function parseCSV(fileOrText: File | string): Promise<ParsedCsvTransactio
           
           const hasDate = lowerRow.some(r => r.includes('date'));
           const hasAmount = lowerRow.some(r => 
-            r.includes('amount') || r.includes('debit') || r.includes('withdrawal') || r.includes('deposit') || r.includes('credit')
+            r.includes('amount') || r.includes('debit') || r.includes('withdrawal') || r.includes('deposit') || r.includes('credit') || r === 'dr' || r === 'cr'
           );
           
           if (hasDate && hasAmount) {
