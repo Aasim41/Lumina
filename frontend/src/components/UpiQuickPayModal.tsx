@@ -90,6 +90,17 @@ export function UpiQuickPayModal({
     }
   }, [isOpen, prefillVpa, prefillName, prefillAmount, prefillNote, prefillExtraParams, prefillRawQrUri]);
 
+  // Handle Android hardware back button
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleBack = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+    window.addEventListener('lumina_modal_back_pressed', handleBack);
+    return () => window.removeEventListener('lumina_modal_back_pressed', handleBack);
+  }, [isOpen, onClose]);
+
   const handleSelectApp = (appId: string) => {
     setSelectedApp(appId);
     setDefaultUpiApp(appId);

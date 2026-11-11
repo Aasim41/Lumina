@@ -1,4 +1,5 @@
-import * as Papa from 'papaparse';
+import PapaModule from 'papaparse';
+const Papa = (PapaModule as any)?.parse ? (PapaModule as any) : ((PapaModule as any)?.default || PapaModule);
 import { cleanMerchantName, normalizeAmount } from './cleaner';
 import { categorize } from './categorizer';
 

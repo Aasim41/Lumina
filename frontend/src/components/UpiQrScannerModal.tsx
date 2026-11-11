@@ -189,6 +189,19 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Catch hardware back button gesture
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleBack = (e: Event) => {
+      e.preventDefault();
+      setIsScanning(false);
+      setRecognizedPayee(null);
+      onClose();
+    };
+    window.addEventListener('lumina_modal_back_pressed', handleBack);
+    return () => window.removeEventListener('lumina_modal_back_pressed', handleBack);
+  }, [isOpen, onClose]);
+
   // Pick from gallery / screenshot
   const pickFromGallery = useCallback(async () => {
     setIsScanning(true);
@@ -255,7 +268,7 @@ export function UpiQrScannerModal({ isOpen, onClose, onScanSuccess, onOpenManual
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[1100] flex flex-col bg-[#070b14] text-white"
+          className="fixed inset-0 z-[1100] flex flex-col bg-[#070b14] text-white safe-pt safe-pb"
         >
           {/* Header */}
           <div className="relative z-20 flex justify-between items-center px-5 py-4 safe-pt">

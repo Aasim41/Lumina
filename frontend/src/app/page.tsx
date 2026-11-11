@@ -101,39 +101,7 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Hardware Back Button Handler for Android
-  useEffect(() => {
-    let backSub: any = null;
 
-    const setupBack = async () => {
-      try {
-        backSub = await CapApp.addListener('backButton', () => {
-          // Check if any child modal dismisses it first
-          const evt = new CustomEvent('lumina_modal_back_pressed', { cancelable: true });
-          const wasHandled = !window.dispatchEvent(evt);
-          if (wasHandled) return;
-
-          // Dismiss local modals
-          if (isChatOpen) { setIsChatOpen(false); return; }
-          if (isSecurityModalOpen) { setIsSecurityModalOpen(false); return; }
-          if (isSettingsOpen) { setIsSettingsOpen(false); return; }
-          if (isSaveModalOpen) { setIsSaveModalOpen(false); return; }
-          if (isSubModalOpen) { setIsSubModalOpen(false); return; }
-          if (isHeaderMenuOpen) { setIsHeaderMenuOpen(false); return; }
-          if (unlockedBadge) { setUnlockedBadge(null); return; }
-
-          // Exit app if nothing is open
-          CapApp.exitApp();
-        });
-      } catch {}
-    };
-
-    setupBack();
-
-    return () => {
-      if (backSub) backSub.remove();
-    };
-  }, [isChatOpen, isSecurityModalOpen, isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
 
   useGSAP(() => {
     if (!mounted) return;
@@ -204,6 +172,40 @@ export default function Dashboard() {
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Hardware Back Button Handler for Android
+  useEffect(() => {
+    let backSub: any = null;
+
+    const setupBack = async () => {
+      try {
+        backSub = await CapApp.addListener('backButton', () => {
+          // Check if any child modal dismisses it first
+          const evt = new CustomEvent('lumina_modal_back_pressed', { cancelable: true });
+          const wasHandled = !window.dispatchEvent(evt);
+          if (wasHandled) return;
+
+          // Dismiss local modals
+          if (isChatOpen) { setIsChatOpen(false); return; }
+          if (isSecurityModalOpen) { setIsSecurityModalOpen(false); return; }
+          if (isSettingsOpen) { setIsSettingsOpen(false); return; }
+          if (isSaveModalOpen) { setIsSaveModalOpen(false); return; }
+          if (isSubModalOpen) { setIsSubModalOpen(false); return; }
+          if (isHeaderMenuOpen) { setIsHeaderMenuOpen(false); return; }
+          if (unlockedBadge) { setUnlockedBadge(null); return; }
+
+          // Exit app if nothing is open
+          CapApp.exitApp();
+        });
+      } catch {}
+    };
+
+    setupBack();
+
+    return () => {
+      if (backSub) backSub.remove();
+    };
+  }, [isChatOpen, isSecurityModalOpen, isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
 
   // Month Wrap is unlocked from 27th of the month to the 3rd of next month (7-8 day window)
   const wrapWindowInfo = useMemo(() => {
