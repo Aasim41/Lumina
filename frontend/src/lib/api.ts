@@ -505,11 +505,12 @@ export const convertCurrency = async (amount: number, from: string) => {
 
 export const getCategoryBudgets = async () => {
   const budgets = await db.categoryBudgets.toArray();
+  const allTransactions = await db.transactions.toArray();
   const results = [];
 
   for (const b of budgets) {
-    const synced = await syncRollover(b);
-    const spent = await computeSpentThisMonth(synced.category);
+    const synced = await syncRollover(b, allTransactions);
+    const spent = await computeSpentThisMonth(synced.category, allTransactions);
     results.push({ ...synced, spent_this_month: spent });
   }
 

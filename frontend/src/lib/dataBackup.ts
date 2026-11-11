@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { db, type DBUser, type DBTransaction, type DBSubscription, type DBCategoryBudget, type DBWishlistItem, type DBSplitBill, type DBSplitMember, type DBDebt, type DBInvestment, type DBGoal } from './db';
+import { db, type DBUser, type DBTransaction, type DBSubscription, type DBCategoryBudget, type DBWishlistItem, type DBSplitBill, type DBSplitMember, type DBDebt, type DBInvestment, type DBGoal, toLocalDateStr } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -17,6 +17,9 @@ export interface BackupData {
   debts: DBDebt[];
   investments: DBInvestment[];
   goals: DBGoal[];
+  tracked_bills?: any[];
+  saved_upi_payees?: any[];
+  preferences?: Record<string, string | null>;
 }
 
 // ── Encryption Helpers (PBKDF2 + AES-GCM 256) ─────────────────────
@@ -76,6 +79,23 @@ export async function exportDatabasePayload(): Promise<BackupData> {
   const investments = await db.investments.toArray();
   const goals = await db.goals.toArray();
 
+  let tracked_bills: any[] = [];
+  let saved_upi_payees: any[] = [];
+  const preferences: Record<string, string | null> = {};
+
+  if (typeof window !== 'undefined') {
+    try {
+      const tb = localStorage.getItem('lumina_tracked_bills');
+      if (tb) tracked_bills = JSON.parse(tb);
+      const sup = localStorage.getItem('lumina_saved_upi_payees');
+      if (sup) saved_upi_payees = JSON.parse(sup);
+      const keys = ['lumina_theme', 'lumina_biometric_enabled', 'lumina_active_persona', 'lumina_user'];
+      keys.forEach(k => {
+        preferences[k] = localStorage.getItem(k);
+      });
+    } catch {}
+  }
+
   return {
     version: 1,
     exported_at: new Date().toISOString(),
@@ -89,6 +109,9 @@ export async function exportDatabasePayload(): Promise<BackupData> {
     debts,
     investments,
     goals,
+    tracked_bills,
+    saved_upi_payees,
+    preferences,
   };
 }
 
@@ -125,6 +148,22 @@ export async function restoreDatabaseFromPayload(data: BackupData): Promise<{ su
     if (data.investments?.length) await db.investments.bulkAdd(data.investments);
     if (data.goals?.length) await db.goals.bulkAdd(data.goals);
   });
+
+  if (typeof window !== 'undefined') {
+    try {
+      if (Array.isArray(data.tracked_bills)) {
+        localStorage.setItem('lumina_tracked_bills', JSON.stringify(data.tracked_bills));
+      }
+      if (Array.isArray(data.saved_upi_payees)) {
+        localStorage.setItem('lumina_saved_upi_payees', JSON.stringify(data.saved_upi_payees));
+      }
+      if (data.preferences && typeof data.preferences === 'object') {
+        Object.entries(data.preferences).forEach(([k, v]) => {
+          if (v !== null && v !== undefined) localStorage.setItem(k, v);
+        });
+      }
+    } catch {}
+  }
 
   return { success: true, txCount: data.transactions.length };
 }
@@ -232,7 +271,7 @@ export async function exportAllData(password?: string): Promise<{ success: boole
 
   const rawJson = JSON.stringify(data, null, 2);
   let fileContent: string;
-  let filename = `smart-expense-backup-${new Date().toISOString().split('T')[0]}`;
+  let filename = `smart-expense-backup-${toLocalDateStr()}`;
 
   if (password && password.trim().length > 0) {
     // AES-GCM 256-bit encryption
@@ -368,9 +407,10 @@ export async function exportTransactionsCSV(): Promise<void> {
   document.body.removeChild(a);
 }
 
-function csvEscape(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
+function csvEscape(value: any): string {
+  const str = value == null ? '' : String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
   }
-  return value;
+  return str;
 }
