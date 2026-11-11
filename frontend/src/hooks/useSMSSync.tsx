@@ -3,6 +3,7 @@ import { parseMultipleSMS, ParsedTransaction } from '@/lib/smsParser';
 import { categorize } from '@/lib/categorizer';
 import { cleanMerchantName, normalizeAmount } from '@/lib/cleaner';
 import { db, DBTransaction, generateId, nowISO, toPaise } from '@/lib/db';
+import { invalidateTransactionCache } from '@/lib/api';
 import { isAuthenticated, getUser } from '@/lib/auth';
 import { parseBillFromSMS, saveTrackedBill } from '@/lib/billTracker';
 import toast from 'react-hot-toast';
@@ -232,11 +233,7 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
 
   // Invalidate UI caches and notify all components in ONE broadcast
   if (typeof window !== 'undefined' && (txnsToInsert.length > 0 || pendingUpdates.length > 0)) {
-    localStorage.removeItem('lumina_transactions');
-    localStorage.removeItem('lumina_summary');
-    localStorage.removeItem('lumina_categories');
-    localStorage.removeItem('lumina_trends');
-    window.dispatchEvent(new Event('lumina_refresh_data'));
+    invalidateTransactionCache();
   }
 
   setLastSyncTime(Date.now());

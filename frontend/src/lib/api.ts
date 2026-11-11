@@ -746,6 +746,7 @@ export const autoDeductStealth = async () => {
   };
 
   await db.transactions.add(txn);
+  invalidateTransactionCache();
   return { status: 'deducted', amount };
 };
 
@@ -807,6 +808,7 @@ export const processRollover = async (action: string) => {
   for (const txn of txns) {
     await db.transactions.update(txn.id!, { category: 'SecretVault_Processed' });
   }
+  invalidateTransactionCache();
 
   return { status: 'success', rolled_over: totalSaved };
 };

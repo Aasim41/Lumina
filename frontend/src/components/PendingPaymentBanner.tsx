@@ -43,10 +43,10 @@ export function PendingPaymentBanner({ onReconciled }: { onReconciled?: () => vo
     checkPending();
     const handleFocus = () => checkPending();
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('visibilitychange', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
     return () => {
       window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('visibilitychange', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [checkPending]);
 

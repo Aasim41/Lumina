@@ -25,6 +25,8 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
+import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
+import { ChatModal } from '@/components/ChatModal';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
 import { App as CapApp } from '@capacitor/app';
@@ -166,6 +168,7 @@ export default function Dashboard() {
   const [personaLoading, setPersonaLoading] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Month Wrap is unlocked from 27th of the month to the 3rd of next month (7-8 day window)
@@ -429,6 +432,15 @@ export default function Dashboard() {
               
               {/* Right: Modern Compact Action Pill Hub */}
               <div className="flex items-center space-x-1.5 shrink-0">
+                {/* AI Copilot Button */}
+                <button
+                  onClick={() => setIsChatOpen(true)}
+                  className="p-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 rounded-2xl hover:bg-indigo-500/30 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-sm"
+                  title="AI Financial Copilot"
+                >
+                  <Bot className="w-4 h-4 text-indigo-400" />
+                </button>
+
                 {/* Sleek Quick Utility Menu (Security, Save, Logout) */}
                 <div className="relative">
                   <button 
@@ -453,6 +465,17 @@ export default function Dashboard() {
                           transition={{ duration: 0.15 }}
                           className="absolute right-0 top-11 z-40 w-48 rounded-2xl bg-[#111827]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-1.5 space-y-1 text-xs text-white"
                         >
+                          <button
+                            onClick={() => {
+                              setIsHeaderMenuOpen(false);
+                              setIsChatOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
+                          >
+                            <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>AI Financial Advisor</span>
+                          </button>
+
                           <button
                             onClick={() => {
                               setIsHeaderMenuOpen(false);
@@ -505,6 +528,9 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Pending Payment Verification Banner */}
+            <PendingPaymentBanner onReconciled={refresh} />
 
             {/* Dynamic Spotlight Banner: Cycles Wrapped (27th-3rd window), Streak & Badges */}
             <HeroSpotlightBanner
@@ -814,9 +840,10 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-        {/* Floating AI Advisor Button */}
+        {/* Modals & Overlays */}
         <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+        <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
         <BottomNav />
       </AuthGuard>

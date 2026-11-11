@@ -92,41 +92,41 @@ async function runTier3Tests() {
     source: 'upi_quick_pay',
   });
   assert(tx1.amount === 420, 'Flow 1: Transaction created with ₹420');
-  assert(tx1.category === 'Food & Dining', 'Flow 1: Auto-categorized Starbucks to Food & Dining', `Got: ${tx1.category}`);
+  assert(tx1.category === 'Chai & Snacks', 'Flow 1: Auto-categorized Starbucks to Chai & Snacks', `Got: ${tx1.category}`);
 
   // ── Flow 2: Budget Threshold Warning & Critical Alerts ───────────────
   console.log('\n--- Flow 2: Budget Threshold Alerts (80% and 100%) ---');
 
-  // Setup ₹1,000 budget for 'Food & Dining'
-  await createCategoryBudget({ category: 'Food & Dining', amount: 1000 });
+  // Setup ₹1,000 budget for 'Chai & Snacks'
+  await createCategoryBudget({ category: 'Chai & Snacks', amount: 1000 });
 
   // Currently spent: ₹420 (42% of ₹1000) -> No alert
   let alerts = await computeAlerts(testUser);
-  const catAlert42 = alerts.find(a => a.title.includes('Category Budget Alert'));
+  const catAlert42 = alerts.find(a => a.title.includes('Category Budget Alert') && a.message.includes('Chai & Snacks'));
   assert(!catAlert42, 'Flow 2: 42% spending does not trigger 80% warning alert');
 
-  // Add ₹450 expense -> Total spent: ₹870 (87% of ₹1000) -> Triggers 80% Warning
+  // Add ₹450 expense at Chai Point -> Total spent: ₹870 (87% of ₹1000) -> Triggers 80% Warning
   await createTransaction({
     date: currentMonthDateStr,
-    merchant: 'Zomato Biryani',
+    merchant: 'Chai Point',
     amount: 450,
     source: 'manual_entry',
   });
 
   alerts = await computeAlerts(testUser);
-  const catAlert87 = alerts.find(a => a.title.includes('Category Budget Alert') && a.message.includes('Food & Dining'));
+  const catAlert87 = alerts.find(a => a.title.includes('Category Budget Alert') && a.message.includes('Chai & Snacks'));
   assert(!!catAlert87, 'Flow 2: 87% spending triggers 80% threshold budget alert');
-  assert(catAlert87?.message.includes('870') || catAlert87?.message.includes('Food & Dining'), 'Flow 2: Alert message reflects updated spend');
+  assert(catAlert87?.message.includes('870') || catAlert87?.message.includes('Chai & Snacks'), 'Flow 2: Alert message reflects updated spend');
 
-  // Add ₹200 expense -> Total spent: ₹1070 (107% of ₹1000) -> Exceeds budget
+  // Add ₹200 expense at Blue Tokai -> Total spent: ₹1070 (107% of ₹1000) -> Exceeds budget
   await createTransaction({
     date: currentMonthDateStr,
-    merchant: 'Chai Point',
+    merchant: 'Blue Tokai Coffee',
     amount: 200,
     source: 'manual_entry',
   });
-  const spentFood = await computeSpentThisMonth('Food & Dining');
-  assert(spentFood === 1070, 'Flow 2: Category spend strictly equals ₹1070 (> 100% of budget)');
+  const spentChai = await computeSpentThisMonth('Chai & Snacks');
+  assert(spentChai === 1070, 'Flow 2: Category spend strictly equals ₹1070 (> 100% of budget)');
 
   // ── Flow 3: Bank SMS Ingestion & Deduplication ───────────────────────
   console.log('\n--- Flow 3: Bank SMS Ingestion & Deduplication ---');
@@ -157,7 +157,7 @@ async function runTier3Tests() {
   assert(duplicateTx.id === smsTx.id, 'Flow 3: Duplicate SMS hash returned existing transaction ID');
 
   const totalTxnCount = await db.transactions.count();
-  // 3 Food & Dining + 1 Netflix = 4
+  // 3 Chai & Snacks + 1 Netflix = 4
   assert(totalTxnCount === 4, 'Flow 3: Deduplication prevented duplicate database row insertion');
 
   // ── Flow 4: Salary Credit SMS -> Income & Cashflow Update ────────────
@@ -238,7 +238,7 @@ async function runTier3Tests() {
 
   const updatedGoal = await contributeToGoal(goal.id, 30000);
   assert(updatedGoal.saved_amount === 30000, 'Flow 6: Goal contribution ₹30,000 recorded');
-  assert(updatedGoal.percentage === 20, 'Flow 6: Goal progress metric reports exactly 20%');
+  assert(updatedGoal.progress_percent === 20, 'Flow 6: Goal progress metric reports exactly 20%');
 
   // ── Flow 7: LocalStorage Tracked Bills to Transaction ─────────────────
   console.log('\n--- Flow 7: Tracked Bills Integration ---');
@@ -312,7 +312,7 @@ async function runTier3Tests() {
   assert(restoredPayees[0]?.name === 'Dr. Sharma', 'Flow 8: Saved UPI payees restored');
   assert(localStorage.getItem('lumina_theme') === 'dark', 'Flow 8: User preferences restored');
 
-  // ── Flow 9: Transaction Filtering Combinations ───────────────────────
+  // ── Flow 9: Multi-Parameter Transaction Filtering ───────────────────────
   console.log('\n--- Flow 9: Multi-Parameter Transaction Filtering ---');
 
   const allTxns = await getTransactions();
@@ -326,9 +326,9 @@ async function runTier3Tests() {
   const creditTxns = await getTransactions(creditFilter);
   assert(creditTxns.every(t => t.type === 'credit') && creditTxns.length >= 1, 'Flow 9: Filtered strictly credit transactions');
 
-  const categoryFilter = new URLSearchParams({ category: 'Food & Dining' });
-  const foodTxns = await getTransactions(categoryFilter);
-  assert(foodTxns.every(t => t.category === 'Food & Dining'), 'Flow 9: Filtered by category Food & Dining');
+  const categoryFilter = new URLSearchParams({ category: 'Chai & Snacks' });
+  const chaiTxns = await getTransactions(categoryFilter);
+  assert(chaiTxns.every(t => t.category === 'Chai & Snacks'), 'Flow 9: Filtered by category Chai & Snacks');
 
   console.log('\n========================================================');
   console.log(`🏁 TIER 3 RESULTS: ${passed} PASSED, ${failed} FAILED (TOTAL: ${passed + failed})`);
