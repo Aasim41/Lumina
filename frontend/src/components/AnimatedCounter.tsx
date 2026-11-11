@@ -22,6 +22,21 @@ export function AnimatedCounter({
   const spanRef = useRef<HTMLSpanElement>(null);
   const proxyRef = useRef({ val: 0 });
 
+  const formatVal = (val: number) => {
+    let formatted = decimals > 0 
+      ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(Math.abs(val))
+      : formatCurrency(Math.abs(val));
+
+    if (prefix) {
+      if (prefix.includes('₹') && formatted.includes('₹')) {
+        formatted = formatted.replace(/₹\s?/g, '');
+      }
+      return `${prefix}${formatted}`;
+    }
+    if (val < 0) return `-${formatted}`;
+    return formatted;
+  };
+
   useEffect(() => {
     if (!spanRef.current) return;
 
@@ -34,17 +49,7 @@ export function AnimatedCounter({
       ease: 'power3.out',
       onUpdate: () => {
         if (spanRef.current) {
-          const formatted = decimals > 0 
-            ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(Math.abs(proxy.val))
-            : formatCurrency(Math.abs(proxy.val));
-
-          if (prefix) {
-            spanRef.current.innerText = `${prefix}${formatted}`;
-          } else if (proxy.val < 0) {
-            spanRef.current.innerText = `-${formatted}`;
-          } else {
-            spanRef.current.innerText = formatted;
-          }
+          spanRef.current.innerText = formatVal(proxy.val);
         }
       }
     });
@@ -55,13 +60,7 @@ export function AnimatedCounter({
   }, [value, duration, prefix, decimals]);
 
   // Initial SSR render
-  const initialFormatted = decimals > 0
-    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(Math.abs(value || 0))
-    : formatCurrency(Math.abs(value || 0));
-
-  const displayInitial = prefix 
-    ? `${prefix}${initialFormatted}` 
-    : (value < 0 ? `-${initialFormatted}` : initialFormatted);
+  const displayInitial = formatVal(value || 0);
 
   return (
     <span ref={spanRef} className={className}>

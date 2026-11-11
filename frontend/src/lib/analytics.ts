@@ -1,4 +1,4 @@
-import { db, generateId, nowISO, todayISO, toLocalDateStr, DBUser, DBTransaction, DBSubscription, DBCategoryBudget, DBGoal } from './db';
+import { db, generateId, nowISO, todayISO, toLocalDateStr, type DBUser, type DBTransaction, type DBSubscription, type DBCategoryBudget, type DBGoal } from './db';
 
 export function getBudgetCycle(user?: DBUser) {
   const today = new Date();

@@ -35,31 +35,68 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+export function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return 'N/A';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return String(dateStr);
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  }).format(date);
+  if (!dateStr || typeof dateStr !== 'string' || !dateStr.trim()) {
+    return 'N/A';
+  }
+  try {
+    const trimmed = dateStr.trim();
+    let date: Date;
+    // Interpret YYYY-MM-DD in UTC to prevent timezone day-shift glitches
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [year, month, day] = trimmed.split('-').map(Number);
+      date = new Date(Date.UTC(year, month - 1, day));
+      if (isNaN(date.getTime())) return 'N/A';
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(date);
+    } else {
+      date = new Date(trimmed);
+      if (isNaN(date.getTime())) return 'N/A';
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(date);
+    }
+  } catch {
+    return 'N/A';
+  }
 }
 
 export function formatMonth(monthStr?: string | null): string {
-  if (!monthStr) return 'N/A';
-  const parts = String(monthStr).split('-');
-  if (parts.length < 2) return String(monthStr);
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  if (isNaN(year) || isNaN(month) || month < 1 || month > 12) return String(monthStr);
-  const date = new Date(Date.UTC(year, month - 1, 1));
-  if (isNaN(date.getTime())) return String(monthStr);
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC'
-  }).format(date);
+  if (!monthStr || typeof monthStr !== 'string' || !monthStr.trim()) {
+    return '';
+  }
+  try {
+    const trimmed = monthStr.trim();
+    const parts = trimmed.split('-');
+    if (parts.length !== 2) return monthStr;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      return monthStr;
+    }
+    const date = new Date(Date.UTC(year, month - 1, 1));
+    if (isNaN(date.getTime())) return monthStr;
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(date);
+  } catch {
+    return monthStr;
+  }
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {

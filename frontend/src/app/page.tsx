@@ -115,13 +115,6 @@ export default function Dashboard() {
       '-=0.35'
     );
 
-    tl.fromTo('.gsap-today-stat',
-      { opacity: 0, y: 14, scale: 0.94 },
-      { opacity: 1, y: 0, scale: 1, stagger: 0.08, duration: 0.5, ease: 'back.out(1.4)' },
-      '-=0.2'
-    );
-
-
     tl.fromTo('.gsap-metric-card',
       { opacity: 0, y: 16, scale: 0.95 },
       { opacity: 1, y: 0, scale: 1, stagger: 0.06, duration: 0.45 },

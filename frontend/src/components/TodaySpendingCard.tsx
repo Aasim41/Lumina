@@ -129,7 +129,7 @@ export function TodaySpendingCard({
           </div>
           <div>
             <div className="text-base sm:text-lg font-display font-bold text-orange-300 truncate">
-              <AnimatedCounter value={spentToday} prefix="₹" />
+              <AnimatedCounter value={spentToday} />
             </div>
             <p className="text-[10px] text-text-secondary mt-0.5">
               {todayTxCount} expense{todayTxCount === 1 ? '' : 's'} logged
@@ -176,7 +176,7 @@ export function TodaySpendingCard({
             >
               <AnimatedCounter
                 value={Math.abs(balanceLeftToday)}
-                prefix={isOverBudget ? '-₹' : '+₹'}
+                prefix={isOverBudget ? '-' : '+'}
               />
             </div>
             <p className="text-[10px] text-text-secondary mt-0.5">
