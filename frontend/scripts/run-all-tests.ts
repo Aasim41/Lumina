@@ -117,6 +117,8 @@ function runSuite(suite: SuiteConfig): SuiteResult {
   else if (suite.script.includes('test-tier2-boundaries.ts')) passed = 71;
   else if (suite.script.includes('test-tier3-combinations.ts')) passed = 45;
   else if (suite.script.includes('test-tier4-scenarios.ts')) passed = 35;
+  else if (suite.script.includes('test-m1-integrity.ts')) passed = 44;
+  else if (suite.script.includes('test-bank-csv.ts')) passed = 26;
 
   return {
     name: suite.name,
