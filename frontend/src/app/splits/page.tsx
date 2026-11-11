@@ -14,6 +14,7 @@ import { soundFX } from '@/lib/soundFx';
 import { useAuth } from '@/hooks/useAuth';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function SplitsPage() {
   const { user } = useAuth();

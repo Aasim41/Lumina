@@ -225,9 +225,9 @@ export async function computeSummary(user: DBUser, transactions?: DBTransaction[
 // 2. computeCategories
 export async function computeCategories(transactions?: DBTransaction[]) {
   const allTransactions = transactions || (await db.transactions.toArray());
-  const todayDate = new Date(todayISO());
-  const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
-  const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
+  const todayDate = new Date();
+  const firstOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
+  const endOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0));
   const excludeCats = ['Savings', 'SecretVault'];
   const isCredit = (t: DBTransaction) => t.type === 'credit' || ['Income', 'Salary', 'Refund'].includes(t.category);
   
@@ -296,9 +296,9 @@ export async function computeTrends(transactions?: DBTransaction[]) {
 // 4. computeHeatmap
 export async function computeHeatmap(transactions?: DBTransaction[]) {
   const allTransactions = transactions || (await db.transactions.toArray());
-  const todayDate = new Date(todayISO());
-  const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
-  const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
+  const todayDate = new Date();
+  const firstOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
+  const endOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0));
   const excludeCats = ['Savings', 'SecretVault'];
 
   const thisMonthExpenses = allTransactions.filter(t => 
@@ -492,11 +492,11 @@ export async function computeAlerts(user: DBUser) {
     });
   }
 
-  const todayDate = new Date(todayISO());
+  const todayDate = new Date();
   const daysInMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate();
   const daily_limit = monthly_budget / daysInMonth;
   const allTransactions = await db.transactions.toArray();
-  const todayStr = todayDate.toISOString().split('T')[0];
+  const todayStr = toLocalDateStr(todayDate);
   const todayTxs = allTransactions.filter(t => t.date.startsWith(todayStr) && !['Savings', 'SecretVault'].includes(t.category));
   const todayTotal = todayTxs.reduce((sum, t) => sum + t.amount, 0);
   
@@ -570,7 +570,7 @@ export async function computeAlerts(user: DBUser) {
 // 8. generateRoast
 export async function generateRoast(user: DBUser, data: { amount: number, category: string, merchant: string }) {
   const allTransactions = await db.transactions.toArray();
-  const firstOfThisMonthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const firstOfThisMonthStr = toLocalDateStr(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   
   const categoryTxs = allTransactions.filter(t => t.category === data.category && t.date >= firstOfThisMonthStr);
   const total = categoryTxs.reduce((sum, t) => sum + t.amount, 0) + data.amount;
@@ -617,9 +617,9 @@ export async function generateRoast(user: DBUser, data: { amount: number, catego
 // 9. computeWrapUp
 export async function computeWrapUp() {
   const allTransactions = await db.transactions.toArray();
-  const todayDate = new Date(todayISO());
-  const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
-  const firstOfLastMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() - 1, 1).toISOString().split('T')[0];
+  const todayDate = new Date();
+  const firstOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
+  const firstOfLastMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth() - 1, 1));
   const excludeCats = ['Savings', 'SecretVault', 'SecretVault_Processed'];
 
   const thisMonthExpenses = allTransactions.filter(t => t.date >= firstOfThisMonthStr && t.date <= todayISO() && !excludeCats.includes(t.category));
@@ -779,12 +779,12 @@ export function computeGoalMetrics(goal: DBGoal, user: DBUser) {
 }
 
 // 11. syncRollover
-export async function syncRollover(budget: DBCategoryBudget) {
-  const todayDate = new Date(todayISO());
-  const currentMonthStartStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
+export async function syncRollover(budget: DBCategoryBudget, transactions?: DBTransaction[]) {
+  const todayDate = new Date();
+  const currentMonthStartStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
   
   if (budget.month_updated && budget.month_updated < currentMonthStartStr) {
-    const allTransactions = await db.transactions.toArray();
+    const allTransactions = transactions || (await db.transactions.toArray());
     
     const updatedMonthStart = new Date(budget.month_updated);
     const nextMonthStart = new Date(updatedMonthStart.getFullYear(), updatedMonthStart.getMonth() + 1, 1);
@@ -810,11 +810,11 @@ export async function syncRollover(budget: DBCategoryBudget) {
 }
 
 // 12. computeSpentThisMonth
-export async function computeSpentThisMonth(category: string) {
-  const allTransactions = await db.transactions.toArray();
-  const todayDate = new Date(todayISO());
-  const firstOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
-  const endOfThisMonthStr = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
+export async function computeSpentThisMonth(category: string, transactions?: DBTransaction[]) {
+  const allTransactions = transactions || (await db.transactions.toArray());
+  const todayDate = new Date();
+  const firstOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
+  const endOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0));
 
   const spent = allTransactions
     .filter(t => t.category === category && t.date >= firstOfThisMonthStr && t.date <= endOfThisMonthStr)

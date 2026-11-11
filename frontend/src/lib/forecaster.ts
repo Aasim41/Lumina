@@ -35,10 +35,14 @@ export function forecastSpending(transactions: Array<{date: string, category: st
     if (excludedCategories.includes(t.category)) {
       continue;
     }
-    const d = new Date(t.date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const monthStr = `${year}-${month}`;
+    let monthStr = '';
+    const parts = t.date.split(/[-/]/);
+    if (parts.length >= 2 && parts[0].length === 4) {
+      monthStr = `${parts[0]}-${parts[1].padStart(2, '0')}`;
+    } else {
+      const d = new Date(t.date);
+      monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
 
     monthlyTotals[monthStr] = (monthlyTotals[monthStr] || 0) + t.amount;
 
