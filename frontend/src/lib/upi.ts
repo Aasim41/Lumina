@@ -165,82 +165,72 @@ export function buildUpiUri(params: UpiPaymentParams): string {
 }
 
 export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ success: boolean; uri: string }> {
-  // When launching an app-to-app UPI payment, construct a clean, compliant URI:
-  // 1. Standee terminal & personal placeholder parameters (sign, mode=02, orgid, mid, msid, mtid, tid, qrts, purpose, mc=0000)
-  //    MUST BE STRIPPED.
-  //    - Sending mode=02 or sign via an app-to-app intent causes PhonePe, Google Pay, and Paytm to fail terminal verification.
-  //    - Sending mc=0000 or fake merchant params to a personal VPA causes Google Pay to reject with:
-  //      "You've exceeded the bank limit for this transaction please try with smaller amount" (even on ₹1).
-  // 2. For personal (P2P) transfers, keep the URI strictly minimal (pa, pn, am, cu=INR, tn) so Google Pay routes it
-  //    cleanly through standard peer-to-peer rails without merchant verification failure.
-  // 3. For genuine merchant payments (with valid non-zero MCC like mc=5411, mc=5499), preserve mc and tr.
-  let uri = '';
-  if (params.rawQrUri && params.rawQrUri.startsWith('upi://pay')) {
-    let baseUri = params.rawQrUri;
-    // Strip all offline terminal parameters and personal placeholder codes that cause Google Pay / UPI intent aborts
-    baseUri = baseUri
-      .replace(/([?&])sign=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])mode=02(&|$)/gi, '$1')
-      .replace(/([?&])orgid=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])mid=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])msid=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])mtid=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])tid=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])qrts=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])purpose=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])mc=0000(&|$)/gi, '$1'); // Strip personal placeholder MCC that triggers GPay "exceeded bank limit"
+  // If rawQrUri was provided, extract its existing parameters safely
+  const parsedFromRaw = params.rawQrUri ? parseUpiUri(params.rawQrUri) : null;
 
-    if (params.am) {
-      const amountStr = Number(params.am).toFixed(2);
-      if (/[?&]am=/i.test(baseUri)) {
-        uri = baseUri.replace(/([?&])am=[^&]*/i, `$1am=${encodeURIComponent(amountStr)}`);
-      } else {
-        const sep = baseUri.includes('?') ? '&' : '?';
-        uri = `${baseUri}${sep}am=${encodeURIComponent(amountStr)}&cu=INR`;
+  // Resolve core parameters
+  const cleanVpa = (params.pa || parsedFromRaw?.pa || '').trim();
+  const cleanName = (params.pn || parsedFromRaw?.pn || 'Merchant').trim();
+  const cleanNote = (params.tn || parsedFromRaw?.tn || 'Payment').trim();
+
+  // Resolve amount and format to strict banking decimals
+  const numAmount = params.am !== undefined ? params.am : parsedFromRaw?.am;
+  const amountStr = numAmount !== undefined && !isNaN(Number(numAmount))
+    ? Number(numAmount).toFixed(2)
+    : undefined;
+
+  // Build clean parts array (guaranteed free of regex replacement corruption)
+  const parts: string[] = [
+    `pa=${encodeURIComponent(cleanVpa).replace(/%40/g, '@')}`,
+    `pn=${encodeURIComponent(cleanName)}`,
+  ];
+
+  if (amountStr) {
+    parts.push(`am=${amountStr}`);
+    parts.push(`cu=INR`);
+  }
+
+  parts.push(`tn=${encodeURIComponent(cleanNote)}`);
+
+  // Merge extra parameters (from raw QR and explicit extraParams)
+  const mergedExtras: Record<string, string> = {
+    ...(parsedFromRaw?.extraParams || {}),
+    ...(params.extraParams || {})
+  };
+
+  // Check if there is a legitimate merchant code
+  const rawMc = mergedExtras['mc'] || parsedFromRaw?.mc;
+  const isLegitMerchant = Boolean(rawMc && rawMc !== '0000' && /^[0-9]{4}$/.test(rawMc));
+
+  for (const [key, value] of Object.entries(mergedExtras)) {
+    if (!value) continue;
+    const lk = key.toLowerCase();
+    // Do not duplicate core parameters
+    if (['pa', 'pn', 'am', 'cu', 'tn'].includes(lk)) continue;
+    // Strip all toxic terminal / standee parameters that cause intent aborts
+    if (['sign', 'orgid', 'mid', 'msid', 'mtid', 'tid', 'qrts', 'purpose'].includes(lk)) continue;
+    if (lk === 'mode' && value === '02') continue;
+    // Strip personal placeholder MCC (mc=0000) that triggers Google Pay "exceeded bank limit"
+    if (lk === 'mc') {
+      if (isLegitMerchant) {
+        parts.push(`mc=${encodeURIComponent(value)}`);
       }
-    } else {
-      uri = baseUri;
+      continue;
     }
-    // Clean up any double ampersands or malformed query tails
-    uri = uri.replace(/\?&+/g, '?').replace(/&+/g, '&').replace(/[?&]$/, '');
-  } else {
-    // If not rawQrUri, build clean URI via buildUpiUri without toxic terminal parameters
-    const safeExtras: Record<string, string> = {};
-    if (params.extraParams) {
-      for (const [k, v] of Object.entries(params.extraParams)) {
-        const lk = k.toLowerCase();
-        if (['sign', 'orgid', 'mid', 'msid', 'mtid', 'tid', 'qrts', 'purpose'].includes(lk)) continue;
-        if (lk === 'mode' && v === '02') continue;
-        if (lk === 'mc' && (v === '0000' || v === '')) continue; // Strip placeholder MCC
-        safeExtras[k] = v;
-      }
+    // Only forward tr if provided in original merchant QR or if legitimate merchant
+    if (lk === 'tr') {
+      parts.push(`tr=${encodeURIComponent(value)}`);
+      continue;
     }
-    uri = buildUpiUri({
-      ...params,
-      extraParams: safeExtras
-    });
-    // Ensure strict 2-decimal format for banking compliance in automated intents (e.g. 1.00, 50.00)
-    if (params.am) {
-      const formattedAm = Number(params.am).toFixed(2);
-      uri = uri.replace(/([?&])am=[^&]*/i, `$1am=${encodeURIComponent(formattedAm)}`);
-    }
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
   }
 
-  // Ensure cu=INR is always present
-  if (!/[?&]cu=/i.test(uri)) {
-    const sep = uri.includes('?') ? '&' : '?';
-    uri = `${uri}${sep}cu=INR`;
+  // Ensure cu=INR is always present when am is included
+  if (amountStr && !parts.some(p => p.startsWith('cu='))) {
+    parts.push('cu=INR');
   }
 
-  // Only inject synthetic tr for verified merchant transactions (where mc is a valid non-zero merchant category)
-  // or if tr was already provided. For personal P2P payments, omitting tr ensures Google Pay routes the transfer
-  // through standard peer-to-peer rails without triggering NPCI merchant order compliance blocks.
-  const hasMerchantMc = /[?&]mc=(?!0000)[0-9]{4}/i.test(uri);
-  if (hasMerchantMc && !/[?&]tr=/i.test(uri)) {
-    const generatedTr = `LUM${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const sep = uri.includes('?') ? '&' : '?';
-    uri = `${uri}${sep}tr=${encodeURIComponent(generatedTr)}`;
-  }
+  const uri = `upi://pay?${parts.join('&')}`;
 
   const preferredAppId = params.appId || getDefaultUpiApp();
   const appConfig = POPULAR_UPI_APPS.find(a => a.id === preferredAppId);

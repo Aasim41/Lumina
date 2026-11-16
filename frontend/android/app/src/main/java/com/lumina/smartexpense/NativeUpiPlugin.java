@@ -1,6 +1,5 @@
 package com.lumina.smartexpense;
 
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -45,26 +44,12 @@ public class NativeUpiPlugin extends Plugin {
 
         try {
             if (isPackageInstalled) {
-                // 1. Direct Target Launch: open the selected UPI app immediately
+                // 1. Direct Target Launch: open the selected UPI app immediately with verified package
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.setPackage(packageName);
                 intent.addCategory(Intent.CATEGORY_DEFAULT);
                 intent.addCategory(Intent.CATEGORY_BROWSABLE);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-                // Attempt to resolve exact Activity Component in the target package for zero-latency launch
-                try {
-                    List<ResolveInfo> matches = pm.queryIntentActivities(intent, 0);
-                    if (matches != null && !matches.isEmpty()) {
-                        ResolveInfo targetInfo = matches.get(0);
-                        if (targetInfo.activityInfo != null && targetInfo.activityInfo.name != null) {
-                            intent.setComponent(new ComponentName(
-                                targetInfo.activityInfo.packageName,
-                                targetInfo.activityInfo.name
-                            ));
-                        }
-                    }
-                } catch (Exception ignored) {}
 
                 // Crucial NPCI UPI Intent requirement:
                 // Launch via startActivityForResult so Android passes the caller package identity
