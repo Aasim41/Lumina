@@ -166,15 +166,18 @@ export function buildUpiUri(params: UpiPaymentParams): string {
 
 export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ success: boolean; uri: string }> {
   // When launching an app-to-app UPI payment, construct a clean, compliant URI:
-  // 1. Standee terminal parameters (sign, mode=02, orgid, mid, msid, mtid, tid, qrts) MUST BE STRIPPED.
-  //    Sending mode=02 or sign via an app-to-app intent causes PhonePe, Google Pay, and Paytm
-  //    to fail terminal verification and abort/minimize the payment sheet into recent tabs.
-  // 2. The amount must be properly formatted (e.g. 150 or 99.50) with cu=INR.
-  // 3. Keep standard merchant params if present (mc, tr).
+  // 1. Standee terminal & personal placeholder parameters (sign, mode=02, orgid, mid, msid, mtid, tid, qrts, purpose, mc=0000)
+  //    MUST BE STRIPPED.
+  //    - Sending mode=02 or sign via an app-to-app intent causes PhonePe, Google Pay, and Paytm to fail terminal verification.
+  //    - Sending mc=0000 or fake merchant params to a personal VPA causes Google Pay to reject with:
+  //      "You've exceeded the bank limit for this transaction please try with smaller amount" (even on ₹1).
+  // 2. For personal (P2P) transfers, keep the URI strictly minimal (pa, pn, am, cu=INR, tn) so Google Pay routes it
+  //    cleanly through standard peer-to-peer rails without merchant verification failure.
+  // 3. For genuine merchant payments (with valid non-zero MCC like mc=5411, mc=5499), preserve mc and tr.
   let uri = '';
   if (params.rawQrUri && params.rawQrUri.startsWith('upi://pay')) {
     let baseUri = params.rawQrUri;
-    // Strip all offline terminal parameters that cause UPI app intent aborts
+    // Strip all offline terminal parameters and personal placeholder codes that cause Google Pay / UPI intent aborts
     baseUri = baseUri
       .replace(/([?&])sign=[^&]*(&|$)/gi, '$1')
       .replace(/([?&])mode=02(&|$)/gi, '$1')
@@ -183,7 +186,9 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
       .replace(/([?&])msid=[^&]*(&|$)/gi, '$1')
       .replace(/([?&])mtid=[^&]*(&|$)/gi, '$1')
       .replace(/([?&])tid=[^&]*(&|$)/gi, '$1')
-      .replace(/([?&])qrts=[^&]*(&|$)/gi, '$1');
+      .replace(/([?&])qrts=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])purpose=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])mc=0000(&|$)/gi, '$1'); // Strip personal placeholder MCC that triggers GPay "exceeded bank limit"
 
     if (params.am) {
       const amountStr = Number(params.am).toFixed(2);
@@ -204,8 +209,9 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
     if (params.extraParams) {
       for (const [k, v] of Object.entries(params.extraParams)) {
         const lk = k.toLowerCase();
-        if (['sign', 'orgid', 'mid', 'msid', 'mtid', 'tid', 'qrts'].includes(lk)) continue;
+        if (['sign', 'orgid', 'mid', 'msid', 'mtid', 'tid', 'qrts', 'purpose'].includes(lk)) continue;
         if (lk === 'mode' && v === '02') continue;
+        if (lk === 'mc' && (v === '0000' || v === '')) continue; // Strip placeholder MCC
         safeExtras[k] = v;
       }
     }
@@ -220,17 +226,20 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
     }
   }
 
-  // Ensure mandatory NPCI / Google Pay transaction tracking parameters:
-  // 1. Transaction reference (tr): Google Pay requires a unique tr to prevent duplicate/anonymous intent block.
-  if (!/[?&]tr=/i.test(uri)) {
-    const generatedTr = `LUM${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const sep = uri.includes('?') ? '&' : '?';
-    uri = `${uri}${sep}tr=${encodeURIComponent(generatedTr)}`;
-  }
-  // 2. Currency (cu): Ensure cu=INR is always present.
+  // Ensure cu=INR is always present
   if (!/[?&]cu=/i.test(uri)) {
     const sep = uri.includes('?') ? '&' : '?';
     uri = `${uri}${sep}cu=INR`;
+  }
+
+  // Only inject synthetic tr for verified merchant transactions (where mc is a valid non-zero merchant category)
+  // or if tr was already provided. For personal P2P payments, omitting tr ensures Google Pay routes the transfer
+  // through standard peer-to-peer rails without triggering NPCI merchant order compliance blocks.
+  const hasMerchantMc = /[?&]mc=(?!0000)[0-9]{4}/i.test(uri);
+  if (hasMerchantMc && !/[?&]tr=/i.test(uri)) {
+    const generatedTr = `LUM${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const sep = uri.includes('?') ? '&' : '?';
+    uri = `${uri}${sep}tr=${encodeURIComponent(generatedTr)}`;
   }
 
   const preferredAppId = params.appId || getDefaultUpiApp();
