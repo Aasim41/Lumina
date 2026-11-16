@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -20,7 +20,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { appNavigate } from '@/lib/utils';
 import { UpiQrScannerModal } from './UpiQrScannerModal';
 import { UpiQuickPayModal } from './UpiQuickPayModal';
-import type { ParsedUpiData } from '@/lib/upi';
+import { parseUpiUri, type ParsedUpiData } from '@/lib/upi';
+import { scanQrNative } from '@/lib/nativeQrScanner';
+import { soundFX } from '@/lib/soundFx';
+import { Capacitor } from '@capacitor/core';
+import toast from 'react-hot-toast';
 
 const MORE_TABS = [
   { name: 'Wrapped 🎬', href: '/wrap-up/', path: '/wrap-up', icon: Sparkles, color: '#ec4899', desc: 'Your Financial Wrapped story' },
@@ -50,11 +54,52 @@ export function BottomNav() {
   const [isQuickPayOpen, setIsQuickPayOpen] = useState(false);
   const [scannedUpi, setScannedUpiData] = useState<ParsedUpiData | null>(null);
 
+  // Direct ultra-fast native ML Kit QR trigger (Google Pay speed: camera -> amount screen in 0ms)
+  const openQrScannerDirect = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const res = await scanQrNative();
+        if (res && res.success && res.value) {
+          const parsed = parseUpiUri(res.value);
+          if (parsed) {
+            soundFX.playSuccess();
+            setScannedUpiData(parsed);
+            setIsQrScannerOpen(false);
+            setIsQuickPayOpen(true);
+            return;
+          } else {
+            toast.error('Not a valid UPI QR code', { duration: 2500 });
+            return;
+          }
+        }
+        if (res?.cancelled) {
+          // User tapped back in camera viewfinder — return cleanly
+          return;
+        }
+      } catch (err) {
+        console.warn('Native ML Kit scan error, using web fallback:', err);
+      }
+    }
+    // Web / emulator fallback modal
+    setIsQrScannerOpen(true);
+  }, []);
+
   useEffect(() => {
-    const handleOpenScanner = () => setIsQrScannerOpen(true);
+    const handleOpenScanner = () => openQrScannerDirect();
     window.addEventListener('lumina_open_upi_scanner', handleOpenScanner);
     return () => window.removeEventListener('lumina_open_upi_scanner', handleOpenScanner);
-  }, []);
+  }, [openQrScannerDirect]);
+
+  // Dismiss More Sheet when Android back button / gesture is pressed
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handleBack = (e: Event) => {
+      e.preventDefault();
+      setMoreOpen(false);
+    };
+    window.addEventListener('lumina_modal_back_pressed', handleBack);
+    return () => window.removeEventListener('lumina_modal_back_pressed', handleBack);
+  }, [moreOpen]);
 
   // Normalize current path
   const cleanPath = pathname.replace(/^\/+/, '').replace(/\/+$/, '').replace(/(^|\/)index\.html$/, '');
@@ -88,8 +133,7 @@ export function BottomNav() {
 
   const handleOpenUpi = (e: React.MouseEvent) => {
     e.preventDefault();
-    // QR Code scan is top priority
-    setIsQrScannerOpen(true);
+    openQrScannerDirect();
   };
 
   const handleScanSuccess = (data: ParsedUpiData) => {

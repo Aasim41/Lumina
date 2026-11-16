@@ -143,9 +143,9 @@ export function buildUpiUri(params: UpiPaymentParams): string {
 
   // Use encodeURIComponent instead of URLSearchParams — URLSearchParams encodes
   // spaces as '+' which UPI apps (PhonePe, Paytm) REJECT. encodeURIComponent
-  // produces '%20' which all apps accept.
+  // produces '%20' which all apps accept. Keep '@' literal in VPA for UPI app compatibility.
   const parts: string[] = [
-    `pa=${encodeURIComponent(cleanVpa)}`,
+    `pa=${encodeURIComponent(cleanVpa).replace(/%40/g, '@')}`,
     `pn=${encodeURIComponent(cleanName)}`,
     `am=${encodeURIComponent(amountStr)}`,
     `cu=INR`,
@@ -172,16 +172,21 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
   // ensuring compliant encoding (%20 for spaces, clean decimal amounts, mode=00).
   let uri = '';
   if (params.rawQrUri && params.rawQrUri.startsWith('upi://pay')) {
+    let baseUri = params.rawQrUri;
+    // Strip outdated merchant signature if custom amount is injected to prevent NPCI checksum failure
+    if (params.am && /[?&]sign=/i.test(baseUri)) {
+      baseUri = baseUri.replace(/([?&])sign=[^&]*(&|$)/i, (m, p1, p2) => p2 === '&' ? p1 : '');
+    }
     if (params.am) {
       const amountStr = Number(params.am).toFixed(2).replace(/\.?0+$/, '');
-      if (/[?&]am=/i.test(params.rawQrUri)) {
-        uri = params.rawQrUri.replace(/([?&])am=[^&]*/i, `$1am=${encodeURIComponent(amountStr)}`);
+      if (/[?&]am=/i.test(baseUri)) {
+        uri = baseUri.replace(/([?&])am=[^&]*/i, `$1am=${encodeURIComponent(amountStr)}`);
       } else {
-        const sep = params.rawQrUri.includes('?') ? '&' : '?';
-        uri = `${params.rawQrUri}${sep}am=${encodeURIComponent(amountStr)}&cu=INR`;
+        const sep = baseUri.includes('?') ? '&' : '?';
+        uri = `${baseUri}${sep}am=${encodeURIComponent(amountStr)}&cu=INR`;
       }
     } else {
-      uri = params.rawQrUri;
+      uri = baseUri;
     }
   } else {
     uri = buildUpiUri(params);
@@ -233,6 +238,16 @@ export async function getInstalledUpiAppsList(): Promise<string[]> {
     const res = await NativeUpi.getInstalledUpiApps();
     if (res?.apps?.length) {
       return res.apps.map(a => a.packageName);
+    }
+  } catch {}
+  return [];
+}
+
+export async function getInstalledUpiAppsWithDetails(): Promise<Array<{ packageName: string; name: string }>> {
+  try {
+    const res = await NativeUpi.getInstalledUpiApps();
+    if (res?.apps?.length) {
+      return res.apps;
     }
   } catch {}
   return [];
