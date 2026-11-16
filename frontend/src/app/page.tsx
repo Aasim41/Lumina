@@ -29,7 +29,6 @@ import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
 import { ChatModal } from '@/components/ChatModal';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
-import { App as CapApp } from '@capacitor/app';
 import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 import { restoreFromAutoFilesystemSnapshotIfEmpty, saveAutoFilesystemSnapshot } from '@/lib/dataBackup';
 
@@ -173,38 +172,20 @@ export default function Dashboard() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Hardware Back Button Handler for Android
+  // Handle modal dismissal when Android back button / gesture is pressed
   useEffect(() => {
-    let backSub: any = null;
-
-    const setupBack = async () => {
-      try {
-        backSub = await CapApp.addListener('backButton', () => {
-          // Check if any child modal dismisses it first
-          const evt = new CustomEvent('lumina_modal_back_pressed', { cancelable: true });
-          const wasHandled = !window.dispatchEvent(evt);
-          if (wasHandled) return;
-
-          // Dismiss local modals
-          if (isChatOpen) { setIsChatOpen(false); return; }
-          if (isSecurityModalOpen) { setIsSecurityModalOpen(false); return; }
-          if (isSettingsOpen) { setIsSettingsOpen(false); return; }
-          if (isSaveModalOpen) { setIsSaveModalOpen(false); return; }
-          if (isSubModalOpen) { setIsSubModalOpen(false); return; }
-          if (isHeaderMenuOpen) { setIsHeaderMenuOpen(false); return; }
-          if (unlockedBadge) { setUnlockedBadge(null); return; }
-
-          // Exit app if nothing is open
-          CapApp.exitApp();
-        });
-      } catch {}
+    const handleBack = (e: Event) => {
+      if (isChatOpen) { e.preventDefault(); setIsChatOpen(false); return; }
+      if (isSecurityModalOpen) { e.preventDefault(); setIsSecurityModalOpen(false); return; }
+      if (isSettingsOpen) { e.preventDefault(); setIsSettingsOpen(false); return; }
+      if (isSaveModalOpen) { e.preventDefault(); setIsSaveModalOpen(false); return; }
+      if (isSubModalOpen) { e.preventDefault(); setIsSubModalOpen(false); return; }
+      if (isHeaderMenuOpen) { e.preventDefault(); setIsHeaderMenuOpen(false); return; }
+      if (unlockedBadge) { e.preventDefault(); setUnlockedBadge(null); return; }
     };
 
-    setupBack();
-
-    return () => {
-      if (backSub) backSub.remove();
-    };
+    window.addEventListener('lumina_modal_back_pressed', handleBack);
+    return () => window.removeEventListener('lumina_modal_back_pressed', handleBack);
   }, [isChatOpen, isSecurityModalOpen, isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
 
   // Month Wrap is unlocked from 27th of the month to the 3rd of next month (7-8 day window)

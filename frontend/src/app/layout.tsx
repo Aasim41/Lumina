@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 
 import "./globals.css";
 import { BiometricGuard } from "@/components/BiometricGuard";
+import { GlobalBackHandler } from "@/components/GlobalBackHandler";
 
 export const metadata: Metadata = {
   title: "Lumina",
@@ -41,6 +42,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased bg-[#0B1021] text-foreground min-h-screen overflow-x-hidden w-full">
+        <GlobalBackHandler />
         <main className="w-full max-w-md mx-auto min-h-screen relative bg-[#0B1021] pb-20 overflow-x-hidden">
           <BiometricGuard>
             {children}

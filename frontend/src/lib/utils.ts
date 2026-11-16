@@ -2,18 +2,77 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Capacitor } from '@capacitor/core';
 
-export function appNavigate(path: string) {
-  if (typeof window === 'undefined') return;
-  const clean = path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/(^|\/)index\.html$/, '');
-  if (Capacitor.isNativePlatform()) {
-    if (!clean) {
-      window.location.replace('/index.html');
-    } else {
-      window.location.replace(`/${clean}/index.html`);
-    }
-  } else {
-    window.location.replace(clean ? `/${clean}/` : '/');
+const NAV_HISTORY_KEY = 'lumina_nav_history_stack';
+
+function getNavHistory(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(NAV_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
   }
+}
+
+function setNavHistory(stack: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(NAV_HISTORY_KEY, JSON.stringify(stack.slice(-20)));
+  } catch {}
+}
+
+export function normalizeRoute(path: string): string {
+  if (!path) return '/';
+  const clean = path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/(^|\/)index\.html$/, '');
+  return clean ? `/${clean}` : '/';
+}
+
+export function appNavigate(path: string, options: { replace?: boolean } = {}) {
+  if (typeof window === 'undefined') return;
+  const targetRoute = normalizeRoute(path);
+  const currentRoute = normalizeRoute(window.location.pathname);
+
+  if (targetRoute === currentRoute) return;
+
+  if (!options.replace) {
+    const stack = getNavHistory();
+    if (stack.length === 0 || stack[stack.length - 1] !== currentRoute) {
+      stack.push(currentRoute);
+      setNavHistory(stack);
+    }
+  }
+
+  const clean = targetRoute.replace(/^\/+/, '');
+  const url = Capacitor.isNativePlatform()
+    ? (!clean ? '/index.html' : `/${clean}/index.html`)
+    : (clean ? `/${clean}/` : '/');
+
+  if (options.replace) {
+    window.location.replace(url);
+  } else {
+    window.location.assign(url);
+  }
+}
+
+export function appBack(fallback: string = '/') {
+  if (typeof window === 'undefined') return;
+  const currentRoute = normalizeRoute(window.location.pathname);
+  const stack = getNavHistory();
+
+  // Pop any duplicate current routes
+  while (stack.length > 0 && stack[stack.length - 1] === currentRoute) {
+    stack.pop();
+  }
+
+  const prev = stack.pop();
+  setNavHistory(stack);
+
+  let destination = prev || normalizeRoute(fallback);
+  if (destination === currentRoute && destination !== '/') {
+    destination = '/';
+  }
+
+  appNavigate(destination, { replace: true });
 }
 
 export function cn(...inputs: ClassValue[]) {
