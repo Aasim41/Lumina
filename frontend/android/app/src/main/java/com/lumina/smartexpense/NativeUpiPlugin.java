@@ -1,5 +1,6 @@
 package com.lumina.smartexpense;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -15,6 +16,8 @@ import java.util.List;
 
 @CapacitorPlugin(name = "NativeUpi")
 public class NativeUpiPlugin extends Plugin {
+
+    private static final int UPI_REQUEST_CODE = 1001;
 
     @PluginMethod
     public void launchUpi(PluginCall call) {
@@ -42,11 +45,32 @@ public class NativeUpiPlugin extends Plugin {
 
         try {
             if (isPackageInstalled) {
-                // 1. Direct Target Launch: bypass system chooser and open the selected UPI app immediately
+                // 1. Direct Target Launch: open the selected UPI app immediately
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.setPackage(packageName);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                getActivity().startActivity(intent);
+                intent.addCategory(Intent.CATEGORY_DEFAULT);
+                intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+                // Attempt to resolve exact Activity Component in the target package for zero-latency launch
+                try {
+                    List<ResolveInfo> matches = pm.queryIntentActivities(intent, 0);
+                    if (matches != null && !matches.isEmpty()) {
+                        ResolveInfo targetInfo = matches.get(0);
+                        if (targetInfo.activityInfo != null && targetInfo.activityInfo.name != null) {
+                            intent.setComponent(new ComponentName(
+                                targetInfo.activityInfo.packageName,
+                                targetInfo.activityInfo.name
+                            ));
+                        }
+                    }
+                } catch (Exception ignored) {}
+
+                // Crucial NPCI UPI Intent requirement:
+                // Launch via startActivityForResult so Android passes the caller package identity
+                // (getCallingPackage() == "com.lumina.smartexpense") and brings the target activity
+                // directly to the FOREGROUND window over MainActivity instead of detaching into background.
+                getActivity().startActivityForResult(intent, UPI_REQUEST_CODE);
                 getActivity().overridePendingTransition(0, 0);
 
                 JSObject ret = new JSObject();
@@ -59,11 +83,11 @@ public class NativeUpiPlugin extends Plugin {
 
             // 2. System Chooser Launch: user chose "any" or requested app was not installed
             Intent baseIntent = new Intent(Intent.ACTION_VIEW, uri);
-            baseIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            baseIntent.addCategory(Intent.CATEGORY_DEFAULT);
+            baseIntent.addCategory(Intent.CATEGORY_BROWSABLE);
 
             Intent chooser = Intent.createChooser(baseIntent, "Pay via UPI");
-            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getActivity().startActivity(chooser);
+            getActivity().startActivityForResult(chooser, UPI_REQUEST_CODE);
             getActivity().overridePendingTransition(0, 0);
 
             JSObject ret = new JSObject();
@@ -76,14 +100,18 @@ public class NativeUpiPlugin extends Plugin {
             // 3. Fallback: query any intent activity that can handle upi://pay and launch directly
             try {
                 Intent testIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay"));
+                testIntent.addCategory(Intent.CATEGORY_DEFAULT);
                 List<ResolveInfo> matches = pm.queryIntentActivities(testIntent, 0);
 
                 if (matches != null && !matches.isEmpty()) {
                     String firstPkg = matches.get(0).activityInfo.packageName;
                     Intent directIntent = new Intent(Intent.ACTION_VIEW, uri);
                     directIntent.setPackage(firstPkg);
-                    directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    getActivity().startActivity(directIntent);
+                    directIntent.addCategory(Intent.CATEGORY_DEFAULT);
+                    directIntent.addCategory(Intent.CATEGORY_BROWSABLE);
+                    directIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+                    getActivity().startActivityForResult(directIntent, UPI_REQUEST_CODE);
                     getActivity().overridePendingTransition(0, 0);
 
                     JSObject ret = new JSObject();
@@ -95,7 +123,21 @@ public class NativeUpiPlugin extends Plugin {
                 }
             } catch (Exception ignored) {}
 
-            call.reject("Failed to open UPI app: " + e.getMessage());
+            // 4. Ultimate fallback: standard startActivity with chooser
+            try {
+                Intent fallbackIntent = new Intent(Intent.ACTION_VIEW, uri);
+                Intent fallbackChooser = Intent.createChooser(fallbackIntent, "Pay via UPI");
+                getActivity().startActivity(fallbackChooser);
+
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                ret.put("targetedPackage", "any");
+                ret.put("ultimate_fallback", true);
+                call.resolve(ret);
+                return;
+            } catch (Exception ex) {
+                call.reject("Failed to open UPI app: " + ex.getMessage());
+            }
         }
     }
 

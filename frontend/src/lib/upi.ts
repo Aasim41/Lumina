@@ -152,14 +152,12 @@ export function buildUpiUri(params: UpiPaymentParams): string {
     `tn=${encodeURIComponent(note)}`,
   ];
 
-  // Add mode=00 if not already present in extraParams
+  // Forward extra params without duplicating standard keys or duplicating mode
   const extras = params.extraParams || {};
-  if (extras['mode']) {
-    parts.push('mode=' + encodeURIComponent(extras['mode']));
-  }
-
-  // Forward ALL extra QR params (tr, tid, orgid, mid, msid, mtid, sign, etc.)
   for (const [key, value] of Object.entries(extras)) {
+    if (!value) continue;
+    const lk = key.toLowerCase();
+    if (['pa', 'pn', 'am', 'cu', 'tn'].includes(lk)) continue;
     parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
   }
 
@@ -167,16 +165,26 @@ export function buildUpiUri(params: UpiPaymentParams): string {
 }
 
 export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ success: boolean; uri: string }> {
-  // Always use buildUpiUri when amount is specified or parameters are adjusted.
-  // buildUpiUri preserves all extra merchant params (mc, tr, tid, etc.) while
-  // ensuring compliant encoding (%20 for spaces, clean decimal amounts, mode=00).
+  // When launching an app-to-app UPI payment, construct a clean, compliant URI:
+  // 1. Standee terminal parameters (sign, mode=02, orgid, mid, msid, mtid, tid, qrts) MUST BE STRIPPED.
+  //    Sending mode=02 or sign via an app-to-app intent causes PhonePe, Google Pay, and Paytm
+  //    to fail terminal verification and abort/minimize the payment sheet into recent tabs.
+  // 2. The amount must be properly formatted (e.g. 150 or 99.50) with cu=INR.
+  // 3. Keep standard merchant params if present (mc, tr).
   let uri = '';
   if (params.rawQrUri && params.rawQrUri.startsWith('upi://pay')) {
     let baseUri = params.rawQrUri;
-    // Strip outdated merchant signature if custom amount is injected to prevent NPCI checksum failure
-    if (params.am && /[?&]sign=/i.test(baseUri)) {
-      baseUri = baseUri.replace(/([?&])sign=[^&]*(&|$)/i, (m, p1, p2) => p2 === '&' ? p1 : '');
-    }
+    // Strip all offline terminal parameters that cause UPI app intent aborts
+    baseUri = baseUri
+      .replace(/([?&])sign=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])mode=02(&|$)/gi, '$1')
+      .replace(/([?&])orgid=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])mid=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])msid=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])mtid=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])tid=[^&]*(&|$)/gi, '$1')
+      .replace(/([?&])qrts=[^&]*(&|$)/gi, '$1');
+
     if (params.am) {
       const amountStr = Number(params.am).toFixed(2).replace(/\.?0+$/, '');
       if (/[?&]am=/i.test(baseUri)) {
@@ -188,8 +196,23 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
     } else {
       uri = baseUri;
     }
+    // Clean up any double ampersands or malformed query tails
+    uri = uri.replace(/\?&+/g, '?').replace(/&+/g, '&').replace(/[?&]$/, '');
   } else {
-    uri = buildUpiUri(params);
+    // If not rawQrUri, build clean URI via buildUpiUri without toxic terminal parameters
+    const safeExtras: Record<string, string> = {};
+    if (params.extraParams) {
+      for (const [k, v] of Object.entries(params.extraParams)) {
+        const lk = k.toLowerCase();
+        if (['sign', 'orgid', 'mid', 'msid', 'mtid', 'tid', 'qrts'].includes(lk)) continue;
+        if (lk === 'mode' && v === '02') continue;
+        safeExtras[k] = v;
+      }
+    }
+    uri = buildUpiUri({
+      ...params,
+      extraParams: safeExtras
+    });
   }
   const preferredAppId = params.appId || getDefaultUpiApp();
   const appConfig = POPULAR_UPI_APPS.find(a => a.id === preferredAppId);
