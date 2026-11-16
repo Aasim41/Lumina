@@ -7,7 +7,7 @@ import {
   Sparkles, Share2, Flame, Heart, Store, ShieldCheck
 } from 'lucide-react';
 import { getWrapUp } from '@/lib/api';
-import { formatCurrency, appNavigate } from '@/lib/utils';
+import { formatCurrency, appNavigate, appBack } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
@@ -43,7 +43,7 @@ export default function WrapUpPage() {
         <div>
           <h2 className="text-xl font-bold text-white mb-2">Wrap-Up Unavailable</h2>
           <p className="text-text-secondary mb-6">We don't have enough data to generate your story yet.</p>
-          <button onClick={() => router.back()} className="px-6 py-2.5 bg-white/10 text-white rounded-full">
+          <button onClick={() => appBack('/')} className="px-6 py-2.5 bg-white/10 text-white rounded-full">
             Go Back
           </button>
         </div>
@@ -235,7 +235,7 @@ export default function WrapUpPage() {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(c => c + 1);
     } else {
-      router.back();
+      appBack('/');
     }
   };
 
@@ -272,7 +272,7 @@ export default function WrapUpPage() {
 
       {/* Close Button */}
       <button
-        onClick={() => router.back()}
+        onClick={() => appBack('/')}
         className="absolute z-20 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white/70 hover:text-white transition-colors cursor-pointer"
         style={{ top: 'calc(env(safe-area-inset-top, 20px) + 24px)', right: '16px' }}
       >

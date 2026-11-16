@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Plus, Trash2, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2 } from 'lucide-react';
+import { TrendingUp, Plus, Trash2, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, ArrowLeft } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/Button';
 import { getInvestments, createInvestment, updateInvestment, deleteInvestment } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, appBack } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function InvestmentsPage() {
@@ -92,7 +92,16 @@ export default function InvestmentsPage() {
       <div className="min-h-screen bg-background pb-24 text-text-primary">
         <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-indigo-500/20 to-transparent">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-display font-bold">Portfolio 📈</h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => appBack('/')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+                title="Go Back"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <h1 className="text-2xl font-display font-bold">Portfolio 📈</h1>
+            </div>
             <button
               onClick={() => { fetchInvestments(); toast('Refreshing prices...', { icon: '🔄' }); }}
               className="p-2 bg-white/5 text-text-secondary hover:text-white rounded-full transition-colors"

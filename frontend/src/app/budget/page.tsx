@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { getCategoryBudgets, createCategoryBudget, deleteCategoryBudget, getCategories, getSubscriptions, deleteSubscription } from '@/lib/api';
-import { Target, Plus, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Target, Plus, Trash2, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 import { BottomNav } from '@/components/BottomNav';
+import { appBack } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function BudgetDashboard() {
@@ -79,10 +80,19 @@ export default function BudgetDashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/80  border-b border-white/5 p-4 pt-14 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Budgets & Subs</h1>
-          <p className="text-xs text-white/50">Advanced tracking & limits</p>
+      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-white/5 p-4 pt-14 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => appBack('/')}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Budgets & Subs</h1>
+            <p className="text-xs text-white/50">Advanced tracking & limits</p>
+          </div>
         </div>
         <button onClick={fetchData} className="p-2 glass-panel rounded-full hover:bg-white/10 transition-colors">
           <RefreshCw className="w-5 h-5" />

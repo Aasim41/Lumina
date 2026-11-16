@@ -4,9 +4,10 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { ForecastChart } from '@/components/ForecastChart';
 import { useExpenseData } from '@/hooks/useExpenseData';
-import { formatCurrency, getCategoryColor } from '@/lib/utils';
+import { formatCurrency, getCategoryColor, appBack } from '@/lib/utils';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ForecastPage() {
   const { forecast, loading } = useExpenseData();
@@ -14,9 +15,18 @@ export default function ForecastPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-[#12081C] pb-24">
-        <header className="px-6 py-6 safe-pt sticky top-0 z-20 bg-purple-500/10  border-b border-purple-500/30 mb-6 shadow-[0_4px_30px_rgba(168,85,247,0.15)]">
-          <h1 className="text-3xl font-display font-bold mb-1">AI Forecast</h1>
-          <p className="text-purple-300/60 text-sm">Predicting your next month's spending</p>
+        <header className="px-6 py-6 safe-pt sticky top-0 z-20 bg-purple-500/10  border-b border-purple-500/30 mb-6 shadow-[0_4px_30px_rgba(168,85,247,0.15)] flex items-center gap-3">
+          <button
+            onClick={() => appBack('/')}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-display font-bold mb-1">AI Forecast</h1>
+            <p className="text-purple-300/60 text-sm">Predicting your next month's spending</p>
+          </div>
         </header>
 
         <div className="px-4 space-y-6 pb-6">

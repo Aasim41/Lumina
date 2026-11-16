@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon, Zap, QrCode, MessageCircle, Copy, Share2 } from 'lucide-react';
+import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon, Zap, QrCode, MessageCircle, Copy, Share2, ArrowLeft } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BottomNav } from '@/components/BottomNav';
 import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
-import { formatCurrency, formatLocalDate } from '@/lib/utils';
+import { formatCurrency, formatLocalDate, appBack } from '@/lib/utils';
 import { splitPaiseEqually } from '@/lib/db';
 import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { soundFX } from '@/lib/soundFx';
@@ -187,12 +187,21 @@ export default function SplitsPage() {
           {/* Top Bar */}
           <div className="p-6 pb-2">
             <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                  <Users className="w-6 h-6 text-emerald-400" />
-                  <span>Split with Friends</span>
-                </h1>
-                <p className="text-xs text-white/60">UPI Pay-Me links, on-screen QR & 1-tap WhatsApp</p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => appBack('/')}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+                  title="Go Back"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-bold flex items-center gap-2">
+                    <Users className="w-6 h-6 text-emerald-400" />
+                    <span>Split with Friends</span>
+                  </h1>
+                  <p className="text-xs text-white/60">UPI Pay-Me links, on-screen QR & 1-tap WhatsApp</p>
+                </div>
               </div>
               <button
                 onClick={() => setIsModalOpen(true)}

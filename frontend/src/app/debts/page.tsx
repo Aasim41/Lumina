@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Landmark, Plus, Trash2, ArrowRight, Percent, Calendar, CheckCircle2 } from 'lucide-react';
+import { Landmark, Plus, Trash2, ArrowRight, Percent, Calendar, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { getDebts, createDebt, updateDebt, deleteDebt } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, appBack } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function DebtsPage() {
@@ -139,7 +139,16 @@ export default function DebtsPage() {
       <div className="min-h-screen bg-[#0B1021] pb-24 text-white">
         <header className="px-6 pb-8 pt-14 safe-pt bg-gradient-to-b from-indigo-500/20 to-transparent">
           <div className="flex justify-between items-center mb-2">
-            <h1 className="text-2xl font-display font-bold">Debts & EMIs 🏦</h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => appBack('/')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+                title="Go Back"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <h1 className="text-2xl font-display font-bold">Debts & EMIs 🏦</h1>
+            </div>
             <button
               onClick={() => setIsModalOpen(true)}
               className="p-2 bg-indigo-500/20 text-indigo-400 rounded-full hover:bg-indigo-500/30 transition-colors"

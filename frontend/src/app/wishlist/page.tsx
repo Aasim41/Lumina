@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gift, Plus, ExternalLink, X, Image as ImageIcon, CheckCircle2, Heart } from 'lucide-react';
+import { Gift, Plus, ExternalLink, X, Image as ImageIcon, CheckCircle2, Heart, ArrowLeft } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { getWishlist, createWishlistItem, markWishlistPurchased, deleteWishlistItem } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, appBack } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function WishlistPage() {
@@ -84,9 +84,18 @@ export default function WishlistPage() {
       <div className="min-h-screen bg-[#0B1021] pb-24 text-white font-sans">
         <header className="px-6 pb-6 pt-14 safe-pt bg-[#0B1021] sticky top-0 z-10">
           <div className="flex justify-between items-center mb-2">
-            <div>
-              <h1 className="text-3xl font-display font-bold flex items-center gap-2">Dream Board <Heart className="w-6 h-6 text-pink-500 fill-pink-500" /></h1>
-              <p className="text-sm text-text-secondary mt-1">Goals fueled by your Secret Vault</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => appBack('/')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+                title="Go Back"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-display font-bold flex items-center gap-2">Dream Board <Heart className="w-6 h-6 text-pink-500 fill-pink-500" /></h1>
+                <p className="text-sm text-text-secondary mt-1">Goals fueled by your Secret Vault</p>
+              </div>
             </div>
             <button
               onClick={() => setIsModalOpen(true)}

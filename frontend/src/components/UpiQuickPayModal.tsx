@@ -13,6 +13,7 @@ import {
   setDefaultUpiApp, 
   launchUpiPayment, 
   validateVpa,
+  getInstalledUpiAppsList,
   type UpiPayee 
 } from '@/lib/upi';
 import { db, generateId, todayISO, toPaise, nowISO } from '@/lib/db';
@@ -64,6 +65,7 @@ export function UpiQuickPayModal({
   const [note, setNote] = useState(prefillNote);
   const [category, setCategory] = useState('Chai & Snacks');
   const [selectedApp, setSelectedApp] = useState('phonepe');
+  const [installedPkgs, setInstalledPkgs] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isManualEdit, setIsManualEdit] = useState(false);
@@ -72,10 +74,48 @@ export function UpiQuickPayModal({
   const [extraParams, setExtraParams] = useState<Record<string, string>>(prefillExtraParams || {});
   const [rawQrUri, setRawQrUri] = useState<string>(prefillRawQrUri || '');
 
+  // Synchronous prop-sync during render: guarantees zero frame lag or blank state on modal open
+  const [prevProps, setPrevProps] = useState({ vpa: prefillVpa, amount: prefillAmount, name: prefillName });
+  if (prevProps.vpa !== prefillVpa || prevProps.amount !== prefillAmount || prevProps.name !== prefillName) {
+    setPrevProps({ vpa: prefillVpa, amount: prefillAmount, name: prefillName });
+    if (prefillVpa) {
+      setVpa(prefillVpa);
+      setIsManualEdit(false);
+    }
+    if (prefillName) setName(prefillName);
+    if (prefillAmount) setAmount(String(prefillAmount));
+    if (prefillNote) setNote(prefillNote);
+    if (prefillExtraParams) setExtraParams(prefillExtraParams);
+    if (prefillRawQrUri) setRawQrUri(prefillRawQrUri);
+  }
+
   useEffect(() => {
     if (isOpen) {
       setSavedPayees(getSavedPayees());
-      setSelectedApp(getDefaultUpiApp());
+
+      // Detect installed UPI apps dynamically from Android package manager
+      getInstalledUpiAppsList().then((installed) => {
+        if (installed && installed.length > 0) {
+          setInstalledPkgs(installed);
+          const savedDefault = getDefaultUpiApp();
+          const savedConfig = POPULAR_UPI_APPS.find(a => a.id === savedDefault);
+
+          if (savedConfig?.packageName && installed.includes(savedConfig.packageName)) {
+            setSelectedApp(savedDefault);
+          } else {
+            // Find first installed popular app on device
+            const firstInstalled = POPULAR_UPI_APPS.find(a => a.packageName && installed.includes(a.packageName));
+            if (firstInstalled) {
+              setSelectedApp(firstInstalled.id);
+            } else {
+              setSelectedApp('any');
+            }
+          }
+        } else {
+          setSelectedApp(getDefaultUpiApp());
+        }
+      });
+
       if (prefillVpa) {
         setVpa(prefillVpa);
         setIsManualEdit(false);
@@ -106,7 +146,7 @@ export function UpiQuickPayModal({
     setDefaultUpiApp(appId);
     const app = POPULAR_UPI_APPS.find(a => a.id === appId);
     if (app) {
-      toast.success(`Will open ${app.name} directly`, { icon: '⚡', duration: 1500 });
+      toast.success(`Selected ${app.name}`, { icon: '⚡', duration: 1500 });
     }
   };
 
@@ -160,8 +200,8 @@ export function UpiQuickPayModal({
 
       const txId = generateId();
 
-      // 2. Fire UPI payment launch IMMEDIATELY (zero lag, no DB wait)
-      const launchPromise = launchUpiPayment({
+      // 2. Fire UPI payment launch directly
+      const launchResult = await launchUpiPayment({
         pa: cleanVpa,
         pn: cleanName,
         am: parsedAmt,
@@ -172,8 +212,14 @@ export function UpiQuickPayModal({
         rawQrUri: (rawQrUri && rawQrUri.toLowerCase().includes(cleanVpa.toLowerCase())) ? rawQrUri : undefined,
       });
 
-      // 3. Record transaction in Dexie in background without blocking the intent
-      const dbPromise = db.transactions.add({
+      if (!launchResult || !launchResult.success) {
+        toast.error('Could not open UPI app. Choose another app or System Chooser.', { duration: 3000 });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 3. Record transaction in Dexie in background without blocking
+      db.transactions.add({
         id: txId,
         date: todayISO(),
         amount: parsedAmt,
@@ -198,21 +244,27 @@ export function UpiQuickPayModal({
       }).catch(err => console.warn('Dexie background write warning:', err));
 
       soundFX.playSuccess();
-      toast.success(`Opening ${selectedApp} for ₹${parsedAmt}...`, { icon: '⚡' });
+      toast.success(`Opening ${currentAppConfig.name} for ₹${parsedAmt}...`, { icon: '⚡' });
       onSuccess?.();
       onClose();
 
-      await launchPromise;
-      await dbPromise;
-    } catch {
-      toast.error('Failed to launch UPI payment');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to launch UPI payment');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const currentAppConfig = POPULAR_UPI_APPS.find(a => a.id === selectedApp) || POPULAR_UPI_APPS[0];
-  const primaryApps = POPULAR_UPI_APPS.slice(0, 4); // PhonePe, GPay, Paytm, CRED
+
+  // Prioritize apps actually installed on user's device
+  const displayApps = (showAllApps ? POPULAR_UPI_APPS : POPULAR_UPI_APPS.slice(0, 4)).sort((a, b) => {
+    const aInstalled = a.packageName && installedPkgs.includes(a.packageName);
+    const bInstalled = b.packageName && installedPkgs.includes(b.packageName);
+    if (aInstalled && !bInstalled) return -1;
+    if (!aInstalled && bInstalled) return 1;
+    return 0;
+  });
 
   return (
     <AnimatePresence>
@@ -227,12 +279,12 @@ export function UpiQuickPayModal({
             className="absolute inset-0 bg-black/80 backdrop-blur-md"
           />
 
-          {/* Clean, High-Contrast Payment Sheet */}
+          {/* Clean, High-Contrast Payment Sheet (Snappy 200ms ease-out) */}
           <motion.div
-            initial={{ opacity: 0, y: 150 }}
+            initial={{ opacity: 0, y: 120 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 150 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+            exit={{ opacity: 0, y: 120 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="w-full sm:max-w-md bg-[#0F172A] border-t sm:border border-white/10 p-5 sm:p-6 rounded-t-[2rem] sm:rounded-3xl shadow-2xl relative z-10 max-h-[92vh] overflow-y-auto"
           >
             {/* Top Bar */}
@@ -436,14 +488,15 @@ export function UpiQuickPayModal({
                 </div>
 
                 <div className="grid grid-cols-4 gap-1.5">
-                  {(showAllApps ? POPULAR_UPI_APPS : primaryApps).map((app) => {
+                  {displayApps.map((app) => {
                     const isSelected = selectedApp === app.id;
+                    const isInstalled = !app.packageName || installedPkgs.includes(app.packageName);
                     return (
                       <button
                         key={app.id}
                         type="button"
                         onClick={() => handleSelectApp(app.id)}
-                        className={`py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border ${
+                        className={`py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border relative ${
                           isSelected
                             ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] scale-[1.02]'
                             : 'bg-black/30 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'
@@ -451,6 +504,9 @@ export function UpiQuickPayModal({
                       >
                         <span className="text-sm">{app.iconText}</span>
                         <span className="text-[10px] truncate max-w-full">{app.name.split(' ')[0]}</span>
+                        {isInstalled && app.id !== 'any' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 absolute top-1.5 right-1.5" title="Installed on phone" />
+                        )}
                       </button>
                     );
                   })}

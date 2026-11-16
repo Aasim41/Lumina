@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeft, Shield, Lock, EyeOff, Database, CheckCircle2, QrCode, FileText, Mail, AlertCircle, HelpCircle } from 'lucide-react';
-import { appNavigate } from '@/lib/utils';
+import { appBack } from '@/lib/utils';
 
 export default function PrivacyPolicyPage() {
   return (
@@ -10,9 +10,9 @@ export default function PrivacyPolicyPage() {
       <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => appNavigate('/')}
+            onClick={() => appBack('/')}
             className="p-2.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all active:scale-95 cursor-pointer"
-            title="Back to Home"
+            title="Go Back"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>

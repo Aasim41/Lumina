@@ -5,8 +5,8 @@ import { getForecast, getHeatmap, getTopMerchants } from '@/lib/api';
 import { BottomNav } from '@/components/BottomNav';
 import { ForecastChart } from '@/components/ForecastChart';
 import { HeatmapChart } from '@/components/HeatmapChart';
-import { TrendingUp, Activity, Store, TrendingDown, Target, Loader2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { TrendingUp, Activity, Store, TrendingDown, Target, Loader2, ArrowLeft } from 'lucide-react';
+import { formatCurrency, appBack } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function AnalyticsDashboard() {
@@ -42,9 +42,18 @@ export default function AnalyticsDashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/80  border-b border-white/5 p-4 pt-14">
-        <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Analytics</h1>
-        <p className="text-xs text-white/50">Insights & AI Predictions</p>
+      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-white/5 p-4 pt-14 flex items-center gap-3">
+        <button
+          onClick={() => appBack('/')}
+          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+          title="Go Back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Analytics</h1>
+          <p className="text-xs text-white/50">Insights & AI Predictions</p>
+        </div>
       </div>
 
       <div className="p-4 space-y-6">

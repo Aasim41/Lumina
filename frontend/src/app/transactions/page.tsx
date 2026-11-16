@@ -7,7 +7,7 @@ import { TransactionList } from '@/components/TransactionList';
 import { ManualEntryForm } from '@/components/ManualEntryForm';
 import { Button } from '@/components/ui/Button';
 import { getTransactions, updateTransaction, deleteTransaction, createTransaction, exportCSV, exportPDF } from '@/lib/api';
-import { Plus, Download, Upload, X } from 'lucide-react';
+import { Plus, Download, Upload, X, ArrowLeft } from 'lucide-react';
 import { FileUploadZone } from '@/components/FileUploadZone';
 import { AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 import { generateMonthlyStatement } from '@/lib/PDFGenerator';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/ui/Spinner';
+import { appBack } from '@/lib/utils';
 
 export default function TransactionsPage() {
   const { user } = useAuth();
@@ -97,7 +98,14 @@ export default function TransactionsPage() {
     <AuthGuard>
       <div className="min-h-screen bg-[#061813] pb-24">
         <header className="px-6 pb-6 pt-14 safe-pt sticky top-0 z-20 bg-emerald-500/10  border-b border-emerald-500/30 flex justify-between items-end shadow-[0_4px_30px_rgba(16,185,129,0.15)]">
-          <div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => appBack('/')}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <h1 className="text-3xl font-display font-bold">Transactions</h1>
           </div>
           <div className="flex space-x-2 items-center">

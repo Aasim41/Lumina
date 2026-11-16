@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Plus, Trash2, IndianRupee, Calendar, TrendingUp, Lightbulb, Sparkles } from 'lucide-react';
+import { Target, Plus, Trash2, IndianRupee, Calendar, TrendingUp, Lightbulb, Sparkles, ArrowLeft } from 'lucide-react';
 import { getGoals, createGoal, contributeToGoal, deleteGoal } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, appBack } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -54,6 +54,13 @@ export default function GoalsPage() {
         {/* Header matching transactions page */}
         <header className="px-6 pb-6 pt-14 safe-pt sticky top-0 z-20 bg-emerald-500/10  border-b border-emerald-500/30 shadow-[0_4px_30px_rgba(16,185,129,0.1)]">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => appBack('/')}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
               <Target className="w-5 h-5 text-emerald-400" />
             </div>
