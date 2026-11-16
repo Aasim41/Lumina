@@ -53,6 +53,7 @@ public class QrScannerActivity extends AppCompatActivity {
     private Camera camera;
     private boolean isFlashOn = false;
     private volatile boolean scanComplete = false;
+    private ActivityResultLauncher<Intent> galleryLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +73,7 @@ public class QrScannerActivity extends AppCompatActivity {
         previewView = findViewById(R.id.previewView);
         ImageButton btnClose = findViewById(R.id.btnClose);
         ImageButton btnFlash = findViewById(R.id.btnFlash);
+        View btnGallery = findViewById(R.id.btnGallery);
 
         btnClose.setOnClickListener(v -> {
             setResult(RESULT_CANCELED);
@@ -86,6 +88,27 @@ public class QrScannerActivity extends AppCompatActivity {
                 btnFlash.setAlpha(isFlashOn ? 1.0f : 0.6f);
             }
         });
+
+        // Gallery picker launcher for QR screenshot / image decoding
+        galleryLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri imageUri = result.getData().getData();
+                    if (imageUri != null) {
+                        processGalleryImage(imageUri);
+                    }
+                }
+            }
+        );
+
+        if (btnGallery != null) {
+            btnGallery.setOnClickListener(v -> {
+                Intent galleryIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                galleryIntent.setType("image/*");
+                galleryLauncher.launch(Intent.createChooser(galleryIntent, "Select UPI QR Code Image"));
+            });
+        }
 
         // Initialize ML Kit barcode scanner — QR-only for maximum speed
         BarcodeScannerOptions options = new BarcodeScannerOptions.Builder()
@@ -179,6 +202,30 @@ public class QrScannerActivity extends AppCompatActivity {
         setResult(RESULT_OK, resultIntent);
         finish();
         overridePendingTransition(0, 0);
+    }
+
+    private void processGalleryImage(Uri imageUri) {
+        try {
+            InputImage image = InputImage.fromFilePath(this, imageUri);
+            barcodeScanner.process(image)
+                .addOnSuccessListener(barcodes -> {
+                    if (scanComplete) return;
+                    for (Barcode barcode : barcodes) {
+                        String rawValue = barcode.getRawValue();
+                        if (rawValue != null && !rawValue.isEmpty()) {
+                            scanComplete = true;
+                            onQrDetected(rawValue);
+                            return;
+                        }
+                    }
+                    Toast.makeText(this, "No UPI QR code found in selected image", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to read image. Please try again.", Toast.LENGTH_SHORT).show();
+                });
+        } catch (Exception e) {
+            Toast.makeText(this, "Could not open image", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

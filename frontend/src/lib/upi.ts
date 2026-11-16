@@ -202,26 +202,30 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
   const rawMc = mergedExtras['mc'] || parsedFromRaw?.mc;
   const isLegitMerchant = Boolean(rawMc && rawMc !== '0000' && /^[0-9]{4}$/.test(rawMc));
 
+  // 1. Mandatory Transaction Reference ID (tr):
+  // NPCI & Google Pay intent validator REQUIRE a non-empty, unique alphanumeric reference ID.
+  // Omitting tr causes Google Pay's risk engine to reject the intent with "exceeded bank limit".
+  const existingTr = mergedExtras['tr'] || parsedFromRaw?.tr;
+  const tr = existingTr || ('LUM' + Date.now().toString().slice(-8) + Math.floor(100 + Math.random() * 900));
+  parts.push(`tr=${encodeURIComponent(tr)}`);
+
+  // 2. Merchant Category Code (mc):
+  // If legitimate 4-digit MCC from merchant standee, forward it.
+  // If personal VPA or placeholder (0000), pass empty mc= so the key is present without triggering MCC validation failures.
+  if (isLegitMerchant && rawMc) {
+    parts.push(`mc=${encodeURIComponent(rawMc)}`);
+  } else {
+    parts.push('mc=');
+  }
+
   for (const [key, value] of Object.entries(mergedExtras)) {
     if (!value) continue;
     const lk = key.toLowerCase();
-    // Do not duplicate core parameters
-    if (['pa', 'pn', 'am', 'cu', 'tn'].includes(lk)) continue;
+    // Do not duplicate core parameters or handled keys
+    if (['pa', 'pn', 'am', 'cu', 'tn', 'tr', 'mc'].includes(lk)) continue;
     // Strip all toxic terminal / standee parameters that cause intent aborts
     if (['sign', 'orgid', 'mid', 'msid', 'mtid', 'tid', 'qrts', 'purpose'].includes(lk)) continue;
     if (lk === 'mode' && value === '02') continue;
-    // Strip personal placeholder MCC (mc=0000) that triggers Google Pay "exceeded bank limit"
-    if (lk === 'mc') {
-      if (isLegitMerchant) {
-        parts.push(`mc=${encodeURIComponent(value)}`);
-      }
-      continue;
-    }
-    // Only forward tr if provided in original merchant QR or if legitimate merchant
-    if (lk === 'tr') {
-      parts.push(`tr=${encodeURIComponent(value)}`);
-      continue;
-    }
     parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
   }
 

@@ -49,7 +49,6 @@ public class NativeUpiPlugin extends Plugin {
                 intent.setPackage(packageName);
                 intent.addCategory(Intent.CATEGORY_DEFAULT);
                 intent.addCategory(Intent.CATEGORY_BROWSABLE);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
                 // Crucial NPCI UPI Intent requirement:
                 // Launch via startActivityForResult so Android passes the caller package identity
@@ -94,7 +93,6 @@ public class NativeUpiPlugin extends Plugin {
                     directIntent.setPackage(firstPkg);
                     directIntent.addCategory(Intent.CATEGORY_DEFAULT);
                     directIntent.addCategory(Intent.CATEGORY_BROWSABLE);
-                    directIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
                     getActivity().startActivityForResult(directIntent, UPI_REQUEST_CODE);
                     getActivity().overridePendingTransition(0, 0);
