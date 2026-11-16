@@ -109,4 +109,36 @@
         android:alpha="0.7"
         android:padding="10dp" />
 
+    <!-- Bottom Gallery Upload Button -->
+    <LinearLayout
+        android:id="@+id/btnGallery"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="44dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/bg_scanner_gallery_button"
+        android:paddingStart="20dp"
+        android:paddingEnd="22dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_gallery"
+            android:contentDescription="Gallery icon" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:text="Upload from Gallery"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
 </FrameLayout>
