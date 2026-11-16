@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Check, ArrowRight, ShieldCheck, QrCode, Coffee, ChevronDown, CheckCircle2, Store, Edit2 } from 'lucide-react';
+import { X, Zap, Check, ArrowRight, ShieldCheck, QrCode, Coffee, ChevronDown, CheckCircle2, Store, Edit2, Image as ImageIcon } from 'lucide-react';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { 
   POPULAR_UPI_APPS, 
@@ -14,8 +14,10 @@ import {
   launchUpiPayment, 
   validateVpa,
   getInstalledUpiAppsList,
+  parseUpiUri,
   type UpiPayee 
 } from '@/lib/upi';
+import { decodeQrFromImageSrc } from '@/lib/qrDecoder';
 import { db, generateId, todayISO, toPaise, nowISO } from '@/lib/db';
 import { invalidateTransactionCache } from '@/lib/api';
 import { soundFX } from '@/lib/soundFx';
@@ -73,6 +75,85 @@ export function UpiQuickPayModal({
   const [savedPayees, setSavedPayees] = useState<UpiPayee[]>([]);
   const [extraParams, setExtraParams] = useState<Record<string, string>>(prefillExtraParams || {});
   const [rawQrUri, setRawQrUri] = useState<string>(prefillRawQrUri || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const applyParsedUpiData = (parsed: ReturnType<typeof parseUpiUri>) => {
+    if (!parsed) return;
+    soundFX.playSuccess();
+    setVpa(parsed.pa);
+    if (parsed.pn) setName(parsed.pn);
+    if (parsed.am) setAmount(String(parsed.am));
+    if (parsed.tn) setNote(parsed.tn);
+    if (parsed.extraParams) setExtraParams(parsed.extraParams);
+    if (parsed.raw) setRawQrUri(parsed.raw);
+    setIsManualEdit(false);
+    toast.success(`QR detected: ${parsed.pn || parsed.pa}`, { icon: '⚡', duration: 2500 });
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const src = event.target?.result as string;
+      if (!src) return;
+
+      const toastId = toast.loading('Scanning QR from image...');
+      try {
+        const qrData = await decodeQrFromImageSrc(src);
+        if (qrData) {
+          const parsed = parseUpiUri(qrData);
+          if (parsed) {
+            toast.dismiss(toastId);
+            applyParsedUpiData(parsed);
+            return;
+          }
+        }
+        toast.error('No UPI QR code found in selected image', { id: toastId });
+      } catch (err) {
+        toast.error('Could not process image', { id: toastId });
+      }
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const openGalleryPicker = async () => {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const photo = await CapCamera.getPhoto({
+          quality: 95,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Photos,
+          width: 2048,
+          height: 2048,
+        });
+
+        if (photo?.dataUrl) {
+          const toastId = toast.loading('Scanning QR from screenshot...');
+          const qrData = await decodeQrFromImageSrc(photo.dataUrl);
+          if (qrData) {
+            const parsed = parseUpiUri(qrData);
+            if (parsed) {
+              toast.dismiss(toastId);
+              applyParsedUpiData(parsed);
+              return;
+            }
+          }
+          toast.error('No UPI QR detected in screenshot', { id: toastId });
+        }
+        return;
+      }
+    } catch (err: any) {
+      if (err?.message?.includes('cancelled') || err?.message?.includes('User cancelled')) {
+        return;
+      }
+    }
+    fileInputRef.current?.click();
+  };
 
   // Synchronous prop-sync during render: guarantees zero frame lag or blank state on modal open
   const [prevProps, setPrevProps] = useState({ vpa: prefillVpa, amount: prefillAmount, name: prefillName });
@@ -301,6 +382,15 @@ export function UpiQuickPayModal({
               </button>
             </div>
 
+            {/* Hidden file input for gallery QR selection fallback */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleGalleryUpload}
+            />
+
             <form onSubmit={handlePay} className="space-y-4">
               {/* 1. PAYEE CARD (Clean, Bold & Readable) */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
@@ -321,14 +411,25 @@ export function UpiQuickPayModal({
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsManualEdit(true)}
-                      className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/80 hover:text-white transition-colors flex items-center gap-1 shrink-0"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                      <span>Edit</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={openGalleryPicker}
+                        className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/80 hover:text-white transition-colors flex items-center gap-1 shrink-0 active:scale-95 cursor-pointer"
+                        title="Upload QR from Gallery"
+                      >
+                        <ImageIcon className="w-3 h-3 text-emerald-400" />
+                        <span>Gallery</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsManualEdit(true)}
+                        className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/80 hover:text-white transition-colors flex items-center gap-1 shrink-0 active:scale-95 cursor-pointer"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -336,14 +437,25 @@ export function UpiQuickPayModal({
                       <label className="text-[11px] font-bold text-white/60 uppercase tracking-wider">
                         Recipient UPI ID or Number
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setIsScannerOpen(true)}
-                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 active:scale-95 transition-all"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        <span>Scan Standee</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={openGalleryPicker}
+                          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" />
+                          <span>Gallery</span>
+                        </button>
+                        <span className="text-white/20">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsScannerOpen(true)}
+                          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>Scan Standee</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="relative">
@@ -540,13 +652,8 @@ export function UpiQuickPayModal({
             isOpen={isScannerOpen}
             onClose={() => setIsScannerOpen(false)}
             onScanSuccess={(data) => {
-              setVpa(data.pa);
-              if (data.pn) setName(data.pn);
-              if (data.am) setAmount(String(data.am));
-              if (data.tn) setNote(data.tn);
-              if (data.extraParams) setExtraParams(data.extraParams);
-              if (data.raw) setRawQrUri(data.raw);
-              setIsManualEdit(false);
+              applyParsedUpiData(data);
+              setIsScannerOpen(false);
             }}
           />
         </div>
