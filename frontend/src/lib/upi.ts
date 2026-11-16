@@ -186,7 +186,7 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
       .replace(/([?&])qrts=[^&]*(&|$)/gi, '$1');
 
     if (params.am) {
-      const amountStr = Number(params.am).toFixed(2).replace(/\.?0+$/, '');
+      const amountStr = Number(params.am).toFixed(2);
       if (/[?&]am=/i.test(baseUri)) {
         uri = baseUri.replace(/([?&])am=[^&]*/i, `$1am=${encodeURIComponent(amountStr)}`);
       } else {
@@ -213,6 +213,11 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
       ...params,
       extraParams: safeExtras
     });
+    // Ensure strict 2-decimal format for banking compliance in automated intents (e.g. 1.00, 50.00)
+    if (params.am) {
+      const formattedAm = Number(params.am).toFixed(2);
+      uri = uri.replace(/([?&])am=[^&]*/i, `$1am=${encodeURIComponent(formattedAm)}`);
+    }
   }
 
   // Ensure mandatory NPCI / Google Pay transaction tracking parameters:
