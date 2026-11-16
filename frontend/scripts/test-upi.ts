@@ -89,6 +89,32 @@ assert(launchStandeeWithAm.uri.includes('am=350'), 'Replaces original standee am
 assert(!launchStandeeWithAm.uri.includes('am=100'), 'Removes old standee amount completely');
 assert(launchStandeeWithAm.uri.includes('mc=5942'), 'Preserves store MCC');
 
+// 7. P2P Payment Intent (Google Pay compliance with auto-tr and empty mc=)
+const launchP2P = await launchUpiPayment({
+  pa: 'friend@okaxis',
+  pn: 'Friend Name',
+  am: 1.00,
+  tn: 'Test 1 Rupee'
+});
+assert(launchP2P.success, 'Launch P2P UPI payment succeeds');
+assert(launchP2P.uri.includes('pa=friend@okaxis'), 'P2P has correct uncorrupted VPA');
+assert(launchP2P.uri.includes('am=1.00'), 'P2P formats amount with 2 decimal places');
+assert(launchP2P.uri.includes('cu=INR'), 'P2P includes cu=INR');
+assert(launchP2P.uri.includes('tr=LUM'), 'P2P auto-generates non-empty unique transaction reference (tr) for Google Pay intent validator');
+assert(launchP2P.uri.includes('mc='), 'P2P includes mc= parameter required by Google Pay intent parser');
+
+// 8. Toxic Parameter Stripping (Standee QR with sign, mode=02, orgid)
+const launchToxicQr = await launchUpiPayment({
+  pa: 'merchant@upi',
+  pn: 'Shop',
+  am: 50,
+  rawQrUri: 'upi://pay?pa=merchant@upi&pn=Shop&mode=02&orgid=159001&sign=MEYCIQC12345&mid=MID001&mc=5411'
+});
+assert(!launchToxicQr.uri.includes('mode=02'), 'Strips untrusted mode=02 from app intent');
+assert(!launchToxicQr.uri.includes('sign='), 'Strips invalid digital signature parameter');
+assert(!launchToxicQr.uri.includes('orgid='), 'Strips terminal orgid parameter');
+assert(launchToxicQr.uri.includes('mc=5411'), 'Preserves valid merchant category code');
+
 console.log('\n========================================================');
 console.log(`🏁 UPI ENGINE RESULTS: ${passed} PASSED, ${failed} FAILED`);
 console.log('========================================================\n');
