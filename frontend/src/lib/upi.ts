@@ -214,6 +214,20 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
       extraParams: safeExtras
     });
   }
+
+  // Ensure mandatory NPCI / Google Pay transaction tracking parameters:
+  // 1. Transaction reference (tr): Google Pay requires a unique tr to prevent duplicate/anonymous intent block.
+  if (!/[?&]tr=/i.test(uri)) {
+    const generatedTr = `LUM${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const sep = uri.includes('?') ? '&' : '?';
+    uri = `${uri}${sep}tr=${encodeURIComponent(generatedTr)}`;
+  }
+  // 2. Currency (cu): Ensure cu=INR is always present.
+  if (!/[?&]cu=/i.test(uri)) {
+    const sep = uri.includes('?') ? '&' : '?';
+    uri = `${uri}${sep}cu=INR`;
+  }
+
   const preferredAppId = params.appId || getDefaultUpiApp();
   const appConfig = POPULAR_UPI_APPS.find(a => a.id === preferredAppId);
   const targetPackage = (appConfig && appConfig.id !== 'any') ? appConfig.packageName : undefined;
