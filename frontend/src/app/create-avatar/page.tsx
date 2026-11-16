@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { updateUserProfile } from '@/lib/api';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
-import { appNavigate } from '@/lib/utils';
-import { Camera, Check, Sparkles, ChevronRight, ChevronDown } from 'lucide-react';
+import { appNavigate, appBack } from '@/lib/utils';
+import { Camera, Check, Sparkles, ChevronRight, ChevronDown, ArrowLeft } from 'lucide-react';
 
 const MALE_SEEDS = ['Felix', 'Marcus', 'Leo', 'Aiden', 'Ravi', 'Omar', 'James', 'Max', 'Ryan', 'Kai', 'Sam', 'Dante'];
 const FEMALE_SEEDS = ['Sophia', 'Maya', 'Zara', 'Luna', 'Aria', 'Priya', 'Emma', 'Lily', 'Nova', 'Ruby', 'Mia', 'Ella'];
@@ -297,13 +297,20 @@ export default function CreateAvatarPage() {
     <AuthGuard>
       <div className="min-h-screen bg-[#0B1021] flex flex-col">
         {/* Header */}
-        <div className="px-6 pt-8 pb-2 safe-pt relative">
-          <button onClick={handleSkip} className="absolute right-6 top-8 text-sm text-text-secondary hover:text-white transition-colors">Skip →</button>
+        <div className="px-6 pt-8 pb-2 safe-pt relative flex items-center justify-between">
+          <button
+            onClick={() => appBack('/')}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <div className="text-center">
             <span className="font-display font-bold tracking-[0.3em] text-[10px] text-primary/50 uppercase">Lumina</span>
-            <h1 className="text-2xl font-display font-bold text-white mt-3">Create Your Avatar</h1>
-            <p className="text-sm text-text-secondary mt-1">Pick a preset or design your own!</p>
+            <h1 className="text-2xl font-display font-bold text-white mt-1">Create Your Avatar</h1>
+            <p className="text-xs text-text-secondary mt-0.5">Pick a preset or design your own!</p>
           </div>
+          <button onClick={handleSkip} className="text-sm text-text-secondary hover:text-white transition-colors">Skip →</button>
         </div>
 
         {/* Avatar Preview */}

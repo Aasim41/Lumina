@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Home, Compass, ArrowLeft } from 'lucide-react';
-import { appNavigate } from '@/lib/utils';
+import { appNavigate, appBack } from '@/lib/utils';
 
 export default function NotFound() {
   return (
@@ -50,7 +50,7 @@ export default function NotFound() {
           </button>
 
           <button
-            onClick={() => window.history.back()}
+            onClick={() => appBack('/')}
             className="w-full py-3 px-6 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white font-medium text-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
