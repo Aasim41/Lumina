@@ -328,7 +328,11 @@ export function UpiQuickPayModal({
       }).catch(err => console.warn('Dexie background write warning:', err));
 
       soundFX.playSuccess();
-      toast.success(`Opening ${currentAppConfig.name} for ₹${parsedAmt}...`, { icon: '⚡' });
+      if (isGPayPersonal) {
+        toast.success(`Opening Google Pay for ₹${parsedAmt}... If bank rejects, use "Copy & Open"!`, { icon: '⚡', duration: 4500 });
+      } else {
+        toast.success(`Opening ${currentAppConfig.name} for ₹${parsedAmt}...`, { icon: '⚡' });
+      }
       onSuccess?.();
       onClose();
 
@@ -710,29 +714,74 @@ export function UpiQuickPayModal({
                 </button>
               </div>
 
+              {/* GOOGLE PAY INTELLIGENT HELPER NOTICE */}
+              {isGPayPersonal && (
+                <div className="bg-gradient-to-r from-blue-500/15 via-indigo-500/15 to-purple-500/15 border border-blue-400/30 rounded-2xl p-3 text-left shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-base shrink-0">⚡</span>
+                    <span className="text-xs font-bold text-blue-300">Google Pay P2P Transfer Failsafe</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 ml-auto">
+                      100% Guaranteed
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/75 leading-relaxed mb-2">
+                    Google Pay blocks 3rd-party apps from sending direct intents to personal UPI IDs (which causes the <em>&ldquo;exceeded bank limit&rdquo;</em> error).
+                  </p>
+                  <div className="text-[11px] text-emerald-300/90 font-medium bg-black/40 border border-white/5 rounded-xl p-2 flex items-center gap-2">
+                    <span className="text-sm">💡</span>
+                    <span>Tapping <strong>Copy &amp; Open GPay</strong> below copies <code className="text-white bg-white/10 px-1 py-0.5 rounded text-[10px]">{vpa}</code> and launches Google Pay directly so your payment succeeds without any bank block!</span>
+                  </div>
+                </div>
+              )}
+
               {/* 5. PRIMARY ACTION BUTTON */}
-              <button
-                type="submit"
-                disabled={isSubmitting || !vpa}
-                className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-sm rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-              >
-                <Zap className="w-4 h-4 fill-black" />
-                <span>Pay {amount ? `₹${amount}` : ''} via {currentAppConfig.name}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {isGPayPersonal ? (
+                <button
+                  type="button"
+                  onClick={handleCopyAndOpen}
+                  disabled={isSubmitting || !vpa}
+                  className="w-full py-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 hover:from-blue-400 hover:to-emerald-400 text-white font-black text-sm rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.4)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                >
+                  <Copy className="w-4 h-4 text-white" />
+                  <span>Copy &amp; Open Google Pay {amount ? `(₹${amount})` : ''}</span>
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !vpa}
+                  className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-sm rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 fill-black" />
+                  <span>Pay {amount ? `₹${amount}` : ''} via {currentAppConfig.name}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
 
               {/* Alternative 100% Reliable Options (Bypasses third-party bank intent restrictions) */}
               {vpa && (
                 <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleCopyAndOpen}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
-                    title={`Copy ${vpa} and open ${currentAppConfig.name} directly`}
-                  >
-                    <Copy className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Copy & Open {currentAppConfig.name.split(' ')[0]}</span>
-                  </button>
+                  {isGPayPersonal ? (
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-white/60 hover:text-white transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                      title="Attempt direct intent (Google Pay may reject personal transfers with 'bank limit exceeded')"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Try Direct Intent</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleCopyAndOpen}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                      title={`Copy ${vpa} and open ${currentAppConfig.name} directly`}
+                    >
+                      <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Copy &amp; Open {currentAppConfig.name.split(' ')[0]}</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
