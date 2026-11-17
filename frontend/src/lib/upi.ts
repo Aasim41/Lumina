@@ -138,8 +138,8 @@ export interface UpiPaymentParams {
 export function buildUpiUri(params: UpiPaymentParams): string {
   const cleanVpa = params.pa.trim(); // preserve original case from QR
   const cleanName = (params.pn || 'Merchant').trim();
-  // Standard NPCI banking specification: format amount strictly to 2 decimal places (e.g. 1.00, 100.00)
-  const amountStr = Number(params.am).toFixed(2);
+  // Strip trailing zeros after decimal (e.g. "100.00" → "100", "99.50" → "99.5")
+  const amountStr = Number(params.am).toFixed(2).replace(/\.?0+$/, '');
   const note = (params.tn || 'Payment').trim();
 
   // Use encodeURIComponent instead of URLSearchParams — URLSearchParams encodes
@@ -148,7 +148,7 @@ export function buildUpiUri(params: UpiPaymentParams): string {
   const parts: string[] = [
     `pa=${encodeURIComponent(cleanVpa).replace(/%40/g, '@')}`,
     `pn=${encodeURIComponent(cleanName)}`,
-    `am=${amountStr}`,
+    `am=${encodeURIComponent(amountStr)}`,
     `cu=INR`,
     `tn=${encodeURIComponent(note)}`,
   ];
@@ -203,11 +203,13 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
     ...(params.extraParams || {})
   };
 
-  // Preserve or generate valid transaction reference (tr)
-  // NPCI and Google Pay require a unique tr parameter to track the payment intent
+  // Only include transaction reference (tr) if present in raw QR or extraParams
+  // Strict NPCI compliance: injecting synthetic tr= on personal P2P payments causes bank CBS switches
+  // to treat individual accounts as merchants with zero limit, throwing "exceeded bank limit"
   const existingTr = mergedExtras['tr'] || parsedFromRaw?.tr;
-  const uniqueTr = existingTr || `LUM${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-  parts.push(`tr=${encodeURIComponent(uniqueTr)}`);
+  if (existingTr) {
+    parts.push(`tr=${encodeURIComponent(existingTr)}`);
+  }
 
   // If a merchant category code is provided (e.g. from QR standee), include it
   const rawMc = mergedExtras['mc'] || parsedFromRaw?.mc;
