@@ -4,6 +4,7 @@ import { registerPlugin } from '@capacitor/core';
 interface NativeUpiPluginInterface {
   launchUpi(options: { uri: string; packageName?: string }): Promise<{ success: boolean; targetedPackage?: string }>;
   getInstalledUpiApps(): Promise<{ apps: Array<{ packageName: string; name: string }> }>;
+  openApp(options: { packageName: string }): Promise<{ success: boolean; openedPackage?: string }>;
 }
 
 const NativeUpi = registerPlugin<NativeUpiPluginInterface>('NativeUpi');
@@ -202,21 +203,19 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
   const rawMc = mergedExtras['mc'] || parsedFromRaw?.mc;
   const isLegitMerchant = Boolean(rawMc && rawMc !== '0000' && /^[0-9]{4}$/.test(rawMc));
 
-  // 1. Mandatory Transaction Reference ID (tr):
-  // NPCI & Google Pay intent validator REQUIRE a non-empty, unique alphanumeric reference ID.
-  // Omitting tr causes Google Pay's risk engine to reject the intent with "exceeded bank limit".
-  const existingTr = mergedExtras['tr'] || parsedFromRaw?.tr;
-  const tr = existingTr || ('LUM' + Date.now().toString().slice(-8) + Math.floor(100 + Math.random() * 900));
-  parts.push(`tr=${encodeURIComponent(tr)}`);
-
-  // 2. Merchant Category Code (mc):
-  // If legitimate 4-digit MCC from merchant standee, forward it.
-  // If personal VPA or placeholder (0000), pass empty mc= so the key is present without triggering MCC validation failures.
+  // IF genuine merchant payment (P2M):
+  // Preserve merchant's verified MCC and original transaction reference
   if (isLegitMerchant && rawMc) {
     parts.push(`mc=${encodeURIComponent(rawMc)}`);
-  } else {
-    parts.push('mc=');
+    const existingTr = mergedExtras['tr'] || parsedFromRaw?.tr;
+    if (existingTr) {
+      parts.push(`tr=${encodeURIComponent(existingTr)}`);
+    }
   }
+  // FOR personal (P2P) transfers:
+  // Strict NPCI compliance: DO NOT inject mc= or synthetic tr=.
+  // Injecting mc= or fake tr onto personal VPAs causes bank CBS switches to treat individual accounts
+  // as unregistered merchants and reject with "exceeded bank limit" (even on ₹1).
 
   for (const [key, value] of Object.entries(mergedExtras)) {
     if (!value) continue;
@@ -296,6 +295,21 @@ export async function getInstalledUpiAppsWithDetails(): Promise<Array<{ packageN
     }
   } catch {}
   return [];
+}
+
+/**
+ * Open a specific UPI app directly (e.g. Google Pay, PhonePe) to its home dashboard
+ * for native in-app search & pay without triggering third-party intent policy limits.
+ */
+export async function openUpiAppDirect(packageName: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const res = await NativeUpi.openApp({ packageName });
+    return Boolean(res && res.success);
+  } catch (err) {
+    console.warn('[NativeUpi] openApp failed, falling back to window.location:', err);
+    return false;
+  }
 }
 
 export function validateVpa(vpa: string): boolean {
