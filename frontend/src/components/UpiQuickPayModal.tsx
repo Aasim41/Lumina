@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Check, ArrowRight, ShieldCheck, QrCode, Coffee, ChevronDown, CheckCircle2, Store, Edit2, Image as ImageIcon } from 'lucide-react';
+import { X, Zap, Check, ArrowRight, ShieldCheck, QrCode, Coffee, ChevronDown, CheckCircle2, Store, Edit2, Image as ImageIcon, Copy } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { UpiQrScannerModal } from '@/components/UpiQrScannerModal';
 import { 
   POPULAR_UPI_APPS, 
@@ -15,6 +16,7 @@ import {
   validateVpa,
   getInstalledUpiAppsList,
   parseUpiUri,
+  openUpiAppDirect,
   type UpiPayee 
 } from '@/lib/upi';
 import { decodeQrFromImageSrc } from '@/lib/qrDecoder';

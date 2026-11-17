@@ -48,7 +48,6 @@ public class NativeUpiPlugin extends Plugin {
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.setPackage(packageName);
                 intent.addCategory(Intent.CATEGORY_DEFAULT);
-                intent.addCategory(Intent.CATEGORY_BROWSABLE);
 
                 // Crucial NPCI UPI Intent requirement:
                 // Launch via startActivityForResult so Android passes the caller package identity
@@ -68,7 +67,6 @@ public class NativeUpiPlugin extends Plugin {
             // 2. System Chooser Launch: user chose "any" or requested app was not installed
             Intent baseIntent = new Intent(Intent.ACTION_VIEW, uri);
             baseIntent.addCategory(Intent.CATEGORY_DEFAULT);
-            baseIntent.addCategory(Intent.CATEGORY_BROWSABLE);
 
             Intent chooser = Intent.createChooser(baseIntent, "Pay via UPI");
             getActivity().startActivityForResult(chooser, UPI_REQUEST_CODE);
@@ -92,7 +90,6 @@ public class NativeUpiPlugin extends Plugin {
                     Intent directIntent = new Intent(Intent.ACTION_VIEW, uri);
                     directIntent.setPackage(firstPkg);
                     directIntent.addCategory(Intent.CATEGORY_DEFAULT);
-                    directIntent.addCategory(Intent.CATEGORY_BROWSABLE);
 
                     getActivity().startActivityForResult(directIntent, UPI_REQUEST_CODE);
                     getActivity().overridePendingTransition(0, 0);
@@ -155,5 +152,32 @@ public class NativeUpiPlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("apps", list);
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openApp(PluginCall call) {
+        String packageName = call.getString("packageName");
+        if (packageName == null || packageName.isEmpty()) {
+            call.reject("Package name is required");
+            return;
+        }
+
+        try {
+            PackageManager pm = getContext().getPackageManager();
+            Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(launchIntent);
+
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                ret.put("openedPackage", packageName);
+                call.resolve(ret);
+            } else {
+                call.reject("App not installed: " + packageName);
+            }
+        } catch (Exception e) {
+            call.reject("Failed to open app: " + e.getMessage());
+        }
     }
 }
