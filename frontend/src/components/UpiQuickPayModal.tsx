@@ -407,6 +407,13 @@ export function UpiQuickPayModal({
 
   const currentAppConfig = POPULAR_UPI_APPS.find(a => a.id === selectedApp) || POPULAR_UPI_APPS[0];
 
+  const isLegitMerchant = Boolean(
+    (extraParams?.mc && extraParams.mc !== '0000' && /^[0-9]{4}$/.test(extraParams.mc)) ||
+    (rawQrUri && /[?&]mc=[0-9]{4}/i.test(rawQrUri))
+  );
+  const isGooglePay = selectedApp === 'gpay';
+  const isGPayPersonal = isGooglePay && !isLegitMerchant;
+
   // Prioritize apps actually installed on user's device
   const displayApps = (showAllApps ? POPULAR_UPI_APPS : POPULAR_UPI_APPS.slice(0, 4)).sort((a, b) => {
     const aInstalled = a.packageName && installedPkgs.includes(a.packageName);

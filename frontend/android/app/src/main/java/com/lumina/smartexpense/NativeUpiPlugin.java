@@ -48,13 +48,13 @@ public class NativeUpiPlugin extends Plugin {
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.setPackage(packageName);
                 intent.addCategory(Intent.CATEGORY_DEFAULT);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
-                // Crucial NPCI UPI Intent requirement:
-                // Launch via startActivityForResult so Android passes the caller package identity
-                // (getCallingPackage() == "com.lumina.smartexpense") and brings the target activity
-                // directly to the FOREGROUND window over MainActivity instead of detaching into background.
-                getActivity().startActivityForResult(intent, UPI_REQUEST_CODE);
-                getActivity().overridePendingTransition(0, 0);
+                if (getActivity() != null) {
+                    getActivity().startActivity(intent);
+                } else {
+                    getContext().startActivity(intent);
+                }
 
                 JSObject ret = new JSObject();
                 ret.put("success", true);
@@ -67,10 +67,16 @@ public class NativeUpiPlugin extends Plugin {
             // 2. System Chooser Launch: user chose "any" or requested app was not installed
             Intent baseIntent = new Intent(Intent.ACTION_VIEW, uri);
             baseIntent.addCategory(Intent.CATEGORY_DEFAULT);
+            baseIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
             Intent chooser = Intent.createChooser(baseIntent, "Pay via UPI");
-            getActivity().startActivityForResult(chooser, UPI_REQUEST_CODE);
-            getActivity().overridePendingTransition(0, 0);
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            if (getActivity() != null) {
+                getActivity().startActivity(chooser);
+            } else {
+                getContext().startActivity(chooser);
+            }
 
             JSObject ret = new JSObject();
             ret.put("success", true);
@@ -90,9 +96,13 @@ public class NativeUpiPlugin extends Plugin {
                     Intent directIntent = new Intent(Intent.ACTION_VIEW, uri);
                     directIntent.setPackage(firstPkg);
                     directIntent.addCategory(Intent.CATEGORY_DEFAULT);
+                    directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-                    getActivity().startActivityForResult(directIntent, UPI_REQUEST_CODE);
-                    getActivity().overridePendingTransition(0, 0);
+                    if (getActivity() != null) {
+                        getActivity().startActivity(directIntent);
+                    } else {
+                        getContext().startActivity(directIntent);
+                    }
 
                     JSObject ret = new JSObject();
                     ret.put("success", true);
@@ -106,15 +116,21 @@ public class NativeUpiPlugin extends Plugin {
             // 4. Ultimate fallback: standard startActivity with chooser
             try {
                 Intent fallbackIntent = new Intent(Intent.ACTION_VIEW, uri);
+                fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 Intent fallbackChooser = Intent.createChooser(fallbackIntent, "Pay via UPI");
-                getActivity().startActivity(fallbackChooser);
+                fallbackChooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                if (getActivity() != null) {
+                    getActivity().startActivity(fallbackChooser);
+                } else {
+                    getContext().startActivity(fallbackChooser);
+                }
 
                 JSObject ret = new JSObject();
                 ret.put("success", true);
                 ret.put("targetedPackage", "any");
                 ret.put("ultimate_fallback", true);
                 call.resolve(ret);
-                return;
             } catch (Exception ex) {
                 call.reject("Failed to open UPI app: " + ex.getMessage());
             }
@@ -166,8 +182,12 @@ public class NativeUpiPlugin extends Plugin {
             PackageManager pm = getContext().getPackageManager();
             Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
             if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                getContext().startActivity(launchIntent);
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                if (getActivity() != null) {
+                    getActivity().startActivity(launchIntent);
+                } else {
+                    getContext().startActivity(launchIntent);
+                }
 
                 JSObject ret = new JSObject();
                 ret.put("success", true);
