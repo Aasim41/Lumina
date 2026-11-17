@@ -89,7 +89,7 @@ assert(launchStandeeWithAm.uri.includes('am=350'), 'Replaces original standee am
 assert(!launchStandeeWithAm.uri.includes('am=100'), 'Removes old standee amount completely');
 assert(launchStandeeWithAm.uri.includes('mc=5942'), 'Preserves store MCC');
 
-// 7. P2P Payment Intent (Google Pay compliance with auto-tr and empty mc=)
+// 7. P2P Payment Intent (Strict NPCI P2P compliance without fake merchant tags)
 const launchP2P = await launchUpiPayment({
   pa: 'friend@okaxis',
   pn: 'Friend Name',
@@ -100,8 +100,8 @@ assert(launchP2P.success, 'Launch P2P UPI payment succeeds');
 assert(launchP2P.uri.includes('pa=friend@okaxis'), 'P2P has correct uncorrupted VPA');
 assert(launchP2P.uri.includes('am=1.00'), 'P2P formats amount with 2 decimal places');
 assert(launchP2P.uri.includes('cu=INR'), 'P2P includes cu=INR');
-assert(launchP2P.uri.includes('tr=LUM'), 'P2P auto-generates non-empty unique transaction reference (tr) for Google Pay intent validator');
-assert(launchP2P.uri.includes('mc='), 'P2P includes mc= parameter required by Google Pay intent parser');
+assert(!launchP2P.uri.includes('mc='), 'P2P strictly omits mc= to prevent core banking system U16 "exceeded bank limit" rejects');
+assert(!launchP2P.uri.includes('tr='), 'P2P strictly omits synthetic tr= so individual accounts are not treated as merchants with zero limit');
 
 // 8. Toxic Parameter Stripping (Standee QR with sign, mode=02, orgid)
 const launchToxicQr = await launchUpiPayment({

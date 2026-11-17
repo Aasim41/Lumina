@@ -77,6 +77,7 @@ export function UpiQuickPayModal({
   const [savedPayees, setSavedPayees] = useState<UpiPayee[]>([]);
   const [extraParams, setExtraParams] = useState<Record<string, string>>(prefillExtraParams || {});
   const [rawQrUri, setRawQrUri] = useState<string>(prefillRawQrUri || '');
+  const [showQr, setShowQr] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applyParsedUpiData = (parsed: ReturnType<typeof parseUpiUri>) => {
@@ -336,6 +337,72 @@ export function UpiQuickPayModal({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCopyAndOpen = async () => {
+    const cleanVpa = vpa.trim();
+    if (!cleanVpa) {
+      toast.error('Please enter recipient UPI ID');
+      return;
+    }
+    const cleanName = (name.trim() || cleanVpa.split('@')[0] || 'Merchant');
+    const parsedAmt = parseFloat(amount) || 0;
+
+    // 1. Copy VPA to system clipboard
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(cleanVpa);
+      } catch {}
+    }
+
+    soundFX.playSuccess();
+    const appConfig = POPULAR_UPI_APPS.find(a => a.id === selectedApp) || POPULAR_UPI_APPS[0];
+    const targetPkg = (appConfig && appConfig.id !== 'any' && appConfig.packageName) 
+      ? appConfig.packageName 
+      : 'com.google.android.apps.nbu.paisa.user';
+
+    toast.success(`Copied "${cleanVpa}"! Opening ${appConfig.name}...`, { icon: '📋', duration: 3000 });
+
+    // 2. Open UPI app directly to home screen
+    await openUpiAppDirect(targetPkg);
+
+    // 3. Save payee
+    savePayee({
+      name: cleanName,
+      vpa: cleanVpa,
+      last_amount: parsedAmt > 0 ? parsedAmt : undefined,
+      category
+    });
+
+    // 4. Record transaction in Dexie if amount > 0
+    if (parsedAmt > 0) {
+      db.transactions.add({
+        id: generateId(),
+        date: todayISO(),
+        amount: parsedAmt,
+        amount_paise: toPaise(parsedAmt),
+        currency: 'INR',
+        category,
+        merchant_raw: cleanName,
+        merchant_clean: cleanName,
+        source: 'UPI Quick Pay',
+        type: 'debit',
+        status: 'confirmed',
+        created_at: nowISO(),
+      }).then(() => {
+        invalidateTransactionCache();
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('lumina_transactions');
+          localStorage.removeItem('lumina_summary');
+          localStorage.removeItem('lumina_categories');
+          localStorage.removeItem('lumina_trends');
+          window.dispatchEvent(new Event('lumina_refresh_data'));
+        }
+      }).catch(err => console.warn('Dexie background write warning:', err));
+    }
+
+    onSuccess?.();
+    onClose();
   };
 
   const currentAppConfig = POPULAR_UPI_APPS.find(a => a.id === selectedApp) || POPULAR_UPI_APPS[0];
@@ -646,6 +713,63 @@ export function UpiQuickPayModal({
                 <span>Pay {amount ? `₹${amount}` : ''} via {currentAppConfig.name}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+
+              {/* Alternative 100% Reliable Options (Bypasses third-party bank intent restrictions) */}
+              {vpa && (
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCopyAndOpen}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                    title={`Copy ${vpa} and open ${currentAppConfig.name} directly`}
+                  >
+                    <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Copy & Open {currentAppConfig.name.split(' ')[0]}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowQr(!showQr)}
+                    className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                    title="Show payment QR code"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-teal-400" />
+                    <span>{showQr ? 'Hide QR' : 'Show QR'}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Expandable Inline QR Code Display */}
+              <AnimatePresence>
+                {showQr && vpa && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-white rounded-2xl p-4 flex flex-col items-center text-center shadow-xl my-2">
+                      <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                        Scan to Pay with Any UPI App
+                      </p>
+                      <div className="p-2 bg-white rounded-xl shadow-inner border border-gray-100">
+                        <QRCodeSVG
+                          value={`upi://pay?pa=${encodeURIComponent(vpa.trim()).replace(/%40/g, '@')}${name ? `&pn=${encodeURIComponent(name.trim())}` : ''}${amount && !isNaN(Number(amount)) ? `&am=${Number(amount).toFixed(2)}&cu=INR` : ''}${note ? `&tn=${encodeURIComponent(note.trim())}` : ''}`}
+                          size={180}
+                          level="M"
+                        />
+                      </div>
+                      <p className="text-xs font-bold text-gray-800 mt-2.5 font-mono">{vpa}</p>
+                      {amount && (
+                        <p className="text-sm font-extrabold text-emerald-600 mt-0.5">₹{amount}</p>
+                      )}
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Screenshot this to scan in Google Pay / PhonePe
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </form>
           </motion.div>
 
