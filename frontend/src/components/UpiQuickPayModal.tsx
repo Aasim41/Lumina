@@ -738,12 +738,6 @@ export function UpiQuickPayModal({
                   </button>
                 </div>
               )}
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-teal-400" />
-                    <span>{showQr ? 'Hide QR' : 'Show QR'}</span>
-                  </button>
-                </div>
-              )}
 
               {/* Expandable Inline QR Code Display */}
               <AnimatePresence>
