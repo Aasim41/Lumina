@@ -19,24 +19,26 @@ const SLIDE_VARIANTS: any = {
   enter: (direction: number) => ({
     x: direction > 0 ? 120 : -120,
     opacity: 0,
-    scale: 0.96
+    scale: 0.98
   }),
   center: {
     x: 0,
     opacity: 1,
     scale: 1,
     transition: {
-      duration: 0.28,
-      ease: 'easeOut'
+      x: { type: 'spring', stiffness: 320, damping: 28 },
+      opacity: { duration: 0.2 },
+      scale: { duration: 0.2 }
     }
   },
   exit: (direction: number) => ({
     x: direction < 0 ? 120 : -120,
     opacity: 0,
-    scale: 0.96,
+    scale: 0.98,
     transition: {
-      duration: 0.2,
-      ease: 'easeIn'
+      x: { type: 'spring', stiffness: 320, damping: 28 },
+      opacity: { duration: 0.18 },
+      scale: { duration: 0.18 }
     }
   })
 };
@@ -79,8 +81,12 @@ export function HeroSpotlightBanner({
   const [direction, setDirection] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Dragging and touch tracking refs
+  const isDraggingRef = useRef(false);
+  const lastPaginateTime = useRef<number>(0);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchStartTime = useRef<number>(0);
 
   // Keep index within bounds if available slides change
   useEffect(() => {
@@ -90,6 +96,13 @@ export function HeroSpotlightBanner({
   }, [availableSlides.length, currentIndex]);
 
   const paginate = (newDirection: number) => {
+    const now = Date.now();
+    // Debounce rapid swipe triggers (prevents double-firing between Framer Motion & native touch)
+    if (now - lastPaginateTime.current < 250) {
+      return;
+    }
+    lastPaginateTime.current = now;
+
     setDirection(newDirection);
     setCurrentIndex((prev) => {
       const next = prev + newDirection;
@@ -99,7 +112,7 @@ export function HeroSpotlightBanner({
     });
   };
 
-  // Automatic rotation between available features (6.5 seconds each)
+  // Automatic rotation between available features (6.5 seconds each, resets on user interaction)
   useEffect(() => {
     if (availableSlides.length <= 1 || isPaused) return;
 
@@ -108,18 +121,53 @@ export function HeroSpotlightBanner({
     }, 6500);
 
     return () => clearInterval(timer);
-  }, [availableSlides.length, isPaused]);
+  }, [availableSlides.length, isPaused, currentIndex]);
 
-  // Framer Motion Pan gesture
+  // Framer Motion Pan gesture end handler (for desktop mouse & standard touch)
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsPaused(false);
-    const swipeThreshold = 40;
-    const velocityThreshold = 250;
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 120);
+
+    const swipeThreshold = 30; // responsive threshold in pixels
+    const velocityThreshold = 160; // responsive velocity threshold
 
     if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
       paginate(1);
     } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
       paginate(-1);
+    }
+  };
+
+  // Native mobile touch fallback (ensures 100% reliability even if WebView drops synthetic drag)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsPaused(true);
+    const touch = e.touches[0];
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
+    touchStartTime.current = Date.now();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    setIsPaused(false);
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
+    const duration = Date.now() - touchStartTime.current;
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    // Detect definitive horizontal swipe (more horizontal than vertical to avoid hijacking page scroll)
+    const isHorizontal = Math.abs(deltaX) > Math.abs(deltaY) * 1.15;
+    const hasEnoughDistance = Math.abs(deltaX) > 30;
+    const isQuickFlick = Math.abs(deltaX) > 15 && duration < 250;
+
+    if (isHorizontal && (hasEnoughDistance || isQuickFlick)) {
+      paginate(deltaX < 0 ? 1 : -1);
     }
   };
 
@@ -129,12 +177,14 @@ export function HeroSpotlightBanner({
 
   return (
     <div
-      className="mb-5 relative touch-pan-y select-none"
+      className="mb-5 relative select-none group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
-      <div className="overflow-hidden rounded-2xl relative min-h-[72px]">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
+      <div className="overflow-hidden rounded-2xl relative min-h-[76px] touch-pan-y">
+        <AnimatePresence initial={false} custom={direction} mode="popLayout">
           {/* SLIDE 1: MONTHLY WRAPPED (Active 27th - 3rd of month) */}
           {activeSlide === 'wrap' && (
             <motion.div
@@ -146,10 +196,19 @@ export function HeroSpotlightBanner({
               exit="exit"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.25}
+              dragElastic={0.7}
+              dragDirectionLock
+              dragMomentum={false}
+              onDragStart={() => {
+                isDraggingRef.current = true;
+              }}
               onDragEnd={handleDragEnd}
-              onClick={() => appNavigate('/wrap-up')}
-              className="bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-purple-500/35 p-3.5 rounded-2xl flex items-center justify-between cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_25px_rgba(168,85,247,0.25)] transition-all group active:scale-[0.99]"
+              onTap={() => {
+                if (!isDraggingRef.current) {
+                  appNavigate('/wrap-up');
+                }
+              }}
+              className="w-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-purple-500/35 p-3.5 rounded-2xl flex items-center justify-between cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_25px_rgba(168,85,247,0.25)] transition-all active:scale-[0.99] min-h-[76px]"
             >
               <div className="flex items-center gap-3 min-w-0 pointer-events-none">
                 <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
@@ -187,9 +246,14 @@ export function HeroSpotlightBanner({
               exit="exit"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.25}
+              dragElastic={0.7}
+              dragDirectionLock
+              dragMomentum={false}
+              onDragStart={() => {
+                isDraggingRef.current = true;
+              }}
               onDragEnd={handleDragEnd}
-              className="bg-orange-500/10 border border-orange-500/25 p-3.5 rounded-2xl flex items-center justify-between transition-all cursor-grab active:cursor-grabbing active:scale-[0.99]"
+              className="w-full bg-orange-500/10 border border-orange-500/25 p-3.5 rounded-2xl flex items-center justify-between transition-all cursor-grab active:cursor-grabbing active:scale-[0.99] min-h-[76px]"
             >
               <div className="flex items-center gap-3 min-w-0 pointer-events-none">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center shrink-0 text-lg">
@@ -226,11 +290,16 @@ export function HeroSpotlightBanner({
               exit="exit"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.25}
+              dragElastic={0.7}
+              dragDirectionLock
+              dragMomentum={false}
+              onDragStart={() => {
+                isDraggingRef.current = true;
+              }}
               onDragEnd={handleDragEnd}
-              className="bg-white/5 border border-white/10 p-3 rounded-2xl cursor-grab active:cursor-grabbing active:scale-[0.99]"
+              className="w-full bg-white/5 border border-white/10 p-3.5 rounded-2xl cursor-grab active:cursor-grabbing active:scale-[0.99] min-h-[76px] flex flex-col justify-center"
             >
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1.5 pointer-events-none">
                 <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                   <Trophy className="w-3.5 h-3.5 text-amber-400" />
                   Achievements
@@ -244,7 +313,7 @@ export function HeroSpotlightBanner({
               </div>
 
               {summary?.badges && summary.badges.length > 0 ? (
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 touch-pan-y">
                   {summary.badges.map((badge: string, i: number) => {
                     const config = getBadgeConfig(badge);
                     const formattedTitle = formatTitleCase(badge);
@@ -252,7 +321,13 @@ export function HeroSpotlightBanner({
                       <button
                         key={i}
                         type="button"
-                        onClick={() => onBadgeClick(formattedTitle, config.description, config.icon)}
+                        onClick={(e) => {
+                          if (isDraggingRef.current) {
+                            e.preventDefault();
+                            return;
+                          }
+                          onBadgeClick(formattedTitle, config.description, config.icon);
+                        }}
                         className={`shrink-0 px-2.5 py-1 text-[11px] rounded-lg font-semibold flex items-center gap-1 transition-all active:scale-95 ${config.classes}`}
                       >
                         <span>{config.icon}</span>
@@ -262,7 +337,7 @@ export function HeroSpotlightBanner({
                   })}
                 </div>
               ) : (
-                <p className="text-[11px] text-text-secondary">
+                <p className="text-[11px] text-text-secondary pointer-events-none">
                   Log regular expenses to unlock saver achievements!
                 </p>
               )}
@@ -280,9 +355,14 @@ export function HeroSpotlightBanner({
               exit="exit"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.25}
+              dragElastic={0.7}
+              dragDirectionLock
+              dragMomentum={false}
+              onDragStart={() => {
+                isDraggingRef.current = true;
+              }}
               onDragEnd={handleDragEnd}
-              className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-2xl flex items-center justify-between transition-all cursor-grab active:cursor-grabbing active:scale-[0.99]"
+              className="w-full bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-2xl flex items-center justify-between transition-all cursor-grab active:cursor-grabbing active:scale-[0.99] min-h-[76px]"
             >
               <div className="flex items-center gap-3 min-w-0 pointer-events-none">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
@@ -305,6 +385,34 @@ export function HeroSpotlightBanner({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Subtle navigation arrows on hover / tablet / desktop */}
+        {availableSlides.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                paginate(-1);
+              }}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-black/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 shadow-md active:scale-90"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                paginate(1);
+              }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-black/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 shadow-md active:scale-90"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Pagination Micro-Dots & Swipe indicators */}
@@ -318,13 +426,18 @@ export function HeroSpotlightBanner({
                 setDirection(idx > currentIndex ? 1 : -1);
                 setCurrentIndex(idx);
               }}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                currentIndex === idx
-                  ? 'w-6 bg-gradient-to-r from-emerald-400 to-teal-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'
-                  : 'w-1.5 bg-white/20 hover:bg-white/40'
-              }`}
+              className="p-1.5 -m-1.5 flex items-center justify-center focus:outline-none"
               title={`Switch to slide ${idx + 1}`}
-            />
+              aria-label={`Go to slide ${idx + 1}`}
+            >
+              <span
+                className={`h-1.5 rounded-full transition-all duration-300 block ${
+                  currentIndex === idx
+                    ? 'w-6 bg-gradient-to-r from-emerald-400 to-teal-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'
+                    : 'w-1.5 bg-white/20 hover:bg-white/40'
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}
