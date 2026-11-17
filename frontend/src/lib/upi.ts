@@ -138,8 +138,8 @@ export interface UpiPaymentParams {
 export function buildUpiUri(params: UpiPaymentParams): string {
   const cleanVpa = params.pa.trim(); // preserve original case from QR
   const cleanName = (params.pn || 'Merchant').trim();
-  // Strip trailing zeros after decimal (e.g. "100.00" → "100", "99.50" → "99.5")
-  const amountStr = Number(params.am).toFixed(2).replace(/\.?0+$/, '');
+  // Standard NPCI banking specification: format amount strictly to 2 decimal places (e.g. 1.00, 100.00)
+  const amountStr = Number(params.am).toFixed(2);
   const note = (params.tn || 'Payment').trim();
 
   // Use encodeURIComponent instead of URLSearchParams — URLSearchParams encodes
@@ -148,17 +148,21 @@ export function buildUpiUri(params: UpiPaymentParams): string {
   const parts: string[] = [
     `pa=${encodeURIComponent(cleanVpa).replace(/%40/g, '@')}`,
     `pn=${encodeURIComponent(cleanName)}`,
-    `am=${encodeURIComponent(amountStr)}`,
+    `am=${amountStr}`,
     `cu=INR`,
     `tn=${encodeURIComponent(note)}`,
   ];
+
+  if (params.extraParams?.tr) {
+    parts.push(`tr=${encodeURIComponent(params.extraParams.tr)}`);
+  }
 
   // Forward extra params without duplicating standard keys or duplicating mode
   const extras = params.extraParams || {};
   for (const [key, value] of Object.entries(extras)) {
     if (!value) continue;
     const lk = key.toLowerCase();
-    if (['pa', 'pn', 'am', 'cu', 'tn'].includes(lk)) continue;
+    if (['pa', 'pn', 'am', 'cu', 'tn', 'tr'].includes(lk)) continue;
     parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
   }
 
@@ -199,23 +203,17 @@ export async function launchUpiPayment(params: UpiPaymentParams): Promise<{ succ
     ...(params.extraParams || {})
   };
 
-  // Check if there is a legitimate merchant code
-  const rawMc = mergedExtras['mc'] || parsedFromRaw?.mc;
-  const isLegitMerchant = Boolean(rawMc && rawMc !== '0000' && /^[0-9]{4}$/.test(rawMc));
+  // Preserve or generate valid transaction reference (tr)
+  // NPCI and Google Pay require a unique tr parameter to track the payment intent
+  const existingTr = mergedExtras['tr'] || parsedFromRaw?.tr;
+  const uniqueTr = existingTr || `LUM${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+  parts.push(`tr=${encodeURIComponent(uniqueTr)}`);
 
-  // IF genuine merchant payment (P2M):
-  // Preserve merchant's verified MCC and original transaction reference
-  if (isLegitMerchant && rawMc) {
+  // If a merchant category code is provided (e.g. from QR standee), include it
+  const rawMc = mergedExtras['mc'] || parsedFromRaw?.mc;
+  if (rawMc && /^[0-9]{4}$/.test(rawMc)) {
     parts.push(`mc=${encodeURIComponent(rawMc)}`);
-    const existingTr = mergedExtras['tr'] || parsedFromRaw?.tr;
-    if (existingTr) {
-      parts.push(`tr=${encodeURIComponent(existingTr)}`);
-    }
   }
-  // FOR personal (P2P) transfers:
-  // Strict NPCI compliance: DO NOT inject mc= or synthetic tr=.
-  // Injecting mc= or fake tr onto personal VPAs causes bank CBS switches to treat individual accounts
-  // as unregistered merchants and reject with "exceeded bank limit" (even on ₹1).
 
   for (const [key, value] of Object.entries(mergedExtras)) {
     if (!value) continue;

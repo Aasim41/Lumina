@@ -16,8 +16,6 @@ import java.util.List;
 @CapacitorPlugin(name = "NativeUpi")
 public class NativeUpiPlugin extends Plugin {
 
-    private static final int UPI_REQUEST_CODE = 1001;
-
     @PluginMethod
     public void launchUpi(PluginCall call) {
         String uriStr = call.getString("uri");
@@ -35,8 +33,15 @@ public class NativeUpiPlugin extends Plugin {
         boolean isPackageInstalled = false;
         if (packageName != null && !packageName.isEmpty() && !packageName.equalsIgnoreCase("any")) {
             try {
-                pm.getPackageInfo(packageName, 0);
-                isPackageInstalled = true;
+                Intent checkIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay"));
+                checkIntent.setPackage(packageName);
+                List<ResolveInfo> matches = pm.queryIntentActivities(checkIntent, 0);
+                if (matches != null && !matches.isEmpty()) {
+                    isPackageInstalled = true;
+                } else {
+                    pm.getPackageInfo(packageName, 0);
+                    isPackageInstalled = true;
+                }
             } catch (Exception ignored) {
                 isPackageInstalled = false;
             }
@@ -44,15 +49,16 @@ public class NativeUpiPlugin extends Plugin {
 
         try {
             if (isPackageInstalled) {
-                // 1. Direct Target Launch: open the selected UPI app immediately with verified package
+                // 1. Direct Target Launch: open the selected UPI app immediately in the active foreground
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.setPackage(packageName);
-                intent.addCategory(Intent.CATEGORY_DEFAULT);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
                 if (getActivity() != null) {
+                    // Launch directly from Activity without NEW_TASK flag so the target app
+                    // stays in the immediate active foreground instead of detaching into recent tabs
                     getActivity().startActivity(intent);
                 } else {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     getContext().startActivity(intent);
                 }
 
@@ -66,15 +72,12 @@ public class NativeUpiPlugin extends Plugin {
 
             // 2. System Chooser Launch: user chose "any" or requested app was not installed
             Intent baseIntent = new Intent(Intent.ACTION_VIEW, uri);
-            baseIntent.addCategory(Intent.CATEGORY_DEFAULT);
-            baseIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
             Intent chooser = Intent.createChooser(baseIntent, "Pay via UPI");
-            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
             if (getActivity() != null) {
                 getActivity().startActivity(chooser);
             } else {
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 getContext().startActivity(chooser);
             }
 
@@ -88,19 +91,17 @@ public class NativeUpiPlugin extends Plugin {
             // 3. Fallback: query any intent activity that can handle upi://pay and launch directly
             try {
                 Intent testIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay"));
-                testIntent.addCategory(Intent.CATEGORY_DEFAULT);
                 List<ResolveInfo> matches = pm.queryIntentActivities(testIntent, 0);
 
                 if (matches != null && !matches.isEmpty()) {
                     String firstPkg = matches.get(0).activityInfo.packageName;
                     Intent directIntent = new Intent(Intent.ACTION_VIEW, uri);
                     directIntent.setPackage(firstPkg);
-                    directIntent.addCategory(Intent.CATEGORY_DEFAULT);
-                    directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
                     if (getActivity() != null) {
                         getActivity().startActivity(directIntent);
                     } else {
+                        directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         getContext().startActivity(directIntent);
                     }
 
@@ -116,13 +117,12 @@ public class NativeUpiPlugin extends Plugin {
             // 4. Ultimate fallback: standard startActivity with chooser
             try {
                 Intent fallbackIntent = new Intent(Intent.ACTION_VIEW, uri);
-                fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 Intent fallbackChooser = Intent.createChooser(fallbackIntent, "Pay via UPI");
-                fallbackChooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
                 if (getActivity() != null) {
                     getActivity().startActivity(fallbackChooser);
                 } else {
+                    fallbackChooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     getContext().startActivity(fallbackChooser);
                 }
 
@@ -182,7 +182,7 @@ public class NativeUpiPlugin extends Plugin {
             PackageManager pm = getContext().getPackageManager();
             Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
             if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                 if (getActivity() != null) {
                     getActivity().startActivity(launchIntent);
                 } else {
