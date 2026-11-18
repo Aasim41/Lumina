@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Receipt, 
-  QrCode, 
+  Plus, 
   PieChart, 
   MoreHorizontal, 
   Target, 
@@ -13,17 +13,13 @@ import {
   Landmark, 
   TrendingUp, 
   Sparkles, 
-  X,
-  Zap 
+  X
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { appNavigate } from '@/lib/utils';
-import { UpiQrScannerModal } from './UpiQrScannerModal';
-import { UpiQuickPayModal } from './UpiQuickPayModal';
-import { parseUpiUri, type ParsedUpiData } from '@/lib/upi';
-import { scanQrNative } from '@/lib/nativeQrScanner';
+import { ManualEntryForm } from './ManualEntryForm';
+import { createTransaction } from '@/lib/api';
 import { soundFX } from '@/lib/soundFx';
-import { Capacitor } from '@capacitor/core';
 import toast from 'react-hot-toast';
 
 const MORE_TABS = [
@@ -39,7 +35,7 @@ const GLIDER_STYLES = [
   { bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.55))', shadow: '0 0 18px rgba(99, 102, 241, 0.4), 0 0 10px rgba(165, 180, 252, 0.2) inset' },
   // 1: Expenses - Green
   { bg: 'linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(22, 163, 74, 0.55))', shadow: '0 0 18px rgba(34, 197, 94, 0.4), 0 0 10px rgba(134, 239, 172, 0.2) inset' },
-  // 2: UPI (Center) - Neon Emerald Glow
+  // 2: Add Expense (Center) - Neon Emerald Glow
   { bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(13, 148, 136, 0.65))', shadow: '0 0 22px rgba(16, 185, 129, 0.5), 0 0 12px rgba(110, 231, 183, 0.3) inset' },
   // 3: Budget - Rose
   { bg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(225, 29, 72, 0.55))', shadow: '0 0 18px rgba(244, 63, 94, 0.4), 0 0 10px rgba(251, 113, 133, 0.2) inset' },
@@ -50,45 +46,31 @@ const GLIDER_STYLES = [
 export function BottomNav() {
   const pathname = usePathname() || '/';
   const [moreOpen, setMoreOpen] = useState(false);
-  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
-  const [isQuickPayOpen, setIsQuickPayOpen] = useState(false);
-  const [scannedUpi, setScannedUpiData] = useState<ParsedUpiData | null>(null);
-
-  // Direct ultra-fast native ML Kit QR trigger (Google Pay speed: camera -> amount screen in 0ms)
-  const openQrScannerDirect = useCallback(async () => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const res = await scanQrNative();
-        if (res && res.success && res.value) {
-          const parsed = parseUpiUri(res.value);
-          if (parsed) {
-            soundFX.playSuccess();
-            setScannedUpiData(parsed);
-            setIsQrScannerOpen(false);
-            setIsQuickPayOpen(true);
-            return;
-          } else {
-            toast.error('Not a valid UPI QR code', { duration: 2500 });
-            return;
-          }
-        }
-        if (res?.cancelled) {
-          // User tapped back in camera viewfinder — return cleanly
-          return;
-        }
-      } catch (err) {
-        console.warn('Native ML Kit scan error, using web fallback:', err);
-      }
-    }
-    // Web / emulator fallback modal
-    setIsQrScannerOpen(true);
-  }, []);
+  const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
 
   useEffect(() => {
-    const handleOpenScanner = () => openQrScannerDirect();
-    window.addEventListener('lumina_open_upi_scanner', handleOpenScanner);
-    return () => window.removeEventListener('lumina_open_upi_scanner', handleOpenScanner);
-  }, [openQrScannerDirect]);
+    const handleOpenAdd = () => setIsAddExpenseOpen(true);
+    window.addEventListener('lumina_open_add_expense', handleOpenAdd);
+    return () => window.removeEventListener('lumina_open_add_expense', handleOpenAdd);
+  }, []);
+
+  const handleCreateTransaction = async (data: any) => {
+    try {
+      await createTransaction(data);
+      soundFX.playChaChing();
+      toast.success('Transaction logged successfully! 🎉');
+      setIsAddExpenseOpen(false);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lumina_transactions');
+        localStorage.removeItem('lumina_summary');
+        localStorage.removeItem('lumina_categories');
+        localStorage.removeItem('lumina_trends');
+        window.dispatchEvent(new Event('lumina_refresh_data'));
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to log transaction');
+    }
+  };
 
   // Dismiss More Sheet when Android back button / gesture is pressed
   useEffect(() => {
@@ -250,17 +232,17 @@ export function BottomNav() {
             <span>Expenses</span>
           </a>
 
-          {/* Button 3: UPI SCAN & PAY (Exact Middle Hero Button) */}
+          {/* Button 3: Add Expense (Central Action Button) */}
           <button
             type="button"
-            onClick={handleOpenUpi}
+            onClick={() => setIsAddExpenseOpen(true)}
             className="flex-1 flex flex-col items-center justify-center text-[10px] p-1.5 cursor-pointer font-bold tracking-wide relative z-10 h-16 transition-all duration-300 select-none touch-manipulation text-emerald-400 hover:text-emerald-300 active:scale-95"
-            title="Scan UPI QR & Instant Pay"
+            title="Log Expense"
           >
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500/30 to-teal-400/30 border border-emerald-400/50 flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.35)] mb-0.5">
-              <QrCode className="w-4 h-4 text-emerald-300" strokeWidth={2.5} />
+              <Plus className="w-4 h-4 text-emerald-300" strokeWidth={2.5} />
             </div>
-            <span className="text-[10px] font-bold text-emerald-300">UPI Pay</span>
+            <span className="text-[10px] font-bold text-emerald-300">Add</span>
           </button>
 
           {/* Button 4: Budget */}
@@ -303,26 +285,11 @@ export function BottomNav() {
         </div>
       </nav>
 
-      {/* Embedded Global UPI Scanner & Pay Modals */}
-      <UpiQrScannerModal
-        isOpen={isQrScannerOpen}
-        onClose={() => setIsQrScannerOpen(false)}
-        onScanSuccess={handleScanSuccess}
-        onOpenManualPay={handleSwitchToManual}
-      />
-
-      <UpiQuickPayModal
-        isOpen={isQuickPayOpen}
-        onClose={() => {
-          setIsQuickPayOpen(false);
-          setScannedUpiData(null);
-        }}
-        prefillVpa={scannedUpi?.pa}
-        prefillName={scannedUpi?.pn}
-        prefillAmount={scannedUpi?.am}
-        prefillNote={scannedUpi?.tn}
-        prefillExtraParams={scannedUpi?.extraParams}
-        prefillRawQrUri={scannedUpi?.raw}
+      {/* Global Add Expense Modal */}
+      <ManualEntryForm
+        isOpen={isAddExpenseOpen}
+        onClose={() => setIsAddExpenseOpen(false)}
+        onSubmit={handleCreateTransaction}
       />
     </>
   );
