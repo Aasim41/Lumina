@@ -1,14 +1,17 @@
 package com.lumina.smartexpense;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
+import androidx.activity.result.ActivityResult;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.util.HashSet;
 import java.util.List;
@@ -48,47 +51,27 @@ public class NativeUpiPlugin extends Plugin {
         }
 
         try {
+            Intent intent;
             if (isPackageInstalled) {
-                // 1. Direct Target Launch: open the selected UPI app immediately in the active foreground
-                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                // Direct Target Launch: open the selected UPI app
+                intent = new Intent(Intent.ACTION_VIEW, uri);
                 intent.setPackage(packageName);
-
-                if (getActivity() != null) {
-                    // Launch directly from Activity without NEW_TASK flag so the target app
-                    // stays in the immediate active foreground instead of detaching into recent tabs
-                    getActivity().startActivity(intent);
-                } else {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    getContext().startActivity(intent);
-                }
-
-                JSObject ret = new JSObject();
-                ret.put("success", true);
-                ret.put("targetedPackage", packageName);
-                ret.put("direct", true);
-                call.resolve(ret);
-                return;
-            }
-
-            // 2. System Chooser Launch: user chose "any" or requested app was not installed
-            Intent baseIntent = new Intent(Intent.ACTION_VIEW, uri);
-            Intent chooser = Intent.createChooser(baseIntent, "Pay via UPI");
-
-            if (getActivity() != null) {
-                getActivity().startActivity(chooser);
             } else {
-                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                getContext().startActivity(chooser);
+                // System Chooser: user chose "any" or requested app was not installed
+                Intent baseIntent = new Intent(Intent.ACTION_VIEW, uri);
+                intent = Intent.createChooser(baseIntent, "Pay via UPI");
             }
 
-            JSObject ret = new JSObject();
-            ret.put("success", true);
-            ret.put("targetedPackage", "any");
-            ret.put("chooser", true);
-            call.resolve(ret);
+            // Use startActivityForResult via Capacitor's saveCall + @ActivityCallback pattern.
+            // Google Pay and other UPI apps return payment status (SUCCESS/FAILURE/SUBMITTED)
+            // through onActivityResult. Using startActivityForResult instead of plain startActivity
+            // signals to the target app that this is a legitimate payment intent from an app
+            // expecting a response, which is the officially recommended approach per
+            // Google Pay for India developer documentation.
+            startActivityForResult(call, intent, "onUpiPaymentResult");
 
         } catch (Exception e) {
-            // 3. Fallback: query any intent activity that can handle upi://pay and launch directly
+            // Fallback: query any intent activity that can handle upi://pay
             try {
                 Intent testIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay"));
                 List<ResolveInfo> matches = pm.queryIntentActivities(testIntent, 0);
@@ -97,44 +80,66 @@ public class NativeUpiPlugin extends Plugin {
                     String firstPkg = matches.get(0).activityInfo.packageName;
                     Intent directIntent = new Intent(Intent.ACTION_VIEW, uri);
                     directIntent.setPackage(firstPkg);
-
-                    if (getActivity() != null) {
-                        getActivity().startActivity(directIntent);
-                    } else {
-                        directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        getContext().startActivity(directIntent);
-                    }
-
-                    JSObject ret = new JSObject();
-                    ret.put("success", true);
-                    ret.put("targetedPackage", firstPkg);
-                    ret.put("fallback", true);
-                    call.resolve(ret);
+                    startActivityForResult(call, directIntent, "onUpiPaymentResult");
                     return;
                 }
             } catch (Exception ignored) {}
 
-            // 4. Ultimate fallback: standard startActivity with chooser
+            // Ultimate fallback
             try {
                 Intent fallbackIntent = new Intent(Intent.ACTION_VIEW, uri);
                 Intent fallbackChooser = Intent.createChooser(fallbackIntent, "Pay via UPI");
-
-                if (getActivity() != null) {
-                    getActivity().startActivity(fallbackChooser);
-                } else {
-                    fallbackChooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    getContext().startActivity(fallbackChooser);
-                }
-
-                JSObject ret = new JSObject();
-                ret.put("success", true);
-                ret.put("targetedPackage", "any");
-                ret.put("ultimate_fallback", true);
-                call.resolve(ret);
+                startActivityForResult(call, fallbackChooser, "onUpiPaymentResult");
             } catch (Exception ex) {
                 call.reject("Failed to open UPI app: " + ex.getMessage());
             }
         }
+    }
+
+    @ActivityCallback
+    private void onUpiPaymentResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+
+        // Parse the response from the UPI app if available
+        Intent data = result.getData();
+        int resultCode = result.getResultCode();
+
+        if (data != null) {
+            // Google Pay returns "response" as a query string: Status=SUCCESS&txnId=...
+            // PhonePe returns "Status" directly as an extra
+            String response = data.getStringExtra("response");
+            String status = data.getStringExtra("Status");
+
+            if (response != null) {
+                ret.put("response", response);
+                // Parse status from response string
+                if (response.toLowerCase().contains("status=success")) {
+                    ret.put("status", "SUCCESS");
+                } else if (response.toLowerCase().contains("status=submitted")) {
+                    ret.put("status", "SUBMITTED");
+                } else if (response.toLowerCase().contains("status=failure")) {
+                    ret.put("status", "FAILURE");
+                    ret.put("success", false);
+                }
+            } else if (status != null) {
+                ret.put("status", status);
+                if (status.equalsIgnoreCase("FAILURE")) {
+                    ret.put("success", false);
+                }
+            }
+        }
+
+        // If user pressed back / cancelled without completing payment
+        if (resultCode == Activity.RESULT_CANCELED && data == null) {
+            ret.put("status", "CANCELLED");
+            // Still report success=true because the app DID open successfully;
+            // the user just chose not to complete the payment.
+        }
+
+        call.resolve(ret);
     }
 
     @PluginMethod
