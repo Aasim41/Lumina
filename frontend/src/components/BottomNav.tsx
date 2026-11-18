@@ -113,22 +113,7 @@ export function BottomNav() {
     appNavigate(href);
   };
 
-  const handleOpenUpi = (e: React.MouseEvent) => {
-    e.preventDefault();
-    openQrScannerDirect();
-  };
 
-  const handleScanSuccess = (data: ParsedUpiData) => {
-    setScannedUpiData(data);
-    setIsQrScannerOpen(false);
-    setIsQuickPayOpen(true);
-  };
-
-  const handleSwitchToManual = () => {
-    setIsQrScannerOpen(false);
-    setScannedUpiData(null);
-    setIsQuickPayOpen(true);
-  };
 
   return (
     <>
