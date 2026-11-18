@@ -149,6 +149,15 @@ export default function Dashboard() {
   }, [remaining]);
 
   useEffect(() => {
+    if (summary?.current_streak !== undefined) {
+      Preferences.set({
+        key: 'current_streak',
+        value: String(summary.current_streak)
+      }).catch(console.error);
+    }
+  }, [summary?.current_streak]);
+
+  useEffect(() => {
     if (subscriptions && subscriptions.length > 0) {
       scheduleSubscriptionReminders(subscriptions, formatCurrency);
     }
@@ -162,6 +171,36 @@ export default function Dashboard() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [showReviewBanner, setShowReviewBanner] = useState(true);
+  const [detectedSubs, setDetectedSubs] = useState<DetectedSubscription[]>([]);
+
+  useEffect(() => {
+    getTransactions().then(txns => {
+      const detected = detectRecurringSubscriptions(txns || [], subscriptions || []);
+      setDetectedSubs(detected);
+    }).catch(console.error);
+  }, [subscriptions]);
+
+  const handleAcceptDetectedSubscription = async (sub: DetectedSubscription) => {
+    try {
+      await createSubscription({
+        merchant: sub.merchant,
+        amount: sub.amount,
+        billing_day: sub.billing_day,
+      });
+      soundFX.playSuccess();
+      toast.success(`Added ${sub.merchant} to subscriptions! 🎉`);
+      setDetectedSubs(prev => prev.filter(s => s.merchant !== sub.merchant));
+      refresh();
+    } catch {
+      toast.error('Failed to add subscription');
+    }
+  };
+
+  const handleDismissDetectedSubscription = (merchant: string) => {
+    dismissSubscription(merchant);
+    setDetectedSubs(prev => prev.filter(s => s.merchant !== merchant));
+    toast('Suggestion dismissed', { icon: '👋' });
+  };
   const [insights, setInsights] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
