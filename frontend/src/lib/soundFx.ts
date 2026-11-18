@@ -86,9 +86,7 @@ class SoundEngine {
       osc.start(now);
       osc.stop(now + 0.08);
 
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(15);
-      }
+      this.triggerHaptic(15);
     } catch {}
   }
 
@@ -120,9 +118,7 @@ class SoundEngine {
         osc.stop(startTime + 0.35);
       });
 
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([30, 40, 30]);
-      }
+      this.triggerHaptic([30, 40, 30]);
     } catch {}
   }
 
@@ -167,9 +163,7 @@ class SoundEngine {
         bell.stop(bellStart + 0.55);
       });
 
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([40, 50, 60]);
-      }
+      this.triggerHaptic([40, 50, 60]);
     } catch {}
   }
 }
