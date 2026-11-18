@@ -67,9 +67,6 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
-      setLoading(false);
-    }
-  };
 
   if (authLoading || !user) {
     return (
