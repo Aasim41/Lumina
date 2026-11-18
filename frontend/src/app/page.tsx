@@ -53,14 +53,12 @@ export default function Dashboard() {
   useEffect(() => {
     setMounted(true);
 
-    // Handle Android Long-Press App Shortcuts (Scan, Pay, Add Expense)
+    // Handle Android Long-Press App Shortcuts (Add Expense, Log)
     const handleShortcutAction = (urlStr: string) => {
       try {
         const url = new URL(urlStr);
         const action = url.searchParams.get('action');
-        if (action === 'scan' || action === 'pay') {
-          window.dispatchEvent(new CustomEvent('lumina_open_upi_scanner'));
-        } else if (action === 'add') {
+        if (action === 'add' || action === 'scan' || action === 'pay') {
           setIsSaveModalOpen(true);
         }
       } catch {}

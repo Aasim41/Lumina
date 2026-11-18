@@ -483,80 +483,11 @@ export default function SplitsPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-black text-sm rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all"
+                    className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-black text-sm rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all cursor-pointer"
                   >
-                    {isSubmitting ? 'Creating...' : 'Save & Generate Payment Links'}
+                    {isSubmitting ? 'Creating...' : 'Save & Split Bill'}
                   </button>
                 </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* On-Screen Personal QR Code Modal */}
-        <AnimatePresence>
-          {qrModal?.isOpen && (
-            <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setQrModal(null)}
-                className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="w-full max-w-xs bg-[#0F172A] border border-white/15 p-6 rounded-3xl text-center relative z-10 shadow-2xl space-y-4"
-              >
-                <button
-                  onClick={() => setQrModal(null)}
-                  className="absolute right-4 top-4 p-1.5 rounded-full bg-white/10 text-white/70"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Pay-Me QR Code</p>
-                  <h3 className="text-base font-bold text-white mt-0.5">{qrModal.title}</h3>
-                  <p className="text-xs text-white/60">Share for {qrModal.memberName}</p>
-                  <p className="text-2xl font-black text-emerald-400 mt-1">₹{qrModal.amount}</p>
-                </div>
-
-                {/* QR Code Graphic (100% Offline Client-Side Render) */}
-                <div className="w-52 h-52 mx-auto bg-white p-3 rounded-2xl shadow-xl flex items-center justify-center">
-                  {qrDataUrl ? (
-                    <img
-                      src={qrDataUrl}
-                      alt="UPI QR Code"
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2 pt-1">
-                  <button
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                        navigator.clipboard.writeText(qrModal.upiUri);
-                        toast.success('UPI payment link copied!');
-                      }
-                    }}
-                    className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white flex items-center justify-center gap-1.5"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy UPI Link</span>
-                  </button>
-
-                  <p className="text-[10px] text-white/40">
-                    Scan with any UPI app (GPay, PhonePe, Paytm, CRED)
-                  </p>
-                </div>
               </motion.div>
             </div>
           )}
@@ -584,46 +515,38 @@ export default function SplitsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-xl text-white">Settle Balance</h3>
-                  <p className="font-black text-3xl text-emerald-400 mt-1">{formatCurrency(Math.abs(settleModalOpen.balance))}</p>
+                  <p className="font-black text-3xl text-emerald-400 mt-1">{formatCurrency(Math.abs(settleModalOpen.balance ?? settleModalOpen.net_balance ?? 0))}</p>
                   <p className="text-xs text-white/60 mt-0.5">
-                    {settleModalOpen.balance > 0 ? `${settleModalOpen.name} pays you` : `You pay ${settleModalOpen.name}`}
+                    {(settleModalOpen.balance ?? settleModalOpen.net_balance) > 0 ? `${settleModalOpen.name} pays you` : `You pay ${settleModalOpen.name}`}
                   </p>
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  {settleModalOpen.balance < 0 && (
-                    <button
-                      onClick={() => {
-                        const amountToPay = Math.abs(settleModalOpen.balance);
-                        const friendName = settleModalOpen.name;
-                        setSettleModalOpen(null);
-                        setUpiPayModal({
-                          isOpen: true,
-                          name: friendName,
-                          amount: amountToPay,
-                          note: `Settling balance with ${friendName}`
-                        });
-                      }}
-                      className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-black text-xs rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
-                    >
-                      <Zap className="w-4 h-4 fill-black" />
-                      <span>Pay {formatCurrency(Math.abs(settleModalOpen.balance))} via UPI</span>
-                    </button>
-                  )}
                   <button
-                    onClick={() => {
-                      soundFX.playChaChing();
-                      toast.success('Marked as settled!');
-                      setSettleModalOpen(null);
-                      fetchData();
+                    onClick={async () => {
+                      try {
+                        await settleSplitMember(settleModalOpen.name);
+                        soundFX.playChaChing();
+                        confetti({
+                          particleCount: 50,
+                          spread: 70,
+                          origin: { y: 0.6 }
+                        });
+                        toast.success(`Settled all dues with ${settleModalOpen.name}! 🎉`);
+                        setSettleModalOpen(null);
+                        fetchData();
+                      } catch {
+                        toast.error('Failed to update balance');
+                      }
                     }}
-                    className="w-full py-3 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 text-xs"
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-black text-xs rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
                   >
-                    Mark as Settled Manually
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Mark as Settled</span>
                   </button>
                   <button
                     onClick={() => setSettleModalOpen(null)}
-                    className="w-full py-2.5 text-xs text-white/50 hover:text-white"
+                    className="w-full py-2.5 text-xs text-white/50 hover:text-white transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -632,20 +555,6 @@ export default function SplitsPage() {
             </div>
           )}
         </AnimatePresence>
-
-        {/* UPI Quick Pay Modal for settling balances */}
-        <UpiQuickPayModal
-          isOpen={upiPayModal.isOpen}
-          onClose={() => setUpiPayModal(prev => ({ ...prev, isOpen: false }))}
-          onSuccess={() => {
-            fetchData();
-            soundFX.playChaChing();
-            toast.success('Balance settled and logged!');
-          }}
-          prefillName={upiPayModal.name}
-          prefillAmount={upiPayModal.amount}
-          prefillNote={upiPayModal.note}
-        />
 
         <BottomNav />
       </AuthGuard>

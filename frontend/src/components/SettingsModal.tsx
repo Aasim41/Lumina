@@ -9,7 +9,6 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/db';
 import { exportAllData, importData, exportTransactionsCSV, getLastBackupTime } from '@/lib/dataBackup';
-import { POPULAR_UPI_APPS, getDefaultUpiApp, setDefaultUpiApp } from '@/lib/upi';
 import { appNavigate } from '@/lib/utils';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -20,13 +19,11 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [budgetAmount, setBudgetAmount] = useState('');
   const [budgetDays, setBudgetDays] = useState('30');
   const [savingBudget, setSavingBudget] = useState(false);
-  const [defaultUpiApp, setDefaultUpiAppState] = useState('any');
   const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
 
   // Load on first render when open
   useEffect(() => {
     if (isOpen) {
-      setDefaultUpiAppState(getDefaultUpiApp());
       setLastBackupTime(getLastBackupTime());
       if (user) {
         setBudgetAmount(user.monthly_budget?.toString() || '');
@@ -34,13 +31,6 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       }
     }
   }, [isOpen, user]);
-
-  const handleUpiAppChange = (appId: string) => {
-    setDefaultUpiApp(appId);
-    setDefaultUpiAppState(appId);
-    const appName = POPULAR_UPI_APPS.find(a => a.id === appId)?.name || appId;
-    toast.success(`Default UPI app set to ${appName}`, { icon: '⚡' });
-  };
 
   const handleUpdateBudget = async () => {
     if (!budgetAmount || !budgetDays) return;
@@ -243,41 +233,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 </button>
               </div>
 
-              {/* Preferred UPI App Setting */}
-              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" />
-                    <h3 className="text-sm font-semibold text-white">Preferred UPI App</h3>
-                  </div>
-                  <span className="text-[11px] text-emerald-400 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Skips app chooser
-                  </span>
-                </div>
-                <p className="text-xs text-text-secondary">
-                  Choose which UPI app launches directly when tapping "Pay via UPI".
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {POPULAR_UPI_APPS.map((app) => {
-                    const isActive = defaultUpiApp === app.id;
-                    return (
-                      <button
-                        key={app.id}
-                        type="button"
-                        onClick={() => handleUpiAppChange(app.id)}
-                        className={`p-2.5 rounded-xl flex items-center justify-center space-x-1.5 border text-xs font-semibold transition-all ${
-                          isActive
-                            ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                            : 'bg-black/30 border-white/10 text-text-secondary hover:bg-white/10 hover:text-white'
-                        }`}
-                      >
-                        <span>{app.iconText}</span>
-                        <span className="truncate">{app.name.split(' ')[0]}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+
 
               {/* Data Backup & Restore */}
               <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
