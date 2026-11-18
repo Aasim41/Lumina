@@ -224,9 +224,14 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
     setSelectedCategory('All');
     setFilterType('all');
     setSortBy('latest');
+    setDateRange('all');
+    setMinAmount('');
+    setMaxAmount('');
+    setSelectedTag(null);
   };
 
-  const isAnyFilterActive = searchQuery || selectedCategory !== 'All' || filterType !== 'all' || sortBy !== 'latest';
+  const activeAdvancedFilterCount = (dateRange !== 'all' ? 1 : 0) + (minAmount || maxAmount ? 1 : 0) + (selectedTag ? 1 : 0);
+  const isAnyFilterActive = searchQuery || selectedCategory !== 'All' || filterType !== 'all' || sortBy !== 'latest' || activeAdvancedFilterCount > 0;
 
   return (
     <div className="space-y-3 pb-20 select-none">
@@ -250,7 +255,7 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
         )}
       </div>
 
-      {/* Filter Tabs & Sort Control */}
+      {/* Filter Tabs & Advanced Controls */}
       <div className="flex items-center justify-between gap-2 mb-2">
         {/* Type Filter Pills: All / Expense / Income */}
         <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-xl">
@@ -289,20 +294,172 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
           </button>
         </div>
 
-        {/* Sort Dropdown */}
-        <div className="relative shrink-0">
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as any)}
-            className="bg-white/5 border border-white/10 rounded-xl text-[11px] font-medium py-1.5 px-2.5 text-white/80 focus:outline-none focus:border-emerald-400 cursor-pointer appearance-none pr-6"
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Advanced Filter Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+            className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              isFilterDrawerOpen || activeAdvancedFilterCount > 0
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm'
+                : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+            }`}
           >
-            <option value="latest" className="bg-[#0b1b16]">Latest</option>
-            <option value="highest" className="bg-[#0b1b16]">Highest</option>
-            <option value="lowest" className="bg-[#0b1b16]">Lowest</option>
-          </select>
-          <ArrowUpDown className="w-3 h-3 text-white/40 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {activeAdvancedFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-emerald-500 text-black font-black text-[9px] flex items-center justify-center">
+                {activeAdvancedFilterCount}
+              </span>
+            )}
+          </button>
+
+          {/* Sort Dropdown */}
+          <div className="relative shrink-0">
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              className="bg-white/5 border border-white/10 rounded-xl text-[11px] font-medium py-1.5 px-2.5 text-white/80 focus:outline-none focus:border-emerald-400 cursor-pointer appearance-none pr-6"
+            >
+              <option value="latest" className="bg-[#0b1b16]">Latest</option>
+              <option value="highest" className="bg-[#0b1b16]">Highest</option>
+              <option value="lowest" className="bg-[#0b1b16]">Lowest</option>
+            </select>
+            <ArrowUpDown className="w-3 h-3 text-white/40 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
       </div>
+
+      {/* Advanced Filter Drawer */}
+      <AnimatePresence>
+        {isFilterDrawerOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-3 mb-2 text-xs">
+              {/* Date Range Selector */}
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 block mb-1.5">Date Period</span>
+                <div className="grid grid-cols-4 gap-1">
+                  {[
+                    { id: 'all', label: 'All Time' },
+                    { id: 'this_week', label: 'This Week' },
+                    { id: 'this_month', label: 'This Month' },
+                    { id: 'last_90_days', label: 'Last 90d' },
+                  ].map(r => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setDateRange(r.id as any)}
+                      className={`py-1 px-1.5 rounded-lg text-center font-medium text-[10px] transition-all cursor-pointer ${
+                        dateRange === r.id
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm'
+                          : 'bg-black/20 text-white/60 hover:text-white border border-white/5'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Amount Range Slider / Inputs */}
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 block mb-1.5">Amount Range (₹)</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 text-[10px]">₹</span>
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      value={minAmount}
+                      onChange={e => setMinAmount(e.target.value)}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl pl-6 pr-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <span className="text-white/40 text-xs">to</span>
+                  <div className="relative flex-1">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 text-[10px]">₹</span>
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      value={maxAmount}
+                      onChange={e => setMaxAmount(e.target.value)}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl pl-6 pr-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  {(minAmount || maxAmount) && (
+                    <button
+                      type="button"
+                      onClick={() => { setMinAmount(''); setMaxAmount(''); }}
+                      className="p-1.5 bg-white/10 rounded-xl text-white/60 hover:text-white"
+                      title="Clear amount filter"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                {/* Quick Amount Presets */}
+                <div className="flex gap-1.5 mt-1.5">
+                  {[
+                    { label: '< ₹500', min: '', max: '500' },
+                    { label: '₹500 - ₹2k', min: '500', max: '2000' },
+                    { label: '₹2k - ₹10k', min: '2000', max: '10000' },
+                    { label: '> ₹10k', min: '10000', max: '' },
+                  ].map(p => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => { setMinAmount(p.min); setMaxAmount(p.max); }}
+                      className="text-[9px] px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/5 cursor-pointer"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tag Filters */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/50">Smart Tags</span>
+                  {selectedTag && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTag(null)}
+                      className="text-[10px] text-emerald-400 hover:text-emerald-300"
+                    >
+                      Clear tag
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {QUICK_TAGS.map(tag => {
+                    const isSelected = selectedTag === tag;
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setSelectedTag(isSelected ? null : tag)}
+                        className={`text-[10px] px-2.5 py-1 rounded-xl font-medium transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50 shadow-sm'
+                            : 'bg-black/20 text-white/60 hover:text-white border border-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Category Filter Pills (Horizontal Scroll) */}
       <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-hide -mx-1 px-1">
@@ -310,7 +467,7 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border shrink-0 ${
+            className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
               selectedCategory === cat
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
                 : 'bg-white/5 text-white/60 border-white/5 hover:text-white hover:bg-white/10'
@@ -333,7 +490,7 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
         {isAnyFilterActive && (
           <button
             onClick={clearFilters}
-            className="text-emerald-400 hover:text-emerald-300 font-semibold text-[11px]"
+            className="text-emerald-400 hover:text-emerald-300 font-semibold text-[11px] cursor-pointer"
           >
             Reset
           </button>
