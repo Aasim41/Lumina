@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, FileText, Zap, ShieldCheck, Trash2 } from 'lucide-react';
+import { X, Settings, DollarSign, Euro, IndianRupee, PoundSterling, Download, Upload, FileText, Zap, ShieldCheck, Trash2, Volume2, VolumeX, Vibrate, Play } from 'lucide-react';
 import { updateUserProfile } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/db';
 import { exportAllData, importData, exportTransactionsCSV, getLastBackupTime } from '@/lib/dataBackup';
 import { appNavigate } from '@/lib/utils';
+import { soundFX } from '@/lib/soundFx';
 
 export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user, refreshUser } = useAuth();
@@ -19,18 +20,36 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [budgetAmount, setBudgetAmount] = useState('');
   const [budgetDays, setBudgetDays] = useState('30');
   const [savingBudget, setSavingBudget] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
 
   // Load on first render when open
   useEffect(() => {
     if (isOpen) {
       setLastBackupTime(getLastBackupTime());
+      setSoundEnabled(soundFX.isEnabled());
+      setHapticsEnabled(soundFX.isHapticsEnabled());
       if (user) {
         setBudgetAmount(user.monthly_budget?.toString() || '');
         setBudgetDays(user.budget_days?.toString() || '30');
       }
     }
   }, [isOpen, user]);
+
+  const handleToggleSound = () => {
+    const next = soundFX.toggleSound();
+    setSoundEnabled(next);
+    if (next) soundFX.playChaChing();
+    toast.success(next ? 'Sound effects enabled 🔔' : 'Sound effects muted 🔕');
+  };
+
+  const handleToggleHaptics = () => {
+    const next = soundFX.toggleHaptics();
+    setHapticsEnabled(next);
+    if (next) soundFX.triggerHaptic([30, 40, 30]);
+    toast.success(next ? 'Tactile haptics enabled' : 'Tactile haptics disabled');
+  };
 
   const handleUpdateBudget = async () => {
     if (!budgetAmount || !budgetDays) return;
@@ -231,6 +250,75 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   {savingBudget ? <Spinner className="w-4 h-4 mr-2" /> : null}
                   Update Active Budget
                 </button>
+              </div>
+
+              {/* Audio & Haptic Feedback */}
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                <h3 className="text-sm font-semibold text-white">Audio & Haptic Feedback</h3>
+                
+                {/* Sound Effects Toggle */}
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                      {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-white/40" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-white">Sound Effects</p>
+                      <p className="text-[10px] text-text-secondary">Cash register & chime sound effects</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {soundEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => soundFX.playChaChing()}
+                        className="px-2 py-1 text-[10px] font-semibold bg-white/10 hover:bg-white/20 text-white/80 rounded-lg transition-colors cursor-pointer"
+                        title="Test Sound"
+                      >
+                        Test
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleToggleSound}
+                      className={`w-11 h-6 rounded-full p-0.5 transition-colors cursor-pointer ${
+                        soundEnabled ? 'bg-emerald-500' : 'bg-white/20'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                          soundEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tactile Haptics Toggle */}
+                <div className="flex items-center justify-between py-1 border-t border-white/5 pt-2.5">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                      <Vibrate className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-white">Tactile Vibrations</p>
+                      <p className="text-[10px] text-text-secondary">Subtle haptics on button taps</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleHaptics}
+                    className={`w-11 h-6 rounded-full p-0.5 transition-colors cursor-pointer ${
+                      hapticsEnabled ? 'bg-emerald-500' : 'bg-white/20'
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                        hapticsEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
 

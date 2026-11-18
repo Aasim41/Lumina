@@ -7,10 +7,18 @@ import {
   hasBackupPin,
   isBiometricAvailable,
   authenticateBiometric,
+  getLockTimeoutMs,
+  setLockTimeoutMs,
 } from '@/lib/biometrics';
-import { Shield, Fingerprint, Lock, X, Check, KeyRound } from 'lucide-react';
+import { Shield, Fingerprint, Lock, X, Check, KeyRound, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+
+const TIMEOUT_OPTIONS = [
+  { label: 'Immediately', value: 0 },
+  { label: 'After 1 Min', value: 60000 },
+  { label: 'After 5 Mins', value: 300000 },
+];
 
 export function SecuritySettingsModal({
   isOpen,
@@ -20,6 +28,7 @@ export function SecuritySettingsModal({
   onClose: () => void;
 }) {
   const [enabled, setEnabled] = useState(false);
+  const [lockTimeout, setLockTimeout] = useState(60000);
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [step, setStep] = useState<'toggle' | 'set_pin' | 'confirm_pin'>('toggle');
@@ -28,6 +37,7 @@ export function SecuritySettingsModal({
   useEffect(() => {
     if (isOpen) {
       setEnabled(isAppLockEnabled());
+      setLockTimeout(getLockTimeoutMs());
       setStep('toggle');
       setPin('');
       setConfirmPin('');
@@ -135,6 +145,37 @@ export function SecuritySettingsModal({
 
             {enabled && (
               <>
+                {/* Auto-Lock Timeout Selector */}
+                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-white/90">
+                    <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Auto-Lock Timeout</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {TIMEOUT_OPTIONS.map((opt) => {
+                      const isActive = lockTimeout === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setLockTimeout(opt.value);
+                            setLockTimeoutMs(opt.value);
+                            toast.success(`Auto-lock set to ${opt.label}`);
+                          }}
+                          className={`py-2 px-1 text-center rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm'
+                              : 'bg-black/20 text-white/60 hover:text-white border border-white/5'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <button
                   onClick={() => {
                     setPin('');
