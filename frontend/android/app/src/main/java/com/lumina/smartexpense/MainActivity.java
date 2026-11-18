@@ -25,7 +25,6 @@ public class MainActivity extends BridgeActivity {
 
         registerPlugin(NativeSmsPlugin.class);
         registerPlugin(NativeBiometricPlugin.class);
-        registerPlugin(NativeUpiPlugin.class);
         registerPlugin(NativeQrScannerPlugin.class);
         super.onCreate(savedInstanceState);
 

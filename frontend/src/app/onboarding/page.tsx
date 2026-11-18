@@ -5,11 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { updateUserProfile } from '@/lib/api';
 import { appNavigate, PERSONA_CONFIGS } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { POPULAR_UPI_APPS, getDefaultUpiApp, setDefaultUpiApp } from '@/lib/upi';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, ShieldCheck, QrCode, CheckCircle2 } from 'lucide-react';
 
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -17,7 +15,6 @@ export default function OnboardingPage() {
   const [persona, setPersona] = useState<string>('');
   const [budget, setBudget] = useState('');
   const [budgetDays, setBudgetDays] = useState('30');
-  const [selectedUpiApp, setSelectedUpiApp] = useState('gpay');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -34,35 +31,29 @@ export default function OnboardingPage() {
       setBudget(user.monthly_budget ? user.monthly_budget.toString() : '');
       setBudgetDays(user.budget_days ? user.budget_days.toString() : '30');
     }
-    const savedApp = getDefaultUpiApp();
-    if (savedApp) setSelectedUpiApp(savedApp);
   }, [user]);
 
   const handleNextFromStep1 = () => {
     if (persona) setStep(2);
   };
 
-  const handleNextFromStep2 = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFinalSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const parsedBudget = parseFloat(budget);
     if (isNaN(parsedBudget) || parsedBudget <= 0) {
       toast.error('Please enter a valid monthly budget');
       return;
     }
-    setStep(3);
-  };
-
-  const handleFinalSubmit = async () => {
-    if (!budget || !persona) return;
+    if (!persona) {
+      setStep(1);
+      return;
+    }
 
     setLoading(true);
     try {
-      // 1. Save preferred UPI App
-      setDefaultUpiApp(selectedUpiApp);
-
-      // 2. Save user profile & budget settings
+      // Save user profile & budget settings
       await updateUserProfile({
-        monthly_budget: parseFloat(budget.toString()),
+        monthly_budget: parsedBudget,
         budget_days: parseInt(budgetDays.toString()) || 30,
         user_persona: persona
       });
@@ -73,6 +64,9 @@ export default function OnboardingPage() {
       const msg = error?.message || 'Unknown error';
       toast.error(`Failed to save settings: ${msg}`);
     } finally {
+      setLoading(false);
+    }
+  };
       setLoading(false);
     }
   };
@@ -99,7 +93,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-sm flex justify-between items-center z-10 pt-4">
         <LuminaLogo size={28} showText={true} />
         <div className="text-xs font-medium text-[#7cc544] bg-[#7cc544]/10 border border-[#7cc544]/20 px-3 py-1 rounded-full">
-          Step {step} of 3
+          Step {step} of 2
         </div>
       </div>
 
@@ -168,7 +162,7 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              <form onSubmit={handleNextFromStep2} className="space-y-5">
+              <form onSubmit={handleFinalSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">Monthly Budget (₹)</label>
                   <input
@@ -212,107 +206,20 @@ export default function OnboardingPage() {
                   <Button 
                     type="button" 
                     onClick={() => setStep(1)} 
-                    className="w-1/3 bg-white/10 hover:bg-white/20 text-white border-white/10"
+                    className="w-1/3 bg-white/10 hover:bg-white/20 text-white border-white/10 cursor-pointer"
                   >
                     Back
                   </Button>
                   <Button 
                     type="submit" 
                     size="lg" 
-                    className="flex-1 bg-[#7cc544] hover:bg-[#68a839] text-black border-none" 
+                    className="flex-1 bg-[#7cc544] hover:bg-[#68a839] text-black font-bold border-none cursor-pointer" 
+                    isLoading={loading}
                   >
-                    Next: Connect UPI
+                    Confirm & Finish
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          )}
-
-          {/* STEP 3: PREFERRED UPI APP & STANDEE SCANNER SETUP */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="space-y-5"
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Zap className="w-6 h-6 text-emerald-400 fill-emerald-400" />
-                  <h2 className="text-2xl font-display font-bold text-white">Preferred UPI App</h2>
-                </div>
-                <p className="text-xs text-white/60">
-                  Select your primary UPI app. Lumina will launch it in 0.2s without asking you which app to open each time!
-                </p>
-              </div>
-
-              {/* UPI App Selection Grid */}
-              <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1 scrollbar-thin">
-                {POPULAR_UPI_APPS.map((app) => {
-                  const isSelected = selectedUpiApp === app.id;
-                  return (
-                    <button
-                      key={app.id}
-                      type="button"
-                      onClick={() => setSelectedUpiApp(app.id)}
-                      className={`p-3.5 rounded-2xl border transition-all text-left flex items-center justify-between ${
-                        isSelected
-                          ? 'bg-emerald-500/20 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] text-white'
-                          : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-xl bg-black/40 flex items-center justify-center font-bold text-sm">
-                          {app.iconText}
-                        </span>
-                        <div>
-                          <p className="text-xs font-bold text-white">{app.name}</p>
-                          <p className="text-[10px] text-white/50">{app.id === 'any' ? 'Always ask' : 'Direct 1-tap'}</p>
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Feature Highlights */}
-              <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <ShieldCheck className="w-4 h-4 shrink-0" />
-                  <span>Bypasses Android app chooser dialog</span>
-                </div>
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <QrCode className="w-4 h-4 shrink-0" />
-                  <span>Built-in Standee QR Scanner for offline counter QRs</span>
-                </div>
-                <div className="flex items-center gap-2 text-emerald-300">
-                  <Zap className="w-4 h-4 shrink-0" />
-                  <span>Auto-records expenses straight to your budget on completion</span>
-                </div>
-              </div>
-
-              <div className="pt-2 flex gap-3">
-                <Button 
-                  type="button" 
-                  onClick={() => setStep(2)} 
-                  className="w-1/3 bg-white/10 hover:bg-white/20 text-white border-white/10"
-                >
-                  Back
-                </Button>
-                <Button 
-                  type="button"
-                  onClick={handleFinalSubmit}
-                  size="lg" 
-                  className="flex-1 bg-[#7cc544] hover:bg-[#68a839] text-black font-bold border-none" 
-                  isLoading={loading}
-                >
-                  Confirm & Finish
-                </Button>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
