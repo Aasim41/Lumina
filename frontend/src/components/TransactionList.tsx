@@ -75,6 +75,8 @@ const ALL_CATEGORIES = [
   'Savings',
 ];
 
+const QUICK_TAGS = ['#work', '#trip', '#reimbursable', '#personal', '#food', '#shopping', '#bills'];
+
 export function TransactionList({ transactions, onUpdate, onDelete, loading }: TransactionListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -82,6 +84,11 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState<'latest' | 'highest' | 'lowest'>('latest');
+  const [dateRange, setDateRange] = useState<'all' | 'this_week' | 'this_month' | 'last_90_days'>('all');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   const isTxnCredit = (t: Transaction) => t.type === 'credit' || ['Income', 'Salary', 'Refund'].includes(t.category);
 
@@ -95,7 +102,40 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
       // 2. Category filter
       if (selectedCategory !== 'All' && t.category !== selectedCategory) return false;
 
-      // 3. Search query
+      // 3. Date range filter
+      if (dateRange !== 'all') {
+        const txDate = new Date(t.date || 0);
+        const now = new Date();
+        if (dateRange === 'this_week') {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          if (txDate < weekAgo) return false;
+        } else if (dateRange === 'this_month') {
+          const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          if (txDate < firstOfMonth) return false;
+        } else if (dateRange === 'last_90_days') {
+          const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          if (txDate < ninetyDaysAgo) return false;
+        }
+      }
+
+      // 4. Amount range filter
+      const minVal = parseFloat(minAmount);
+      const maxVal = parseFloat(maxAmount);
+      if (!isNaN(minVal) && t.amount < minVal) return false;
+      if (!isNaN(maxVal) && t.amount > maxVal) return false;
+
+      // 5. Multi-tag filter
+      if (selectedTag) {
+        const cleanTag = selectedTag.replace('#', '').toLowerCase();
+        const mClean = (t.merchant_clean || '').toLowerCase();
+        const mRaw = (t.merchant_raw || '').toLowerCase();
+        const cat = (t.category || '').toLowerCase();
+        if (!mClean.includes(cleanTag) && !mRaw.includes(cleanTag) && !cat.includes(cleanTag)) {
+          return false;
+        }
+      }
+
+      // 6. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const mClean = (t.merchant_clean || '').toLowerCase();
@@ -120,7 +160,7 @@ export function TransactionList({ transactions, onUpdate, onDelete, loading }: T
     }
 
     return result;
-  }, [transactions, filterType, selectedCategory, searchQuery, sortBy]);
+  }, [transactions, filterType, selectedCategory, searchQuery, sortBy, dateRange, minAmount, maxAmount, selectedTag]);
 
   // Aggregate stats of filtered results
   const stats = useMemo(() => {
