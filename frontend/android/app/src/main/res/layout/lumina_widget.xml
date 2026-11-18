@@ -1,20 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1D24"
-    android:padding="16dp">
+    android:background="#121620"
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/widget_title"
-        android:layout_width="wrap_content"
+    <!-- Top Row: App Label + Streak Badge -->
+    <LinearLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lumina Budget"
-        android:textColor="#A0AEC0"
-        android:textSize="12sp"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_alignParentTop="true">
 
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Lumina Budget"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_streak_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔥 0 days"
+            android:textColor="#F59E0B"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Daily Remaining Amount -->
     <TextView
         android:id="@+id/widget_budget_text"
         android:layout_width="wrap_content"
@@ -23,18 +44,29 @@
         android:textColor="#10B981"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:layout_below="@id/widget_title"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="8dp" />
+        android:layout_below="@id/widget_header"
+        android:layout_marginTop="6dp" />
 
+    <TextView
+        android:id="@+id/widget_budget_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Remaining Daily"
+        android:textColor="#64748B"
+        android:textSize="10sp"
+        android:layout_below="@id/widget_budget_text"
+        android:layout_marginTop="1dp" />
+
+    <!-- 1-Tap Action Button -->
     <Button
         android:id="@+id/widget_add_button"
         android:layout_width="match_parent"
         android:layout_height="36dp"
-        android:text="+ Add Expense"
+        android:text="+ Log Expense"
         android:textColor="#FFFFFF"
         android:backgroundTint="#059669"
-        android:textSize="12sp"
-        android:layout_below="@id/widget_budget_text"
-        android:layout_marginTop="16dp" />
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="8dp" />
 </RelativeLayout>
