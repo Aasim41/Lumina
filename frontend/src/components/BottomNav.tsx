@@ -184,7 +184,7 @@ export function BottomNav() {
         )}
       </AnimatePresence>
 
-      {/* 5-Button Bottom Navigation Bar (Centered UPI QR) */}
+      {/* 5-Button Bottom Navigation Bar (Centered Add Expense Quick-Log) */}
       <nav 
         className="fixed bottom-0 left-0 right-0 z-50 px-3 sm:px-4 pointer-events-none flex justify-center pb-1.5 safe-pb"
       >
