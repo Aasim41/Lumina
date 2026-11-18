@@ -802,10 +802,61 @@ export default function Dashboard() {
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-display font-semibold text-purple-100">Active Subscriptions</h3>
-                    <button onClick={() => setIsSubModalOpen(true)} className="p-1.5 bg-purple-500/20 text-purple-400 rounded-full hover:bg-purple-500/30 transition-transform active:scale-95">
+                    <button onClick={() => setIsSubModalOpen(true)} className="p-1.5 bg-purple-500/20 text-purple-400 rounded-full hover:bg-purple-500/30 transition-transform active:scale-95 cursor-pointer">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
+
+                  {/* Smart AI Detected Subscriptions Card */}
+                  {detectedSubs.length > 0 && (
+                    <div className="mb-4 space-y-2.5">
+                      {detectedSubs.slice(0, 2).map((detected) => (
+                        <div
+                          key={detected.merchant}
+                          className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/20 via-indigo-500/15 to-transparent border border-purple-500/40 shadow-lg relative overflow-hidden"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-purple-500/30 text-purple-300 flex items-center justify-center shrink-0 mt-0.5">
+                                <Sparkles className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 bg-purple-500/20 px-1.5 py-0.5 rounded-md">AI Detected</span>
+                                  <span className="text-[10px] text-white/50">{detected.reason}</span>
+                                </div>
+                                <p className="text-xs text-white/90 mt-1">
+                                  Recurring spends for <strong className="text-white">{detected.merchant}</strong> ({formatCurrency(detected.amount)}/mo, day {detected.billing_day}). Add to Active Subscriptions with renewal reminders?
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDismissDetectedSubscription(detected.merchant)}
+                              className="p-1 text-white/40 hover:text-white rounded-lg transition-colors cursor-pointer"
+                              title="Dismiss"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="flex gap-2 mt-3 pl-10">
+                            <button
+                              onClick={() => handleAcceptDetectedSubscription(detected)}
+                              className="px-3 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Add {formatCurrency(detected.amount)}/mo</span>
+                            </button>
+                            <button
+                              onClick={() => handleDismissDetectedSubscription(detected.merchant)}
+                              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-semibold transition-all cursor-pointer"
+                            >
+                              Not a Subscription
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   
                   {(!subscriptions || subscriptions.length === 0) ? (
                     <p className="text-text-secondary text-sm text-center py-4">No subscriptions added yet.</p>
