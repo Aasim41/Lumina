@@ -356,11 +356,11 @@ export const exportCSV = async () => {
   await exportTransactionsCSV();
 };
 
-export const exportPDF = async () => {
-  // PDF generation is handled client-side via jspdf (already in the frontend)
-  // The PDFGenerator.ts in lib/ handles this
-  const { exportTransactionsCSV } = await import('./dataBackup');
-  await exportTransactionsCSV();
+export const exportPDF = async (periodLabel?: string) => {
+  const [user, txns] = await Promise.all([getLocalUser(), getCachedTransactions()]);
+  const { generateMonthlyStatement } = await import('./PDFGenerator');
+  const label = periodLabel || new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  await generateMonthlyStatement(user, txns, label, { purpose: 'Financial & Tax Filing' });
 };
 
 // ── Subscriptions ─────────────────────────────────────────────────

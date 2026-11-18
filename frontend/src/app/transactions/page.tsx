@@ -81,9 +81,8 @@ export default function TransactionsPage() {
     setExporting(true);
     const toastId = toast.loading('Generating PDF Statement...', { icon: '📄' });
     try {
-      const monthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-      const totalSpent = summary?.total_this_month || 0;
-      await generateMonthlyStatement(user, transactions, monthName, totalSpent);
+      const monthName = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+      await generateMonthlyStatement(user, transactions, monthName, { purpose: 'Monthly Expense Review & Tax' });
       toast.success('Statement Downloaded!', { id: toastId });
     } catch (error) {
       console.error(error);

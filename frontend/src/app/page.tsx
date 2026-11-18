@@ -29,7 +29,9 @@ import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
 import { ChatModal } from '@/components/ChatModal';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
-import { deleteSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
+import { deleteSubscription, createSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
+import { detectRecurringSubscriptions, dismissSubscription, type DetectedSubscription } from '@/lib/subscriptionDetector';
+import { soundFX } from '@/lib/soundFx';
 import { App as CapApp } from '@capacitor/app';
 import { restoreFromAutoFilesystemSnapshotIfEmpty, saveAutoFilesystemSnapshot } from '@/lib/dataBackup';
 
