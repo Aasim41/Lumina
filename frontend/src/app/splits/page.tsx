@@ -2,19 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon, Zap, QrCode, MessageCircle, Copy, Share2, ArrowLeft } from 'lucide-react';
+import { Users, Plus, Check, Trash2, X, Receipt, ArrowRight, User as UserIcon, Zap, MessageCircle, Copy, Share2, ArrowLeft } from 'lucide-react';
 import { AuthGuard } from '@/components/AuthGuard';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BottomNav } from '@/components/BottomNav';
-import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, deleteSplit } from '@/lib/api';
+import { getSplits, getBalances, createSplit, toggleSplitMemberPaid, settleSplitMember, deleteSplit } from '@/lib/api';
 import { formatCurrency, formatLocalDate, appBack } from '@/lib/utils';
 import { splitPaiseEqually } from '@/lib/db';
-import { UpiQuickPayModal } from '@/components/UpiQuickPayModal';
 import { soundFX } from '@/lib/soundFx';
 import { useAuth } from '@/hooks/useAuth';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
-import { generateQrDataUrl } from '@/lib/qr';
 
 export default function SplitsPage() {
   const { user } = useAuth();
@@ -35,22 +33,6 @@ export default function SplitsPage() {
   const [splitMode, setSplitMode] = useState<'amount' | 'percentage'>('amount');
   
   const [settleModalOpen, setSettleModalOpen] = useState<any>(null);
-  const [qrModal, setQrModal] = useState<{ isOpen: boolean; memberName: string; amount: number; title: string; upiUri: string } | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [upiPayModal, setUpiPayModal] = useState<{ isOpen: boolean; name: string; amount: number; note: string }>({
-    isOpen: false,
-    name: '',
-    amount: 0,
-    note: ''
-  });
-
-  useEffect(() => {
-    if (qrModal?.upiUri) {
-      generateQrDataUrl(qrModal.upiUri, 220).then(setQrDataUrl);
-    } else {
-      setQrDataUrl('');
-    }
-  }, [qrModal?.upiUri]);
 
   const fetchData = async () => {
     try {
@@ -153,31 +135,11 @@ export default function SplitsPage() {
     }
   };
 
-  // Helper to build UPI URI
-  const getUpiUriForMember = (amount: number, billTitle: string) => {
-    const myVpa = user?.email?.includes('@') ? `${user.email.split('@')[0]}@okaxis` : 'user@upi';
-    const myName = user?.name || 'Lumina';
-    return `upi://pay?pa=${encodeURIComponent(myVpa)}&pn=${encodeURIComponent(myName)}&am=${amount.toFixed(2)}&tn=${encodeURIComponent(billTitle)}`;
-  };
-
   // 1-Tap WhatsApp Request
   const handleShareWhatsApp = (memberName: string, amount: number, billTitle: string) => {
-    const upiUri = getUpiUriForMember(amount, billTitle);
-    const text = `Hey ${memberName}! Your share for "${billTitle}" is ₹${amount}. Tap this UPI link to pay directly: ${upiUri}`;
+    const text = `Hey ${memberName}! Your share for "${billTitle}" is ₹${amount}. Let me know once settled! 😊`;
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank');
-  };
-
-  // Show On-Screen QR Code for friend to scan
-  const handleShowQr = (memberName: string, amount: number, billTitle: string) => {
-    const upiUri = getUpiUriForMember(amount, billTitle);
-    setQrModal({
-      isOpen: true,
-      memberName,
-      amount,
-      title: billTitle,
-      upiUri
-    });
   };
 
   return (
@@ -200,7 +162,7 @@ export default function SplitsPage() {
                     <Users className="w-6 h-6 text-emerald-400" />
                     <span>Split with Friends</span>
                   </h1>
-                  <p className="text-xs text-white/60">UPI Pay-Me links, on-screen QR & 1-tap WhatsApp</p>
+                  <p className="text-xs text-white/60">Bill splitting, debt balances & 1-tap WhatsApp reminders</p>
                 </div>
               </div>
               <button
@@ -350,20 +312,25 @@ export default function SplitsPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleShareWhatsApp(m.name, m.share_amount, split.title)}
-                                      className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 active:scale-95 transition-all"
+                                      className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 active:scale-95 transition-all cursor-pointer"
                                       title="Request on WhatsApp"
                                     >
                                       <MessageCircle className="w-3.5 h-3.5" />
                                     </button>
 
-                                    {/* On-Screen QR Code for friend to scan */}
+                                    {/* Copy Reminder Text */}
                                     <button
                                       type="button"
-                                      onClick={() => handleShowQr(m.name, m.share_amount, split.title)}
-                                      className="p-2 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 active:scale-95 transition-all"
-                                      title="Show Pay QR Code"
+                                      onClick={() => {
+                                        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                                          navigator.clipboard.writeText(`Hey ${m.name}! Your share for "${split.title}" is ₹${m.share_amount}. Let me know once settled! 😊`);
+                                          toast.success('Reminder copied!');
+                                        }
+                                      }}
+                                      className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/80 hover:bg-white/20 hover:text-white active:scale-95 transition-all cursor-pointer"
+                                      title="Copy Reminder"
                                     >
-                                      <QrCode className="w-3.5 h-3.5" />
+                                      <Copy className="w-3.5 h-3.5" />
                                     </button>
                                   </>
                                 )}

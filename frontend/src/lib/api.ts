@@ -443,7 +443,22 @@ export const getBalances = async () => {
     }
   }
 
-  return Object.entries(balances).map(([name, net_balance]) => ({ name, net_balance }));
+  return Object.entries(balances).map(([name, net_balance]) => ({ 
+    name, 
+    net_balance, 
+    balance: net_balance 
+  }));
+};
+
+export const settleSplitMember = async (memberName: string) => {
+  const members = await db.splitMembers.toArray();
+  const targetMembers = members.filter(m => m.name.toLowerCase() === memberName.toLowerCase() && m.is_paid !== 'true');
+  for (const m of targetMembers) {
+    if (m.id) {
+      await db.splitMembers.update(m.id, { is_paid: 'true' });
+    }
+  }
+  return true;
 };
 
 export const createSplit = async (data: { title: string; total_amount: number; date: string; category?: string; payer_name?: string; members: Array<{ name: string; share_amount: number }> }) => {
