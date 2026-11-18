@@ -47,17 +47,17 @@ export default function TermsPage() {
             <h2 className="font-semibold text-sm text-white">1. Service Description & Offline Utility</h2>
           </div>
           <p className="text-xs text-white/70 leading-relaxed">
-            Lumina is a personal finance management, expense tracking, and budget visualization application designed to operate 100% on-device. Lumina provides tools to log expenses, calculate budget targets, analyze spending habits, and construct deep links to installed NPCI UPI applications for payment initiation.
+            Lumina is a personal finance management, expense tracking, and budget visualization application designed to operate 100% on-device. Lumina provides tools to log expenses, calculate budget targets, track bill splits, and analyze spending habits.
           </p>
         </div>
 
-        {/* Section 2: Non-Custodial & Third-Party Payments */}
+        {/* Section 2: Non-Custodial Architecture */}
         <div className="p-5 rounded-3xl bg-white/5 border border-white/10 space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <CreditCard className="w-4 h-4" />
             </div>
-            <h2 className="font-semibold text-sm text-white">2. Payments & Third-Party UPI Apps</h2>
+            <h2 className="font-semibold text-sm text-white">2. Non-Custodial Bookkeeping</h2>
           </div>
           <p className="text-xs text-white/70 leading-relaxed">
             Lumina is <strong>not</strong> a bank, payment service provider (PSP), payment aggregator, or financial intermediary.
@@ -65,11 +65,11 @@ export default function TermsPage() {
           <ul className="text-xs text-white/70 space-y-2 pl-2">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span><strong>No Fund Custody:</strong> Lumina never holds, touches, transmits, or receives user monetary funds. All transactions are settled directly between your bank and the recipient's bank via NPCI UPI protocol.</span>
+              <span><strong>No Fund Custody:</strong> Lumina never holds, touches, transmits, or receives user monetary funds. All financial logging is strictly analytical and bookkeeping-oriented on your local device.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span><strong>Third-Party Terms:</strong> Payment execution is governed by the respective terms of your installed UPI apps (Google Pay, PhonePe, Paytm, CRED) and your issuing bank.</span>
+              <span><strong>Data Privacy:</strong> All transaction records remain encrypted on your device and are never shared with or sold to third parties.</span>
             </li>
           </ul>
         </div>

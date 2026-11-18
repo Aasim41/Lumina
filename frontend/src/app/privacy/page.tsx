@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
               <strong className="text-white">Profile & Preferences:</strong> Your name, avatar, monthly budget targets, and financial persona are stored locally in your browser/device database.
             </div>
             <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-              <strong className="text-white">Transaction Ledger:</strong> Records of your expenses, income credits, UPI payee names, and categories are stored in an encrypted on-device IndexedDB database.
+              <strong className="text-white">Transaction Ledger:</strong> Records of your expenses, income credits, merchant names, and categories are stored in an encrypted on-device IndexedDB database.
             </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span><strong>Revocable Anytime:</strong> You can revoke SMS permission at any time through your Android System Settings without losing access to manual logging or UPI quick pay.</span>
+              <span><strong>Revocable Anytime:</strong> You can revoke SMS permission at any time through your Android System Settings without losing access to manual expense logging.</span>
             </li>
           </ul>
         </div>
@@ -108,32 +108,32 @@ export default function PrivacyPolicyPage() {
           </p>
         </div>
 
-        {/* Section 4: Camera & QR Code Scanning */}
+        {/* Section 4: Camera & Receipt Scanning */}
         <div className="p-5 rounded-3xl bg-white/5 border border-white/10 space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <QrCode className="w-4 h-4" />
             </div>
-            <h2 className="font-semibold text-sm text-white">4. Camera Permission for QR Code Scanning</h2>
+            <h2 className="font-semibold text-sm text-white">4. Camera Permission for Receipt Scanning</h2>
           </div>
           <p className="text-xs text-white/70 leading-relaxed">
-            Lumina requests camera permission strictly for real-time scanning of NPCI UPI QR codes and BharatQR standees. The video feed is analyzed frame-by-frame entirely on-device to decode the payment string. No photographs, videos, or image buffers are ever saved to device storage or transmitted over the network.
+            Lumina requests camera permission strictly for optional scanning of physical receipts with AI Vision. The image is processed on-device to extract merchant names and totals directly into your manual expense entry form.
           </p>
         </div>
 
-        {/* Section 5: Third-Party UPI Apps & Financial Custody */}
+        {/* Section 5: Non-Custodial Financial Architecture */}
         <div className="p-5 rounded-3xl bg-white/5 border border-white/10 space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
               <FileText className="w-4 h-4" />
             </div>
-            <h2 className="font-semibold text-sm text-white">5. Third-Party UPI Applications</h2>
+            <h2 className="font-semibold text-sm text-white">5. Non-Custodial Architecture</h2>
           </div>
           <p className="text-xs text-white/70 leading-relaxed">
-            Lumina is not a bank, non-banking financial company (NBFC), or payment gateway. Lumina uses official Android Intents to delegate fund transfers directly to NPCI-approved UPI applications installed on your phone (Google Pay, PhonePe, Paytm, BHIM, CRED).
+            Lumina is not a bank, non-banking financial company (NBFC), or payment gateway. Lumina operates purely as a private analytical and personal finance bookkeeping application.
           </p>
           <p className="text-xs text-white/60 leading-relaxed">
-            Lumina never accesses your bank account credentials, debit card details, or UPI PIN.
+            Lumina never holds funds, never processes payment settlements, and never accesses your bank account credentials, debit card details, or banking PINs.
           </p>
         </div>
 
