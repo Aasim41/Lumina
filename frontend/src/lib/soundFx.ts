@@ -4,11 +4,14 @@
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private soundEnabled: boolean = true;
+  private hapticsEnabled: boolean = true;
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('lumina_sound_fx');
-      this.soundEnabled = saved !== 'false';
+      const savedSound = localStorage.getItem('lumina_sound_fx');
+      this.soundEnabled = savedSound !== 'false';
+      const savedHaptics = localStorage.getItem('lumina_haptics_fx');
+      this.hapticsEnabled = savedHaptics !== 'false';
     }
   }
 
@@ -30,12 +33,33 @@ class SoundEngine {
     return this.soundEnabled;
   }
 
+  public isHapticsEnabled(): boolean {
+    return this.hapticsEnabled;
+  }
+
   public toggleSound(enabled?: boolean): boolean {
     this.soundEnabled = enabled !== undefined ? enabled : !this.soundEnabled;
     if (typeof window !== 'undefined') {
       localStorage.setItem('lumina_sound_fx', String(this.soundEnabled));
     }
     return this.soundEnabled;
+  }
+
+  public toggleHaptics(enabled?: boolean): boolean {
+    this.hapticsEnabled = enabled !== undefined ? enabled : !this.hapticsEnabled;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lumina_haptics_fx', String(this.hapticsEnabled));
+    }
+    return this.hapticsEnabled;
+  }
+
+  public triggerHaptic(pattern: number | number[] = 15) {
+    if (!this.hapticsEnabled) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(pattern);
+      }
+    } catch {}
   }
 
   // 1. Subtle Coin Clink (for buttons, chips, micro-interactions)
