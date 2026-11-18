@@ -253,6 +253,15 @@ export function UpiQuickPayModal({
     }
   };
 
+  // Determine if this is a verified merchant flow (scanned QR standee with mc/tr)
+  // vs a personal P2P flow (manually typed UPI ID without merchant credentials).
+  // NPCI policy (Oct 2025) blocks third-party app upi://pay intents to personal VPAs.
+  // Merchant QR standees with mc+tr work fine via intent.
+  // Personal VPAs must use the copy-and-open flow (same as Splitwise, CRED, etc).
+  const isMerchantFlow = Boolean(
+    rawQrUri && (extraParams?.mc || extraParams?.tr)
+  );
+
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanVpa = vpa.trim();
@@ -284,25 +293,57 @@ export function UpiQuickPayModal({
 
       const txId = generateId();
 
-      // 2. Fire UPI payment launch directly
-      const launchResult = await launchUpiPayment({
-        pa: cleanVpa,
-        pn: cleanName,
-        am: parsedAmt,
-        tn: note || `Payment to ${cleanName}`,
-        category,
-        appId: selectedApp,
-        extraParams,
-        rawQrUri: (rawQrUri && rawQrUri.toLowerCase().includes(cleanVpa.toLowerCase())) ? rawQrUri : undefined,
-      });
+      if (isMerchantFlow) {
+        // ── MERCHANT QR STANDEE FLOW ──
+        // Scanned QR has verified mc + tr → upi://pay intent works reliably
+        const launchResult = await launchUpiPayment({
+          pa: cleanVpa,
+          pn: cleanName,
+          am: parsedAmt,
+          tn: note || `Payment to ${cleanName}`,
+          category,
+          appId: selectedApp,
+          extraParams,
+          rawQrUri: (rawQrUri && rawQrUri.toLowerCase().includes(cleanVpa.toLowerCase())) ? rawQrUri : undefined,
+        });
 
-      if (!launchResult || !launchResult.success) {
-        toast.error('Could not open UPI app. Choose another app or System Chooser.', { duration: 3000 });
-        setIsSubmitting(false);
-        return;
+        if (!launchResult || !launchResult.success) {
+          toast.error('Could not open UPI app. Choose another app or System Chooser.', { duration: 3000 });
+          setIsSubmitting(false);
+          return;
+        }
+
+        soundFX.playSuccess();
+        toast.success(`Opening ${currentAppConfig.name} for ₹${parsedAmt}...`, { icon: '⚡' });
+      } else {
+        // ── PERSONAL VPA FLOW (Copy & Open) ──
+        // NPCI blocks upi://pay intents to personal VPAs from third-party apps.
+        // Instead: copy UPI ID + amount info to clipboard → open Google Pay home screen
+        // → user pastes in GPay's own "New payment" UI. This is the standard pattern
+        // used by Splitwise, CRED, and every major expense tracker.
+        const clipboardText = `${cleanVpa}`;
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(clipboardText);
+          } catch {}
+        }
+
+        const appConfig = POPULAR_UPI_APPS.find(a => a.id === selectedApp) || POPULAR_UPI_APPS[0];
+        const targetPkg = (appConfig && appConfig.id !== 'any' && appConfig.packageName)
+          ? appConfig.packageName
+          : 'com.google.android.apps.nbu.paisa.user';
+
+        // Open the UPI app directly to its home screen
+        await openUpiAppDirect(targetPkg);
+
+        soundFX.playSuccess();
+        toast.success(
+          `Copied "${cleanVpa}" — paste in ${appConfig.name} to pay ₹${parsedAmt}`,
+          { icon: '📋', duration: 4000 }
+        );
       }
 
-      // 3. Record transaction in Dexie in background without blocking
+      // Record transaction in Dexie in background without blocking
       db.transactions.add({
         id: txId,
         date: todayISO(),
@@ -327,8 +368,6 @@ export function UpiQuickPayModal({
         }
       }).catch(err => console.warn('Dexie background write warning:', err));
 
-      soundFX.playSuccess();
-      toast.success(`Opening ${currentAppConfig.name} for ₹${parsedAmt}...`, { icon: '⚡' });
       onSuccess?.();
       onClose();
 
@@ -709,9 +748,19 @@ export function UpiQuickPayModal({
                 disabled={isSubmitting || !vpa}
                 className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-sm rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
-                <Zap className="w-4 h-4 fill-black" />
-                <span>Pay {amount ? `₹${amount}` : ''} via {currentAppConfig.name}</span>
-                <ArrowRight className="w-4 h-4" />
+                {isMerchantFlow ? (
+                  <>
+                    <Zap className="w-4 h-4 fill-black" />
+                    <span>Pay {amount ? `₹${amount}` : ''} via {currentAppConfig.name}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Pay {amount ? `₹${amount}` : ''} in {currentAppConfig.name}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
 
               {/* Quick Actions (Copy VPA & Show QR) */}
