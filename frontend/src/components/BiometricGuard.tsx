@@ -7,6 +7,7 @@ import {
   isBiometricAvailable,
   verifyBackupPin,
   hasBackupPin,
+  getLockTimeoutMs,
 } from '@/lib/biometrics';
 import { Shield, Fingerprint, Delete, Lock, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +15,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 const SESSION_UNLOCKED_KEY = 'lumina_session_unlocked';
 const LAST_ACTIVE_KEY = 'lumina_last_active_time';
 const LAST_BACKGROUND_KEY = 'lumina_last_background_time';
-const LOCK_TIMEOUT_MS = 60000; // 60 seconds grace period when app is in background
 
 function isSessionUnlocked(): boolean {
   if (typeof window === 'undefined') return false;
@@ -43,8 +43,10 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return false;
     if (!isAppLockEnabled()) return false;
     if (isSessionUnlocked()) {
+      const timeoutMs = getLockTimeoutMs();
+      if (timeoutMs === 0) return true; // Immediately lock
       const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || 0);
-      const isExpired = lastActive > 0 && Date.now() - lastActive > LOCK_TIMEOUT_MS;
+      const isExpired = lastActive > 0 && Date.now() - lastActive > timeoutMs;
       if (!isExpired) {
         return false; // Stay unlocked while switching tabs!
       }
@@ -130,7 +132,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
     };
   }, [isLocked]);
 
-  // Lock when returning from background ONLY if absent for > LOCK_TIMEOUT_MS (60s)
+  // Lock when returning from background based on user's configurable timeout
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
@@ -138,8 +140,9 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
       } else if (document.visibilityState === 'visible') {
         const lastBg = Number(localStorage.getItem(LAST_BACKGROUND_KEY) || 0);
         const elapsed = Date.now() - lastBg;
+        const timeoutMs = getLockTimeoutMs();
 
-        if (lastBg > 0 && elapsed > LOCK_TIMEOUT_MS && isAppLockEnabled()) {
+        if (lastBg > 0 && elapsed > timeoutMs && isAppLockEnabled()) {
           setSessionUnlocked(false);
           checkAndPromptBiometrics();
         } else if (!isLocked) {

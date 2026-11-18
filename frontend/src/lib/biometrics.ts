@@ -54,6 +54,22 @@ export async function authenticateBiometric(title = 'Unlock Lumina', subtitle = 
 // App Lock settings in LocalStorage
 const LOCK_KEY = 'lumina_app_lock_enabled';
 const PIN_KEY = 'lumina_app_lock_pin';
+const TIMEOUT_KEY = 'lumina_lock_timeout_ms';
+
+export function getLockTimeoutMs(): number {
+  if (typeof window === 'undefined') return 60000;
+  const stored = localStorage.getItem(TIMEOUT_KEY);
+  if (stored !== null) {
+    const parsed = parseInt(stored, 10);
+    if (!isNaN(parsed)) return parsed;
+  }
+  return 60000; // default 1 minute (60,000ms)
+}
+
+export function setLockTimeoutMs(ms: number): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(TIMEOUT_KEY, String(ms));
+}
 
 export function isAppLockEnabled(): boolean {
   if (typeof window === 'undefined') return false;
