@@ -26,9 +26,8 @@ import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
 import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
-import { ChatModal } from '@/components/ChatModal';
 import { LuminaLogo } from '@/components/LuminaLogo';
-import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Bot, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
+import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
 import { deleteSubscription, createSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
 import { detectRecurringSubscriptions, dismissSubscription, type DetectedSubscription } from '@/lib/subscriptionDetector';
 import { soundFX } from '@/lib/soundFx';
@@ -209,13 +208,11 @@ export default function Dashboard() {
   const [personaLoading, setPersonaLoading] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Handle modal dismissal when Android back button / gesture is pressed
   useEffect(() => {
     const handleBack = (e: Event) => {
-      if (isChatOpen) { e.preventDefault(); setIsChatOpen(false); return; }
       if (isSecurityModalOpen) { e.preventDefault(); setIsSecurityModalOpen(false); return; }
       if (isSettingsOpen) { e.preventDefault(); setIsSettingsOpen(false); return; }
       if (isSaveModalOpen) { e.preventDefault(); setIsSaveModalOpen(false); return; }
@@ -226,19 +223,22 @@ export default function Dashboard() {
 
     window.addEventListener('lumina_modal_back_pressed', handleBack);
     return () => window.removeEventListener('lumina_modal_back_pressed', handleBack);
-  }, [isChatOpen, isSecurityModalOpen, isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
+  }, [isSecurityModalOpen, isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
 
-  // Month Wrap is unlocked from 27th of the month to the 3rd of next month (7-8 day window)
+  // Month Wrap automatically appears 2 days before the month ends (and up to the 2nd of next month)
   const wrapWindowInfo = useMemo(() => {
     const today = new Date();
     const day = today.getDate();
-    const isAvailable = (day >= 27 || day <= 3);
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const daysRemaining = daysInMonth - day;
+    // Exactly 2 days before the month ends through the 2nd of the next month
+    const isAvailable = daysRemaining <= 2 || day <= 2;
     let targetDate = today;
-    if (day <= 3) {
+    if (day <= 2) {
       targetDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     }
     const monthName = targetDate.toLocaleString('default', { month: 'long' });
-    return { isAvailable, monthName };
+    return { isAvailable, monthName, daysRemaining };
   }, []);
 
   const handlePersonaChange = async (persona: string) => {
@@ -489,13 +489,13 @@ export default function Dashboard() {
               
               {/* Right: Modern Compact Action Pill Hub */}
               <div className="flex items-center space-x-1.5 shrink-0">
-                {/* AI Copilot Button */}
+                {/* Settings Quick Access Button */}
                 <button
-                  onClick={() => setIsChatOpen(true)}
-                  className="p-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 rounded-2xl hover:bg-indigo-500/30 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-sm"
-                  title="AI Financial Copilot"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="p-2 bg-white/5 border border-white/10 text-white/80 rounded-2xl hover:bg-white/10 hover:text-white transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-sm"
+                  title="Settings & Preferences"
                 >
-                  <Bot className="w-4 h-4 text-indigo-400" />
+                  <Settings className="w-4 h-4" />
                 </button>
 
                 {/* Sleek Quick Utility Menu (Security, Save, Logout) */}
@@ -525,23 +525,12 @@ export default function Dashboard() {
                           <button
                             onClick={() => {
                               setIsHeaderMenuOpen(false);
-                              setIsChatOpen(true);
-                            }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
-                          >
-                            <Bot className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>AI Financial Advisor</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setIsHeaderMenuOpen(false);
                               setIsSecurityModalOpen(true);
                             }}
                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
                           >
                             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Security & Biometrics</span>
+                            <span>Security & PIN Lock</span>
                           </button>
 
                           <button
