@@ -42,24 +42,42 @@ jobs:
       working-directory: ./frontend
       run: npx cap sync android
 
-    - name: Build Android APK
+    - name: Generate Release Signing Key
+      working-directory: ./frontend/android/app
+      run: |
+        keytool -genkeypair -v \
+          -keystore release.keystore \
+          -alias lumina \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -storepass lumina123 \
+          -keypass lumina123 \
+          -dname "CN=Lumina, OU=Finance, O=Lumina Smart Expense, L=Bangalore, S=KA, C=IN"
+
+    - name: Build Android APK & Play Store AAB Bundle
       working-directory: ./frontend/android
       run: |
         chmod +x ./gradlew
-        ./gradlew assembleDebug
+        ./gradlew assembleRelease bundleRelease
 
-    - name: Upload APK to GitHub Artifacts
+    - name: Upload Release Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: smart-expense-app
-        path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+        name: lumina-playstore-artifacts
+        path: |
+          frontend/android/app/build/outputs/bundle/release/app-release.aab
+          frontend/android/app/build/outputs/apk/release/app-release.apk
 
     - name: Publish Automated Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        cp frontend/android/app/build/outputs/apk/debug/app-debug.apk LUMINA.apk
+        cp frontend/android/app/build/outputs/bundle/release/app-release.aab LUMINA.aab
+        cp frontend/android/app/build/outputs/apk/release/app-release.apk LUMINA.apk
         # Delete old release if it exists to keep 'latest' tag fresh
         gh release delete latest --cleanup-tag -y || true
-        # Create new release and upload the APK
-        gh release create latest LUMINA.apk --title "Latest Automated Build" --notes "This APK is automatically generated from the latest code."
+        # Create new release and upload both AAB and APK
+        gh release create latest LUMINA.aab LUMINA.apk \
+          --title "Latest Play Store Ready Build" \
+          --notes "Production build generated from main. Includes LUMINA.aab (Play Store App Bundle) and LUMINA.apk."
