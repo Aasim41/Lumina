@@ -828,24 +828,11 @@ export const processRollover = async (action: string) => {
   return { status: 'success', rolled_over: totalSaved };
 };
 
-// ── Chat (kept as a pass-through — ChatModal handles Groq directly) ──
-
-export const sendChatMessage = async (message: string) => {
-  // This is now handled directly in ChatModal.tsx
-  return { response: 'Chat is handled locally via Groq API.' };
-};
-
 // ── Legacy compat: apiFetch ───────────────────────────────────────
 // Some components import apiFetch directly. Provide a stub that
 // routes to the correct local function based on the endpoint.
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
-  // Chat endpoint — handled in ChatModal directly, but provide fallback
-  if (endpoint === '/api/chat' && options.method === 'POST') {
-    const body = JSON.parse(options.body as string);
-    return sendChatMessage(body.message);
-  }
-
   // Stealth auto-deduct
   if (endpoint === '/api/stealth/auto-deduct' && options.method === 'POST') {
     return autoDeductStealth();

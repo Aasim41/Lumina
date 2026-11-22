@@ -940,7 +940,6 @@ export default function Dashboard() {
         {/* Modals & Overlays */}
         <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-        <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
         <BottomNav />
       </AuthGuard>
