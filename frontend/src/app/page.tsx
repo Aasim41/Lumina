@@ -25,6 +25,7 @@ import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
 import { HeroSpotlightBanner } from '@/components/HeroSpotlightBanner';
 import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
+import { SMSDisclosureModal } from '@/components/SMSDisclosureModal';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
 import { deleteSubscription, createSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
@@ -207,10 +208,36 @@ export default function Dashboard() {
   const [personaLoading, setPersonaLoading] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSMSDisclosureOpen, setIsSMSDisclosureOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      import('@capacitor/core').then(({ Capacitor }) => {
+        if (Capacitor.isNativePlatform()) {
+          const disclosureSeen = localStorage.getItem('lumina_sms_disclosure_seen');
+          if (!disclosureSeen) {
+            setIsSMSDisclosureOpen(true);
+          }
+        }
+      });
+    }
+  }, []);
+
+  const handleAcceptSMS = () => {
+    localStorage.setItem('lumina_sms_disclosure_seen', 'true');
+    setIsSMSDisclosureOpen(false);
+    syncNow(true);
+  };
+
+  const handleDeclineSMS = () => {
+    localStorage.setItem('lumina_sms_disclosure_seen', 'true');
+    setIsSMSDisclosureOpen(false);
+  };
 
   // Handle modal dismissal when Android back button / gesture is pressed
   useEffect(() => {
     const handleBack = (e: Event) => {
+      if (isSMSDisclosureOpen) { e.preventDefault(); setIsSMSDisclosureOpen(false); return; }
       if (isSettingsOpen) { e.preventDefault(); setIsSettingsOpen(false); return; }
       if (isSaveModalOpen) { e.preventDefault(); setIsSaveModalOpen(false); return; }
       if (isSubModalOpen) { e.preventDefault(); setIsSubModalOpen(false); return; }
@@ -220,7 +247,7 @@ export default function Dashboard() {
 
     window.addEventListener('lumina_modal_back_pressed', handleBack);
     return () => window.removeEventListener('lumina_modal_back_pressed', handleBack);
-  }, [isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
+  }, [isSMSDisclosureOpen, isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
 
   // Month Wrap automatically appears 2 days before the month ends (and up to the 2nd of next month)
   const wrapWindowInfo = useMemo(() => {
@@ -925,6 +952,11 @@ export default function Dashboard() {
 
         {/* Modals & Overlays */}
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+        <SMSDisclosureModal
+          isOpen={isSMSDisclosureOpen}
+          onAccept={handleAcceptSMS}
+          onDecline={handleDeclineSMS}
+        />
 
         <BottomNav />
       </AuthGuard>
