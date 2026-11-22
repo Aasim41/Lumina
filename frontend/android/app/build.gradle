@@ -41,7 +41,6 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
     implementation "androidx.work:work-runtime:2.9.0"
-    implementation "androidx.biometric:biometric:1.1.0"
 
     // ML Kit Barcode Scanner (real-time QR decode at 30fps — same engine as Google Pay)
     implementation "com.google.mlkit:barcode-scanning:17.3.0"
