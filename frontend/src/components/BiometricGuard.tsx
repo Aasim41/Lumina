@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   isAppLockEnabled,
-  authenticateBiometric,
-  isBiometricAvailable,
   verifyBackupPin,
   hasBackupPin,
   getLockTimeoutMs,
 } from '@/lib/biometrics';
-import { Shield, Fingerprint, Delete, Lock, KeyRound } from 'lucide-react';
+import { Shield, Delete, Lock, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SESSION_UNLOCKED_KEY = 'lumina_session_unlocked';
@@ -56,9 +54,8 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
 
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
-  const [biometricSupport, setBiometricSupport] = useState(false);
 
-  const checkAndPromptBiometrics = useCallback(async () => {
+  const checkAppLock = useCallback(() => {
     if (!isAppLockEnabled()) {
       setIsLocked(false);
       return;
@@ -67,7 +64,8 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
     // Check if session is already unlocked (e.g. user just switched tabs)
     if (isSessionUnlocked()) {
       const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || 0);
-      const isExpired = lastActive > 0 && Date.now() - lastActive > LOCK_TIMEOUT_MS;
+      const timeoutMs = getLockTimeoutMs();
+      const isExpired = timeoutMs === 0 || (lastActive > 0 && Date.now() - lastActive > timeoutMs);
       if (!isExpired) {
         setIsLocked(false);
         localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
@@ -78,17 +76,6 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
     setIsLocked(true);
     setPin('');
     setPinError(false);
-
-    const support = await isBiometricAvailable();
-    setBiometricSupport(support.isAvailable);
-
-    if (support.isAvailable) {
-      const success = await authenticateBiometric();
-      if (success) {
-        setSessionUnlocked(true);
-        setIsLocked(false);
-      }
-    }
   }, []);
 
   // On initial mount of the component/page
@@ -98,10 +85,11 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If session is already unlocked (user switching tabs), do NOT prompt
+    // If session is already unlocked (user switching tabs), do NOT lock
     if (isSessionUnlocked()) {
       const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || 0);
-      const isExpired = lastActive > 0 && Date.now() - lastActive > LOCK_TIMEOUT_MS;
+      const timeoutMs = getLockTimeoutMs();
+      const isExpired = timeoutMs === 0 || (lastActive > 0 && Date.now() - lastActive > timeoutMs);
       if (!isExpired) {
         setIsLocked(false);
         localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
@@ -109,9 +97,8 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Otherwise prompt for unlock
-    checkAndPromptBiometrics();
-  }, [checkAndPromptBiometrics]);
+    checkAppLock();
+  }, [checkAppLock]);
 
   // Keep active timestamp fresh while user is active
   useEffect(() => {
@@ -144,7 +131,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
 
         if (lastBg > 0 && elapsed > timeoutMs && isAppLockEnabled()) {
           setSessionUnlocked(false);
-          checkAndPromptBiometrics();
+          checkAppLock();
         } else if (!isLocked) {
           localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
         }
@@ -153,7 +140,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
 
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [checkAndPromptBiometrics, isLocked]);
+  }, [checkAppLock, isLocked]);
 
   const handleKeyPress = (num: string) => {
     if (pin.length >= 4) return;
@@ -162,7 +149,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
     setPinError(false);
 
     if (nextPin.length === 4) {
-      // Validate
+      // Validate PIN
       if (hasBackupPin()) {
         if (verifyBackupPin(nextPin)) {
           setSessionUnlocked(true);
@@ -205,7 +192,7 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
         </motion.div>
         <h2 className="text-2xl font-display font-bold text-white mb-1">Lumina is Locked</h2>
         <p className="text-xs text-emerald-300/60 text-center max-w-xs">
-          Enter your 4-digit PIN or use fingerprint to view your finances
+          Enter your 4-digit PIN to access your finances
         </p>
 
         {/* PIN Dots */}
@@ -248,14 +235,10 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
             </button>
           ))}
 
-          {/* Biometric Trigger */}
-          <button
-            onClick={checkAndPromptBiometrics}
-            className="h-16 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 border border-emerald-500/20 text-emerald-400 transition-all flex items-center justify-center"
-            title="Scan Biometrics"
-          >
-            <Fingerprint className="w-7 h-7" />
-          </button>
+          {/* Empty spacer / key icon */}
+          <div className="h-16 rounded-2xl flex items-center justify-center text-white/20">
+            <KeyRound className="w-5 h-5" />
+          </div>
 
           {/* Zero */}
           <button
@@ -274,17 +257,6 @@ export function BiometricGuard({ children }: { children: React.ReactNode }) {
             <Delete className="w-6 h-6" />
           </button>
         </div>
-
-        {biometricSupport && (
-          <div className="text-center mt-2">
-            <button
-              onClick={checkAndPromptBiometrics}
-              className="text-xs text-emerald-400/80 hover:text-emerald-300 font-medium inline-flex items-center gap-1.5 py-1 px-3 rounded-full hover:bg-emerald-500/10 transition-colors"
-            >
-              <Fingerprint className="w-4 h-4" /> Tap to verify with Biometrics
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

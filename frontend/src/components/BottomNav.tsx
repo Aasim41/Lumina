@@ -23,7 +23,7 @@ import { soundFX } from '@/lib/soundFx';
 import toast from 'react-hot-toast';
 
 const MORE_TABS = [
-  { name: 'Wrapped 🎬', href: '/wrap-up/', path: '/wrap-up', icon: Sparkles, color: '#ec4899', desc: 'Your Financial Wrapped story' },
+  { name: 'Forecast', href: '/forecast/', path: '/forecast', icon: Sparkles, color: '#ec4899', desc: 'AI spending predictions' },
   { name: 'Goals', href: '/goals/', path: '/goals', icon: Target, color: '#f59e0b', desc: 'Savings & financial targets' },
   { name: 'Splits', href: '/splits/', path: '/splits', icon: Users, color: '#a855f7', desc: 'Split bills with friends' },
   { name: 'Debts', href: '/debts/', path: '/debts', icon: Landmark, color: '#3b82f6', desc: 'Manage loans & EMIs' },

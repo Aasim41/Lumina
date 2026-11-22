@@ -29,6 +29,36 @@ export default function WrapUpPage() {
       });
   }, []);
 
+  const isWindowOpen = (() => {
+    const today = new Date();
+    const day = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const daysRemaining = daysInMonth - day;
+    return daysRemaining <= 2 || day <= 2;
+  })();
+
+  if (!isWindowOpen) {
+    return (
+      <div className="min-h-screen bg-[#061813] flex items-center justify-center p-6 text-center select-none">
+        <div className="max-w-sm">
+          <div className="w-16 h-16 rounded-3xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center mx-auto mb-4 text-3xl">
+            🎬
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Wrapped Unlocks Soon</h2>
+          <p className="text-text-secondary text-sm mb-6 leading-relaxed">
+            Your Monthly Wrapped automatically unlocks 2 days before the end of the month. Check back then to see your full financial story!
+          </p>
+          <button
+            onClick={() => appBack('/')}
+            className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-full transition-all cursor-pointer"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#061813] flex items-center justify-center">

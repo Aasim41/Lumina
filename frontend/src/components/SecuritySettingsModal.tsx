@@ -4,13 +4,10 @@ import { useState, useEffect } from 'react';
 import {
   isAppLockEnabled,
   setAppLockEnabled,
-  hasBackupPin,
-  isBiometricAvailable,
-  authenticateBiometric,
   getLockTimeoutMs,
   setLockTimeoutMs,
 } from '@/lib/biometrics';
-import { Shield, Fingerprint, Lock, X, Check, KeyRound, Clock } from 'lucide-react';
+import { Shield, Lock, X, KeyRound, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -32,7 +29,6 @@ export function SecuritySettingsModal({
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [step, setStep] = useState<'toggle' | 'set_pin' | 'confirm_pin'>('toggle');
-  const [hasBiometrics, setHasBiometrics] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,7 +37,6 @@ export function SecuritySettingsModal({
       setStep('toggle');
       setPin('');
       setConfirmPin('');
-      isBiometricAvailable().then(res => setHasBiometrics(res.isAvailable));
     }
   }, [isOpen]);
 
@@ -77,19 +72,7 @@ export function SecuritySettingsModal({
     setAppLockEnabled(true, pin);
     setEnabled(true);
     setStep('toggle');
-    toast.success('App Lock enabled with PIN & Biometrics! 🔒');
-  };
-
-  const testBiometric = async () => {
-    const success = await authenticateBiometric(
-      'Test Biometrics',
-      'Verify fingerprint or face recognition'
-    );
-    if (success) {
-      toast.success('Biometric verification verified! ✨');
-    } else {
-      toast.error('Verification failed or cancelled');
-    }
+    toast.success('App Lock enabled with 4-digit PIN! 🔒');
   };
 
   return (
@@ -113,7 +96,7 @@ export function SecuritySettingsModal({
           </div>
           <div>
             <h3 className="font-display font-bold text-lg">App Security</h3>
-            <p className="text-xs text-emerald-300/60">Biometric & PIN Lock</p>
+            <p className="text-xs text-emerald-300/60">4-Digit PIN Lock</p>
           </div>
         </div>
 
@@ -125,7 +108,7 @@ export function SecuritySettingsModal({
                 <div>
                   <p className="font-semibold text-sm">Lock on App Resume</p>
                   <p className="text-[11px] text-text-secondary">
-                    Require Fingerprint / PIN after 30s
+                    Require 4-digit PIN when reopening app
                   </p>
                 </div>
               </div>
@@ -189,15 +172,6 @@ export function SecuritySettingsModal({
                   </span>
                   <span className="text-xs text-emerald-400 font-semibold">Update</span>
                 </button>
-
-                {hasBiometrics && (
-                  <button
-                    onClick={testBiometric}
-                    className="w-full p-3.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-sm font-medium text-emerald-300 flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Fingerprint className="w-4 h-4 text-emerald-400" /> Test Biometric Sensor
-                  </button>
-                )}
               </>
             )}
 
@@ -209,7 +183,7 @@ export function SecuritySettingsModal({
 
         {step === 'set_pin' && (
           <div className="space-y-4">
-            <p className="text-sm text-text-secondary">Enter a new 4-digit PIN for backup unlock:</p>
+            <p className="text-sm text-text-secondary">Enter a new 4-digit PIN for lock:</p>
             <input
               type="password"
               inputMode="numeric"
