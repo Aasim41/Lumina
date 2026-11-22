@@ -20,7 +20,6 @@ import { SaveMoneyModal } from '@/components/SaveMoneyModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
-import { SecuritySettingsModal } from '@/components/SecuritySettingsModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { UpcomingBillsCard } from '@/components/UpcomingBillsCard';
 import { TodaySpendingCard } from '@/components/TodaySpendingCard';
@@ -206,14 +205,12 @@ export default function Dashboard() {
   const [unlockedBadge, setUnlockedBadge] = useState<string | null>(null);
   const [isPersonaPickerOpen, setIsPersonaPickerOpen] = useState(false);
   const [personaLoading, setPersonaLoading] = useState(false);
-  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Handle modal dismissal when Android back button / gesture is pressed
   useEffect(() => {
     const handleBack = (e: Event) => {
-      if (isSecurityModalOpen) { e.preventDefault(); setIsSecurityModalOpen(false); return; }
       if (isSettingsOpen) { e.preventDefault(); setIsSettingsOpen(false); return; }
       if (isSaveModalOpen) { e.preventDefault(); setIsSaveModalOpen(false); return; }
       if (isSubModalOpen) { e.preventDefault(); setIsSubModalOpen(false); return; }
@@ -223,7 +220,7 @@ export default function Dashboard() {
 
     window.addEventListener('lumina_modal_back_pressed', handleBack);
     return () => window.removeEventListener('lumina_modal_back_pressed', handleBack);
-  }, [isSecurityModalOpen, isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
+  }, [isSettingsOpen, isSaveModalOpen, isSubModalOpen, isHeaderMenuOpen, unlockedBadge]);
 
   // Month Wrap automatically appears 2 days before the month ends (and up to the 2nd of next month)
   const wrapWindowInfo = useMemo(() => {
@@ -522,17 +519,6 @@ export default function Dashboard() {
                           transition={{ duration: 0.15 }}
                           className="absolute right-0 top-11 z-40 w-48 rounded-2xl bg-[#111827]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-1.5 space-y-1 text-xs text-white"
                         >
-                          <button
-                            onClick={() => {
-                              setIsHeaderMenuOpen(false);
-                              setIsSecurityModalOpen(true);
-                            }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors text-left"
-                          >
-                            <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Security & PIN Lock</span>
-                          </button>
-
                           <button
                             onClick={() => {
                               setIsHeaderMenuOpen(false);
@@ -938,7 +924,6 @@ export default function Dashboard() {
         </div>
 
         {/* Modals & Overlays */}
-        <SecuritySettingsModal isOpen={isSecurityModalOpen} onClose={() => setIsSecurityModalOpen(false)} />
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
         <BottomNav />

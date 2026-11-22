@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from 'react-hot-toast';
 
 import "./globals.css";
-import { BiometricGuard } from "@/components/BiometricGuard";
 import { GlobalBackHandler } from "@/components/GlobalBackHandler";
 
 export const metadata: Metadata = {
@@ -44,9 +43,7 @@ export default function RootLayout({
       <body className="antialiased bg-[#0B1021] text-foreground min-h-screen overflow-x-hidden w-full">
         <GlobalBackHandler />
         <main className="w-full max-w-md mx-auto min-h-screen relative bg-[#0B1021] pb-20 overflow-x-hidden">
-          <BiometricGuard>
-            {children}
-          </BiometricGuard>
+          {children}
         </main>
         <Toaster 
           position="top-center"
