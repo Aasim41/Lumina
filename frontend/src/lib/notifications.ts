@@ -12,18 +12,22 @@ export async function requestNotificationPermissions() {
   }
 }
 
-export async function scheduleImmediateNotification(title: string, body: string, id: number = new Date().getTime()) {
+export async function scheduleImmediateNotification(title: string, body: string, id: number = 9999) {
   try {
     const { display } = await LocalNotifications.checkPermissions();
     if (display !== 'granted') return;
+
+    const notifId = (Math.abs(id) % 90000) + 10000;
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    } catch {}
 
     await LocalNotifications.schedule({
       notifications: [
         {
           title,
           body,
-          id: id % 100000,
-          schedule: { at: new Date(Date.now() + 1000) }, // 1 second from now
+          id: notifId,
           smallIcon: 'ic_stat_icon_config_sample',
         },
       ],
@@ -38,35 +42,59 @@ export async function scheduleSubscriptionReminders(subscriptions: any[], curren
     const { display } = await LocalNotifications.checkPermissions();
     if (display !== 'granted') return;
 
-    // Clear old subscription notifications (IDs 100000 - 999999 range)
-    // For simplicity, we just schedule them, but in a real app we'd keep track of IDs to clear.
+    if (!subscriptions || subscriptions.length === 0) return;
+
     const notificationsToSchedule = [];
+    const notificationsToCancel: { id: number }[] = [];
 
     for (const sub of subscriptions) {
-      const now = new Date();
-      let nextBillingDate = new Date(now.getFullYear(), now.getMonth(), sub.billing_day, 9, 0, 0); 
-      
-      if (now.getDate() > sub.billing_day - 3) {
-        nextBillingDate = new Date(now.getFullYear(), now.getMonth() + 1, sub.billing_day, 9, 0, 0);
-      }
+      if (!sub.billing_day || !sub.merchant) continue;
 
-      const reminderDate = new Date(nextBillingDate);
-      reminderDate.setDate(reminderDate.getDate() - 3);
-
-      let id = 0;
-      const idStr = sub.id || String(Math.random());
+      // Stable deterministic numeric ID based on sub.id or merchant
+      const idStr = String(sub.id || sub.merchant);
+      let hash = 0;
       for (let i = 0; i < idStr.length; i++) {
-        id = (id + idStr.charCodeAt(i)) % 100000;
+        hash = (hash * 31 + idStr.charCodeAt(i)) >>> 0;
       }
-      id += 100000; // Offset for subscription reminders
+      const notifId = 100000 + (hash % 800000);
+      notificationsToCancel.push({ id: notifId });
+
+      const now = new Date();
+      // Calculate target billing date
+      let targetBillingYear = now.getFullYear();
+      let targetBillingMonth = now.getMonth();
+
+      // If billing date minus 3 days is in the past for this month, target next month's cycle
+      let reminderDate = new Date(targetBillingYear, targetBillingMonth, sub.billing_day - 3, 9, 0, 0);
+      if (reminderDate.getTime() <= now.getTime()) {
+        targetBillingMonth += 1;
+        reminderDate = new Date(targetBillingYear, targetBillingMonth, sub.billing_day - 3, 9, 0, 0);
+      }
+
+      // Check if we already scheduled this cycle to prevent infinite rescheduling churn
+      const cycleKey = `sub_notif_${notifId}_${reminderDate.toISOString().slice(0, 10)}`;
+      if (typeof window !== 'undefined' && localStorage.getItem(cycleKey)) {
+        continue;
+      }
 
       notificationsToSchedule.push({
-        title: 'Upcoming Subscription',
-        body: `Your ${sub.merchant} subscription (${currencyFormat(sub.amount)}) is billing in 3 days. Want to cancel it?`,
-        id: id,
-        schedule: { at: reminderDate, repeats: true, every: 'month' } as any,
+        title: 'Upcoming Subscription 🔔',
+        body: `Your ${sub.merchant} subscription (${currencyFormat(sub.amount)}) bills in 3 days.`,
+        id: notifId,
+        schedule: { at: reminderDate },
         smallIcon: 'ic_stat_icon_config_sample',
       });
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(cycleKey, 'scheduled');
+      }
+    }
+
+    // Cancel old pending alarms for these subscription IDs before scheduling fresh ones
+    if (notificationsToCancel.length > 0) {
+      try {
+        await LocalNotifications.cancel({ notifications: notificationsToCancel });
+      } catch {}
     }
 
     if (notificationsToSchedule.length > 0) {
@@ -84,10 +112,19 @@ export async function scheduleDailyEveningRecap(spentToday: number = 0, dailyAll
     const { display } = await LocalNotifications.checkPermissions();
     if (display !== 'granted') return;
 
-    // Target 21:00 (9:00 PM)
+    // Check if recap for this exact spend state was already scheduled today to avoid churn
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const recapStateKey = `recap_${todayStr}_${Math.round(spentToday)}_${txCount}`;
+    if (typeof window !== 'undefined' && localStorage.getItem('lumina_recap_key') === recapStateKey) {
+      return;
+    }
+
+    // Target 21:00 (9:00 PM) strictly in the future
+    const now = new Date();
     const eveningDate = new Date();
     eveningDate.setHours(21, 0, 0, 0);
-    if (new Date() > eveningDate) {
+    // If it's already past 8:59 PM today, schedule for tomorrow's 9 PM
+    if (now.getTime() >= eveningDate.getTime() - 60000) {
       eveningDate.setDate(eveningDate.getDate() + 1);
     }
 
@@ -103,7 +140,9 @@ export async function scheduleDailyEveningRecap(spentToday: number = 0, dailyAll
     }
 
     // Cancel existing 9 PM recap
-    await LocalNotifications.cancel({ notifications: [{ id: 1004 }] });
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: 1004 }] });
+    } catch {}
 
     await LocalNotifications.schedule({
       notifications: [
@@ -111,11 +150,15 @@ export async function scheduleDailyEveningRecap(spentToday: number = 0, dailyAll
           title: '🌙 9 PM Daily Spending Recap',
           body: recapBody,
           id: 1004,
-          schedule: { at: eveningDate, repeats: true, every: 'day' },
+          schedule: { at: eveningDate },
           smallIcon: 'ic_stat_icon_config_sample',
         }
       ]
     });
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lumina_recap_key', recapStateKey);
+    }
   } catch (e) {
     console.log('Evening recap notification not supported or disabled', e);
   }
