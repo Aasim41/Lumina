@@ -24,11 +24,29 @@ import com.getcapacitor.annotation.PermissionCallback;
 )
 public class NativeSmsPlugin extends Plugin {
     private static NativeSmsPlugin instance;
+    private static volatile boolean isAppForeground = false;
 
     @Override
     public void load() {
         super.load();
         instance = this;
+        isAppForeground = true;
+    }
+
+    @Override
+    protected void handleOnResume() {
+        super.handleOnResume();
+        isAppForeground = true;
+    }
+
+    @Override
+    protected void handleOnPause() {
+        super.handleOnPause();
+        isAppForeground = false;
+    }
+
+    public static boolean isForeground() {
+        return isAppForeground;
     }
 
     public static void onSmsReceived(String body, String address) {

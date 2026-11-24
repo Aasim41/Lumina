@@ -11,11 +11,32 @@ import android.os.Bundle;
 import android.provider.Telephony;
 import android.telephony.SmsMessage;
 import androidx.core.app.NotificationCompat;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public class SmsReceiver extends BroadcastReceiver {
     private static final String CHANNEL_ID = "lumina_transaction_alerts";
+    public static final int TRANSACTION_NOTIFICATION_ID = 5001;
     private static final Pattern TRANSACTION_PATTERN = Pattern.compile("(?i)(debited|spent|credited|INR|rs\\.?\\s*\\d+)");
+
+    // In-memory deduplication cache: hash -> timestamp (60-second window)
+    private static final Map<Integer, Long> RECENT_SMS_HASHES = new ConcurrentHashMap<>();
+    private static final long DEDUPLICATION_WINDOW_MS = 60_000L;
+
+    private static boolean isDuplicate(String sender, String body) {
+        long now = System.currentTimeMillis();
+        // Prune stale hashes older than window
+        RECENT_SMS_HASHES.entrySet().removeIf(entry -> (now - entry.getValue()) > DEDUPLICATION_WINDOW_MS);
+
+        int hash = (sender != null ? sender.trim() : "").hashCode() * 31 + (body != null ? body.trim() : "").hashCode();
+        Long previous = RECENT_SMS_HASHES.putIfAbsent(hash, now);
+        if (previous != null && (now - previous) < DEDUPLICATION_WINDOW_MS) {
+            return true; // Duplicate detected within 60-second window
+        }
+        RECENT_SMS_HASHES.put(hash, now);
+        return false;
+    }
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -32,8 +53,17 @@ public class SmsReceiver extends BroadcastReceiver {
                     }
                     String messageBody = fullBody.toString();
                     if (TRANSACTION_PATTERN.matcher(messageBody).find()) {
+                        // Prevent multi-part or duplicate broadcast triggers
+                        if (isDuplicate(sender, messageBody)) {
+                            return;
+                        }
+
                         NativeSmsPlugin.onSmsReceived(messageBody, sender);
-                        sendNotification(context);
+
+                        // Only show system tray notification if app is not actively open in foreground
+                        if (!NativeSmsPlugin.isForeground()) {
+                            sendNotification(context);
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -46,9 +76,17 @@ public class SmsReceiver extends BroadcastReceiver {
                             SmsMessage smsMessage = SmsMessage.createFromPdu((byte[]) pdu);
                             if (smsMessage != null && smsMessage.getMessageBody() != null) {
                                 String body = smsMessage.getMessageBody();
+                                String sender = smsMessage.getOriginatingAddress();
                                 if (TRANSACTION_PATTERN.matcher(body).find()) {
-                                    NativeSmsPlugin.onSmsReceived(body, smsMessage.getOriginatingAddress());
-                                    sendNotification(context);
+                                    if (isDuplicate(sender, body)) {
+                                        return;
+                                    }
+
+                                    NativeSmsPlugin.onSmsReceived(body, sender);
+
+                                    if (!NativeSmsPlugin.isForeground()) {
+                                        sendNotification(context);
+                                    }
                                     break;
                                 }
                             }
@@ -89,6 +127,7 @@ public class SmsReceiver extends BroadcastReceiver {
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
 
-        notificationManager.notify((int) System.currentTimeMillis(), builder.build());
+        // Deterministic ID so multiple transactions update smoothly rather than stacking duplicate banners
+        notificationManager.notify(TRANSACTION_NOTIFICATION_ID, builder.build());
     }
 }
