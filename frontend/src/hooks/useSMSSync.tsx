@@ -250,10 +250,18 @@ async function syncTransactions(parsed: ParsedTransaction[]): Promise<{
 
 export function useSMSSync(onSyncComplete?: (count: number) => void) {
   const isSyncing = useRef(false);
+  const lastSyncTimestampRef = useRef<number>(0);
 
   const doSync = useCallback(async (isManual: boolean = false) => {
     if (isSyncing.current) return;
     if (!isAuthenticated()) return;
+
+    // Debounce automated sync calls within 3 seconds to avoid duplicate processing
+    const now = Date.now();
+    if (!isManual && (now - lastSyncTimestampRef.current) < 3000) {
+      return;
+    }
+    lastSyncTimestampRef.current = now;
 
     isSyncing.current = true;
     let toastId: string | undefined;
@@ -329,20 +337,30 @@ export function useSMSSync(onSyncComplete?: (count: number) => void) {
           toast.success(notificationBody, { icon: '💰', duration: 4500 });
         }
 
-        // Native notification
+        // Coordinate system notification with native SmsReceiver (deterministic slot 5001)
         try {
           const { Capacitor } = await import('@capacitor/core');
           if (Capacitor.isNativePlatform()) {
             const { LocalNotifications } = await import('@capacitor/local-notifications');
-            await LocalNotifications.schedule({
-              notifications: [
-                {
-                  title: notificationTitle,
-                  body: notificationBody,
-                  id: Math.floor(Math.random() * 2000000000),
-                },
-              ],
-            });
+            // If the user has the app open right now, the in-app toast already alerted them.
+            // Cancel background notification slot 5001 to prevent tray spam.
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+              try {
+                await LocalNotifications.cancel({ notifications: [{ id: 5001 }] });
+              } catch {}
+            } else {
+              // App is in background: update deterministic notification slot 5001 with rich details
+              await LocalNotifications.schedule({
+                notifications: [
+                  {
+                    title: notificationTitle,
+                    body: notificationBody,
+                    id: 5001,
+                    smallIcon: 'ic_stat_icon_config_sample',
+                  },
+                ],
+              });
+            }
           }
         } catch {}
 
