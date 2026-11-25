@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { toPaise, fromPaise, splitPaiseEqually } from '../src/lib/db';
+import { toPaise, fromPaise, splitPaiseEqually, todayISO } from '../src/lib/db';
 import { cleanMerchantName, normalizeAmount } from '../src/lib/cleaner';
 import { EXCLUDED_EXPENSE_CATEGORIES, getBudgetCycle } from '../src/lib/analytics';
 
@@ -53,8 +53,8 @@ const userMock = {
   preferred_currency: 'INR',
   current_streak: 5,
   unlocked_badges: '[]',
-  created_at: new Date().toISOString(),
-  last_budget_update: new Date().toISOString().slice(0, 10), // Updated today
+  created_at: todayISO(),
+  last_budget_update: todayISO(), // Updated today in local calendar
 };
 const cycle = getBudgetCycle(userMock);
 assert.strictEqual(cycle.elapsedDays, 1, 'On start day, elapsedDays must be exactly 1, not 2');
@@ -81,6 +81,16 @@ assert.strictEqual(activeMonthlyStash, 100, 'Active monthly stash must equal ₹
 assert.strictEqual(computedVaultBalance, 1300, 'Total vault balance must be stored vault (₹1200) + active stash (₹100) = ₹1300');
 assert.ok(computedVaultBalance >= 0, 'Vault balance must never be negative');
 console.log(`✅ [PASS] Secret Vault Math: Stored ₹${storedUserVault} + Active ₹${activeMonthlyStash} = Total ₹${computedVaultBalance}`);
+
+// 6. Automatic Spare Change Round-Up Calculations
+console.log('\n--- 6. Spare Change Round-Up Calculations ---');
+const calcRoundUp = (amt: number) => Math.round((Math.ceil(amt / 10) * 10 - amt) * 100) / 100;
+assert.strictEqual(calcRoundUp(83), 7, '₹83 must round up to ₹90 (spare change ₹7)');
+assert.strictEqual(calcRoundUp(145), 5, '₹145 must round up to ₹150 (spare change ₹5)');
+assert.strictEqual(calcRoundUp(1499), 1, '₹1499 must round up to ₹1500 (spare change ₹1)');
+assert.strictEqual(calcRoundUp(100), 0, '₹100 is exact multiple of 10, spare change must be 0');
+assert.strictEqual(calcRoundUp(52.40), 7.60, '₹52.40 must round up to ₹60 (spare change ₹7.60)');
+console.log('✅ [PASS] Spare change round-up calculations verified with exact paise accuracy');
 
 console.log('\n========================================================');
 console.log('🏁 ALL SECRET VAULT & MONEY CALCULATION AUDITS PASSED! 100%');

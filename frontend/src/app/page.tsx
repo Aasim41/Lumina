@@ -78,7 +78,11 @@ export default function Dashboard() {
       });
 
       // Automatic spare change micro-savings into Secret Vault (once daily)
-      autoDeductStealth().catch(() => {});
+      autoDeductStealth().then(res => {
+        if (res && res.status === 'deducted') {
+          refresh();
+        }
+      }).catch(() => {});
     }
 
     const handleVisibility = () => {
@@ -795,7 +799,7 @@ export default function Dashboard() {
                     <MetricCard
                       className="gsap-metric-card"
                       title="Secret Vault"
-                      value={summary.vault_balance > 0 ? formatCurrency(summary.vault_balance) : '***'}
+                      value="₹ • • • •"
                       icon={<Trophy className="w-5 h-5 text-yellow-500" />}
                       theme="green"
                       onClick={() => setIsVaultModalOpen(true)}
