@@ -91,7 +91,7 @@ export function TodaySpendingCard({
           <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
             <Clock className="w-3.5 h-3.5" />
           </div>
-          <span className="text-xs font-semibold text-white/90">Today's Pulse</span>
+          <span className="text-xs font-semibold text-white/90">Today's Spending</span>
         </div>
         <span
           className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
@@ -103,7 +103,7 @@ export function TodaySpendingCard({
           }`}
         >
           {isOverBudget
-            ? 'Over Daily Cap 🚨'
+            ? 'Over Daily Limit 🚨'
             : isCloseToBudget
             ? '75% Spent ⚠️'
             : 'Safe Today ✨'}
@@ -143,8 +143,8 @@ export function TodaySpendingCard({
             onInfoClick?.(
               "Balance Left Today 🛡️",
               isOverBudget
-                ? `You have exceeded today's safe allowance by ${formatCurrency(Math.abs(balanceLeftToday))}.`
-                : `You can safely spend another ${formatCurrency(balanceLeftToday)} today without exceeding your monthly budget!`,
+                ? `You have spent ${formatCurrency(Math.abs(balanceLeftToday))} over your daily limit.`
+                : `You can safely spend another ${formatCurrency(balanceLeftToday)} today and stay within budget!`,
               isOverBudget ? <AlertTriangle className="w-5 h-5 text-rose-400" /> : <ShieldCheck className="w-5 h-5 text-emerald-400" />
             )
           }
@@ -180,7 +180,7 @@ export function TodaySpendingCard({
               />
             </div>
             <p className="text-[10px] text-text-secondary mt-0.5">
-              Cap: {formatCurrency(dailyAllowance)}
+              Daily Limit: {formatCurrency(dailyAllowance)}
             </p>
           </div>
         </div>
@@ -190,7 +190,7 @@ export function TodaySpendingCard({
       {dailyAllowance > 0 && (
         <div className="px-1">
           <div className="flex items-center justify-between text-[10px] text-text-secondary mb-1">
-            <span>Daily Cap Used</span>
+            <span>Daily Limit Used</span>
             <span className="font-semibold text-white/80">{percentSpent}%</span>
           </div>
           <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">

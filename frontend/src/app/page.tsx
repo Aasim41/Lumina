@@ -17,6 +17,7 @@ import { useGSAP } from '@gsap/react';
 
 import { MiniCalendar } from '@/components/MiniCalendar';
 import { SaveMoneyModal } from '@/components/SaveMoneyModal';
+import { SecretVaultModal } from '@/components/SecretVaultModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { RolloverModal } from '@/components/RolloverModal';
 import { AchievementModal } from '@/components/AchievementModal';
@@ -28,7 +29,7 @@ import { PendingPaymentBanner } from '@/components/PendingPaymentBanner';
 import { SMSDisclosureModal } from '@/components/SMSDisclosureModal';
 import { LuminaLogo } from '@/components/LuminaLogo';
 import { Calendar, Trash2, Award, Plus, Rocket, Trophy, TrendingUp, Activity, Target, PiggyBank, Flame, Lightbulb, RefreshCw, Download, Sparkles, X, Settings, AlertTriangle, Bell, ArrowRight, ChevronRight, ArrowDownLeft, ArrowUpRight, Wallet, Shield, Zap, QrCode, MoreVertical, LogOut, Users } from 'lucide-react';
-import { deleteSubscription, createSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile } from '@/lib/api';
+import { deleteSubscription, createSubscription, apiFetch, getInsights, getTransactions, getAlerts, getGoals, updateUserProfile, autoDeductStealth } from '@/lib/api';
 import { detectRecurringSubscriptions, dismissSubscription, type DetectedSubscription } from '@/lib/subscriptionDetector';
 import { soundFX } from '@/lib/soundFx';
 import { App as CapApp } from '@capacitor/app';
@@ -75,6 +76,9 @@ export default function Dashboard() {
           refresh();
         }
       });
+
+      // Automatic spare change micro-savings into Secret Vault (once daily)
+      autoDeductStealth().catch(() => {});
     }
 
     const handleVisibility = () => {
@@ -168,6 +172,7 @@ export default function Dashboard() {
   const dailyAllowed = remaining > 0 ? remaining / daysLeft : 0;
   
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [showReviewBanner, setShowReviewBanner] = useState(true);
   const [detectedSubs, setDetectedSubs] = useState<DetectedSubscription[]>([]);
@@ -749,19 +754,19 @@ export default function Dashboard() {
                   <div className="grid grid-cols-2 gap-4">
                     <MetricCard
                       className="gsap-metric-card"
-                      title="Spent / Day"
+                      title="Daily Spending"
                       value={<AnimatedCounter value={summary.daily_average} />}
                       icon={<Activity className="w-5 h-5 text-error" />}
                       theme="red"
-                      onClick={() => showInfoToast("Spent / Day", "How much you're spending on average each day this month.", <Activity className="w-6 h-6 text-error" />)}
+                      onClick={() => showInfoToast("Daily Spending", "How much you spend on average each day this month.", <Activity className="w-6 h-6 text-error" />)}
                     />
                     <MetricCard
                       className="gsap-metric-card"
-                      title="Safe to Spend / Day"
+                      title="Daily Limit Left"
                       value={<AnimatedCounter value={dailyAllowed} />}
                       icon={<PiggyBank className="w-5 h-5 text-success" />}
                       theme="green"
-                      onClick={() => showInfoToast("Safe to Spend / Day", "The amount you can safely spend each day for the rest of the month without going over budget.", <PiggyBank className="w-6 h-6 text-success" />)}
+                      onClick={() => showInfoToast("Daily Limit Left", "How much you can safely spend each day without exceeding your monthly budget.", <PiggyBank className="w-6 h-6 text-success" />)}
                     />
                     <MetricCard
                       className="gsap-metric-card"
@@ -769,7 +774,7 @@ export default function Dashboard() {
                       value={summary.top_category || 'None'}
                       icon={<Target className="w-5 h-5 text-primary" />}
                       theme="purple"
-                      onClick={() => showInfoToast("Top Category", "The category where you spend the most money this month.", <Target className="w-6 h-6 text-primary" />)}
+                      onClick={() => showInfoToast("Top Category", "Where you spent the most money this month.", <Target className="w-6 h-6 text-primary" />)}
                     />
                     <MetricCard
                       className="gsap-metric-card"
@@ -777,19 +782,23 @@ export default function Dashboard() {
                       value={<AnimatedCounter value={summary.transaction_count || 0} />}
                       icon={<Activity className="w-5 h-5 text-purple-500" />}
                       theme="blue"
-                      onClick={() => showInfoToast("Transactions", "Total number of expenses you've recorded this month.", <Activity className="w-6 h-6 text-purple-500" />)}
+                      onClick={() => showInfoToast("Transactions", "Total number of expenses logged this month.", <Activity className="w-6 h-6 text-purple-500" />)}
+                    />
+                    <MetricCard
+                      className="gsap-metric-card"
+                      title="Money Saved"
+                      value={<AnimatedCounter value={totalSaved} />}
+                      icon={<Shield className="w-5 h-5 text-emerald-400" />}
+                      theme="green"
+                      onClick={() => showInfoToast("Money Saved", "Total savings set aside this month.", <Shield className="w-6 h-6 text-emerald-400" />)}
                     />
                     <MetricCard
                       className="gsap-metric-card"
                       title="Secret Vault"
-                      value="***"
+                      value={summary.vault_balance > 0 ? formatCurrency(summary.vault_balance) : '***'}
                       icon={<Trophy className="w-5 h-5 text-yellow-500" />}
                       theme="green"
-                      onClick={() => showInfoToast(
-                        "Secret Vault", 
-                        "Your hidden piggy bank! Small amounts are automatically saved here without you noticing, so you build up savings effortlessly.", 
-                        <Trophy className="w-6 h-6 text-yellow-400" />
-                      )}
+                      onClick={() => setIsVaultModalOpen(true)}
                     />
                   </div>
                 )}
@@ -952,6 +961,11 @@ export default function Dashboard() {
 
         {/* Modals & Overlays */}
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+        <SecretVaultModal
+          isOpen={isVaultModalOpen}
+          onClose={() => setIsVaultModalOpen(false)}
+          onSuccess={refresh}
+        />
         <SMSDisclosureModal
           isOpen={isSMSDisclosureOpen}
           onAccept={handleAcceptSMS}

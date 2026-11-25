@@ -97,11 +97,11 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       }
       password = entered.trim();
     }
-    const toastId = toast.loading(encrypted ? 'Encrypting & exporting data...' : 'Exporting data...', { icon: '📦' });
+    const toastId = toast.loading(encrypted ? 'Protecting & saving backup...' : 'Creating backup...', { icon: '📦' });
     try {
       await exportAllData(password);
       setLastBackupTime(new Date().toISOString());
-      toast.success(encrypted ? 'AES-GCM Encrypted backup exported! 🔒' : 'Data exported! Check downloads.', { id: toastId });
+      toast.success(encrypted ? 'Password-protected backup saved! 🔒' : 'Backup saved successfully!', { id: toastId });
     } catch (e) {
       toast.error('Export failed', { id: toastId });
     }
@@ -344,7 +344,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                       className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center space-x-2 hover:bg-blue-500/20 transition-colors text-xs font-semibold"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>JSON Backup</span>
+                      <span>Save Backup</span>
                     </button>
 
                     <button
@@ -352,7 +352,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                       className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center space-x-2 hover:bg-emerald-500/20 transition-colors text-xs font-semibold"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Encrypted 🔒</span>
+                      <span>Password Lock 🔒</span>
                     </button>
                   </div>
 
@@ -361,7 +361,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     className="w-full p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center space-x-3 hover:bg-purple-500/20 transition-colors"
                   >
                     <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">Import Data (Restore from Backup)</span>
+                    <span className="text-sm font-medium">Restore from Backup File</span>
                   </button>
 
                   <button
@@ -369,7 +369,7 @@ export function SettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     className="w-full p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center space-x-3 hover:bg-emerald-500/20 transition-colors"
                   >
                     <FileText className="w-4 h-4" />
-                    <span className="text-sm font-medium">Export Transactions as CSV</span>
+                    <span className="text-sm font-medium">Export Transactions (Excel / CSV)</span>
                   </button>
 
                   <input

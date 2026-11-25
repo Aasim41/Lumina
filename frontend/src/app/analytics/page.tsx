@@ -51,8 +51,8 @@ export default function AnalyticsDashboard() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Analytics</h1>
-          <p className="text-xs text-white/50">Insights & AI Predictions</p>
+          <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Spending Trends</h1>
+          <p className="text-xs text-white/50">Patterns & Future Forecast</p>
         </div>
       </div>
 
@@ -84,7 +84,7 @@ export default function AnalyticsDashboard() {
         <section>
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-5 h-5 text-purple-400" />
-            <h2 className="text-lg font-space-grotesk font-semibold">AI Forecast</h2>
+            <h2 className="text-lg font-space-grotesk font-semibold">Spending Forecast</h2>
           </div>
           
           <div className="glass-panel p-4 rounded-2xl relative overflow-hidden">
@@ -106,7 +106,7 @@ export default function AnalyticsDashboard() {
                   <div className="text-right">
                     <div className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full text-xs font-medium border border-purple-500/20">
                       <Target className="w-3 h-3" />
-                      ±{formatCurrency((forecast.confidence_high - forecast.confidence_low) / 2)} margin
+                      ±{formatCurrency((forecast.confidence_high - forecast.confidence_low) / 2)} range
                     </div>
                   </div>
                 </div>
@@ -115,9 +115,9 @@ export default function AnalyticsDashboard() {
                   <div className="flex items-center gap-2 mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
                     <Activity className="w-4 h-4 text-emerald-400" />
                     <div className="text-sm">
-                      <span className="text-white/70">Model Accuracy: </span>
+                      <span className="text-white/70">Prediction Accuracy: </span>
                       <span className="font-semibold text-emerald-400">{forecast.accuracy_percent.toFixed(1)}%</span>
-                      <span className="text-xs text-white/40 block mt-0.5">Based on last month's prediction vs actual</span>
+                      <span className="text-xs text-white/40 block mt-0.5">Based on last month's estimate vs actual spending</span>
                     </div>
                   </div>
                 )}

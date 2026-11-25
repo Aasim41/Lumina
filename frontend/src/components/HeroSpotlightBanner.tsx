@@ -277,11 +277,11 @@ export function HeroSpotlightBanner({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-emerald-300">
-                        100% On-Device Financial Intelligence
+                        100% Private & On-Device
                       </span>
                     </div>
                     <p className="text-[11px] text-text-secondary truncate">
-                      Your SMS and ledger never leave your phone. Swipe left or right for more insights.
+                      Your bank SMS and expenses never leave your phone.
                     </p>
                   </div>
                 </div>

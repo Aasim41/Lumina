@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { db, type DBUser, type DBTransaction, type DBSubscription, type DBCategoryBudget, type DBWishlistItem, type DBSplitBill, type DBSplitMember, type DBDebt, type DBInvestment, type DBGoal, toLocalDateStr } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -400,6 +401,31 @@ export async function exportAllData(password?: string): Promise<{ success: boole
     filename += '.json';
   }
 
+  // Native Android/iOS: write to private cache and open system share dialog
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const savedFile = await Filesystem.writeFile({
+        path: filename,
+        data: fileContent,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: 'Lumina Backup',
+        text: 'Your secure Lumina backup file.',
+        url: savedFile.uri,
+        dialogTitle: 'Save or Share Backup File',
+      });
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lumina_last_backup_time', new Date().toISOString());
+      }
+      return { success: true, txCount: data.transactions.length };
+    } catch (e) {
+      console.warn('Native export share failed, falling back to browser download:', e);
+    }
+  }
+
   const blob = new Blob([fileContent], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -512,11 +538,34 @@ export async function exportTransactionsCSV(): Promise<void> {
   }).join('\n');
 
   const csv = header + rows;
+  const fileName = `transactions_export_${toLocalDateStr(new Date())}.csv`;
+
+  // Native Android/iOS: write to private cache and open system share dialog
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: csv,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: 'Lumina Transactions CSV',
+        text: 'Your exported transactions list.',
+        url: savedFile.uri,
+        dialogTitle: 'Save or Share CSV File',
+      });
+      return;
+    } catch (e) {
+      console.warn('Native CSV export share failed, falling back to browser download:', e);
+    }
+  }
+
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `transactions_export_${toLocalDateStr(new Date())}.csv`;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   URL.revokeObjectURL(url);

@@ -90,8 +90,8 @@ export default function BudgetDashboard() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Budgets & Subs</h1>
-            <p className="text-xs text-white/50">Advanced tracking & limits</p>
+            <h1 className="text-xl font-bold font-space-grotesk tracking-tight">Category Budgets & Bills</h1>
+            <p className="text-xs text-white/50">Spending limits & recurring subscriptions</p>
           </div>
         </div>
         <button onClick={fetchData} className="p-2 glass-panel rounded-full hover:bg-white/10 transition-colors">
@@ -101,12 +101,12 @@ export default function BudgetDashboard() {
 
       <div className="p-4 space-y-8">
         
-        {/* Envelope Budgets Section */}
+        {/* Category Spending Limits Section */}
         <section>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-space-grotesk font-semibold flex items-center gap-2">
               <Target className="w-5 h-5 text-purple-400" />
-              Category Envelopes
+              Category Limits
             </h2>
             <button 
               onClick={() => setIsAddingBudget(!isAddingBudget)}

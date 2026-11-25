@@ -745,14 +745,14 @@ export const autoDeductStealth = async () => {
 
   if (!realTxns) return { status: 'no_transactions' };
 
-  // Random deduction between 10 and 50
+  // Random spare-change deduction between ₹10 and ₹50
   const amount = Math.floor(Math.random() * 41) + 10;
 
   const txn: DBTransaction = {
     id: generateId(),
     date: today,
-    merchant_raw: 'System Cache',
-    merchant_clean: 'System Cache',
+    merchant_raw: 'Daily Secret Stash',
+    merchant_clean: 'Daily Secret Stash',
     amount,
     currency: 'INR',
     category: 'SecretVault',
@@ -765,25 +765,116 @@ export const autoDeductStealth = async () => {
   return { status: 'deducted', amount };
 };
 
+// ── Secret Vault Controls ──────────────────────────────────────────
+
+export const getVaultDetails = async () => {
+  const [user, allTxns] = await Promise.all([getLocalUser(), getCachedTransactions()]);
+  const activeStashTxns = allTxns.filter(t => t.category === 'SecretVault');
+  const activeStash = Math.round(activeStashTxns.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+  const permanentBalance = Math.round((user?.vault_balance || 0) * 100) / 100;
+  const totalBalance = Math.round((permanentBalance + activeStash) * 100) / 100;
+
+  return {
+    vault_balance: totalBalance,
+    permanent_balance: permanentBalance,
+    active_stash: activeStash,
+    recent_deposits: activeStashTxns.slice(-5).reverse(),
+  };
+};
+
+export const depositToVault = async (amount: number) => {
+  const normAmount = Math.round(Math.abs(amount) * 100) / 100;
+  if (normAmount <= 0) throw new Error('Invalid deposit amount');
+
+  const user = await getLocalUser();
+  const newVault = Math.round(((user.vault_balance || 0) + normAmount) * 100) / 100;
+  await db.users.update(user.id!, { vault_balance: newVault });
+
+  const txn: DBTransaction = {
+    id: generateId(),
+    date: todayISO(),
+    merchant_raw: 'Secret Vault Deposit',
+    merchant_clean: 'Secret Vault Deposit',
+    amount: normAmount,
+    currency: 'INR',
+    category: 'SecretVault_Processed',
+    source: 'manual_entry',
+    created_at: nowISO(),
+  };
+  await db.transactions.add(txn);
+  invalidateTransactionCache();
+
+  return { success: true, vault_balance: newVault };
+};
+
+export const withdrawFromVault = async (amount: number) => {
+  const normAmount = Math.round(Math.abs(amount) * 100) / 100;
+  if (normAmount <= 0) throw new Error('Invalid withdrawal amount');
+
+  const user = await getLocalUser();
+  const allTxns = await db.transactions.toArray();
+  const activeStashTxns = allTxns.filter(t => t.category === 'SecretVault');
+  const activeStash = activeStashTxns.reduce((sum, t) => sum + t.amount, 0);
+  const totalAvailable = (user.vault_balance || 0) + activeStash;
+
+  if (normAmount > totalAvailable) {
+    throw new Error('Withdrawal amount exceeds total vault balance');
+  }
+
+  // Deduct from permanent balance first, then active stash
+  let remainingToDeduct = normAmount;
+  if ((user.vault_balance || 0) >= remainingToDeduct) {
+    const newPermanent = Math.round(((user.vault_balance || 0) - remainingToDeduct) * 100) / 100;
+    await db.users.update(user.id!, { vault_balance: newPermanent });
+    remainingToDeduct = 0;
+  } else {
+    remainingToDeduct -= (user.vault_balance || 0);
+    await db.users.update(user.id!, { vault_balance: 0 });
+    for (const st of activeStashTxns) {
+      if (remainingToDeduct <= 0) break;
+      if (st.amount <= remainingToDeduct) {
+        remainingToDeduct -= st.amount;
+        await db.transactions.delete(st.id!);
+      } else {
+        const newAmt = Math.round((st.amount - remainingToDeduct) * 100) / 100;
+        await db.transactions.update(st.id!, { amount: newAmt });
+        remainingToDeduct = 0;
+      }
+    }
+  }
+
+  // Add the withdrawn amount back to the monthly budget
+  const newBudget = Math.round(((user.monthly_budget || 0) + normAmount) * 100) / 100;
+  await db.users.update(user.id!, { monthly_budget: newBudget });
+
+  // Record an audit credit transaction
+  const txn: DBTransaction = {
+    id: generateId(),
+    date: todayISO(),
+    merchant_raw: 'Secret Vault Withdrawal',
+    merchant_clean: 'Secret Vault Withdrawal',
+    amount: normAmount,
+    currency: 'INR',
+    category: 'Income',
+    type: 'credit',
+    source: 'manual_entry',
+    created_at: nowISO(),
+  };
+  await db.transactions.add(txn);
+  invalidateTransactionCache();
+
+  return { success: true, withdrawn: normAmount, new_budget: newBudget };
+};
+
 // ── Rollover ──────────────────────────────────────────────────────
 
 export const getRolloverStatus = async () => {
   const today = new Date();
   const startThisMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 
-  let startLastMonth: string;
-  if (today.getMonth() === 0) {
-    startLastMonth = `${today.getFullYear() - 1}-12-01`;
-  } else {
-    startLastMonth = `${today.getFullYear()}-${String(today.getMonth()).padStart(2, '0')}-01`;
-  }
-
-  const txns = await db.transactions
-    .where('date').between(startLastMonth, startThisMonth, true, false)
-    .filter(t => t.category === 'SecretVault')
-    .toArray();
-
-  const totalSaved = txns.reduce((sum, t) => sum + t.amount, 0);
+  const allTxns = await db.transactions.toArray();
+  const txns = allTxns.filter(t => t.category === 'SecretVault' && t.date < startThisMonth);
+  const totalSaved = Math.round(txns.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
 
   return { has_unprocessed_savings: totalSaved > 0, amount: totalSaved };
 };
@@ -792,28 +883,19 @@ export const processRollover = async (action: string) => {
   const today = new Date();
   const startThisMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 
-  let startLastMonth: string;
-  if (today.getMonth() === 0) {
-    startLastMonth = `${today.getFullYear() - 1}-12-01`;
-  } else {
-    startLastMonth = `${today.getFullYear()}-${String(today.getMonth()).padStart(2, '0')}-01`;
-  }
+  const allTxns = await db.transactions.toArray();
+  const txns = allTxns.filter(t => t.category === 'SecretVault' && t.date < startThisMonth);
 
-  const txns = await db.transactions
-    .where('date').between(startLastMonth, startThisMonth, true, false)
-    .filter(t => t.category === 'SecretVault')
-    .toArray();
-
-  const totalSaved = txns.reduce((sum, t) => sum + t.amount, 0);
+  const totalSaved = Math.round(txns.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
   if (totalSaved <= 0) return { status: 'no_savings' };
 
   const user = await getLocalUser();
 
   if (action === 'budget') {
-    const newBudget = (user.monthly_budget || 0) + totalSaved;
+    const newBudget = Math.round(((user.monthly_budget || 0) + totalSaved) * 100) / 100;
     await db.users.update(user.id!, { monthly_budget: newBudget });
   } else if (action === 'vault') {
-    const newVault = (user.vault_balance || 0) + totalSaved;
+    const newVault = Math.round(((user.vault_balance || 0) + totalSaved) * 100) / 100;
     await db.users.update(user.id!, { vault_balance: newVault });
   } else {
     return { error: 'Invalid action' };
@@ -846,6 +928,19 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
 
   if (endpoint === '/api/analytics/rollover-status') {
     return getRolloverStatus();
+  }
+
+  // Vault
+  if (endpoint === '/api/vault/details') {
+    return getVaultDetails();
+  }
+  if (endpoint === '/api/vault/deposit' && options.method === 'POST') {
+    const body = JSON.parse(options.body as string);
+    return depositToVault(body.amount);
+  }
+  if (endpoint === '/api/vault/withdraw' && options.method === 'POST') {
+    const body = JSON.parse(options.body as string);
+    return withdrawFromVault(body.amount);
   }
 
   // Wrap-up

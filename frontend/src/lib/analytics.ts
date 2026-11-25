@@ -1,5 +1,7 @@
 import { db, generateId, nowISO, todayISO, toLocalDateStr, type DBUser, type DBTransaction, type DBSubscription, type DBCategoryBudget, type DBGoal } from './db';
 
+export const EXCLUDED_EXPENSE_CATEGORIES = ['Savings', 'SecretVault', 'SecretVault_Processed'];
+
 export function getBudgetCycle(user?: DBUser) {
   const today = new Date();
   const defaultStart = toLocalDateStr(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -25,9 +27,11 @@ export function getBudgetCycle(user?: DBUser) {
   const endDate = new Date(currentStart);
   endDate.setDate(endDate.getDate() + days - 1);
   
-  // Calculate how many days have passed in this cycle
-  const diffTime = Math.abs(today.getTime() - currentStart.getTime());
-  const elapsedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  // Calculate how many days have passed in this cycle based on calendar day difference
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startMidnight = new Date(currentStart.getFullYear(), currentStart.getMonth(), currentStart.getDate());
+  const diffTime = todayMidnight.getTime() - startMidnight.getTime();
+  const elapsedDays = Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
 
   // Calculate previous cycle
   const prevStart = new Date(currentStart);
@@ -55,18 +59,18 @@ export async function computeSummary(user: DBUser, transactions?: DBTransaction[
   const thisMonthTxs = allTransactions.filter(t => t.date >= cycle.startStr && t.date <= cycle.endStr);
   const lastMonthTxs = allTransactions.filter(t => t.date >= cycle.prevStartStr && t.date <= cycle.prevEndStr);
 
-  const excludeCats = ['Savings', 'SecretVault'];
+  const excludeCats = EXCLUDED_EXPENSE_CATEGORIES;
   const isCredit = isCreditTransaction;
   
   const thisMonthExpenses = thisMonthTxs.filter(t => !excludeCats.includes(t.category) && !isCredit(t));
   const thisMonthCredits = thisMonthTxs.filter(t => isCredit(t));
   const lastMonthExpenses = lastMonthTxs.filter(t => !excludeCats.includes(t.category) && !isCredit(t));
   
-  const total_this_month = thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
-  const total_income_this_month = thisMonthCredits.reduce((sum, t) => sum + t.amount, 0);
-  const net_cash_flow = total_income_this_month - total_this_month;
-  const total_saved_this_month = thisMonthTxs.filter(t => excludeCats.includes(t.category)).reduce((sum, t) => sum + t.amount, 0);
-  const total_last_month = lastMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
+  const total_this_month = Math.round(thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+  const total_income_this_month = Math.round(thisMonthCredits.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+  const net_cash_flow = Math.round((total_income_this_month - total_this_month) * 100) / 100;
+  const total_saved_this_month = Math.round(thisMonthTxs.filter(t => excludeCats.includes(t.category)).reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+  const total_last_month = Math.round(lastMonthExpenses.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
   
   let month_over_month_change = 0;
   if (total_last_month > 0) {
@@ -175,9 +179,11 @@ export async function computeSummary(user: DBUser, transactions?: DBTransaction[
     : (daily_average > 0 ? Math.round(daily_average) : 1000);
   const balance_left_today = daily_allowance - spent_today;
   
-  // Vault balance
-  const vault_balance = allTransactions.filter(t => t.category === 'SecretVault').reduce((sum, t) => sum + t.amount, 0) 
-                      - allTransactions.filter(t => t.category === 'SecretVault_Processed').reduce((sum, t) => sum + t.amount, 0);
+  // Vault balance: user's accumulated vault savings + active monthly SecretVault deposits
+  const currentUnprocessedVault = allTransactions
+    .filter(t => t.category === 'SecretVault')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const vault_balance = Math.round(((user?.vault_balance || 0) + currentUnprocessedVault) * 100) / 100;
   
   // ── UPI Micro-Spend Tracker ("Chai and Snack Index") ────────────────
   const microExpenses = thisMonthExpenses.filter(t => t.amount <= 150);
@@ -228,7 +234,7 @@ export async function computeCategories(transactions?: DBTransaction[]) {
   const todayDate = new Date();
   const firstOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
   const endOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0));
-  const excludeCats = ['Savings', 'SecretVault'];
+  const excludeCats = EXCLUDED_EXPENSE_CATEGORIES;
   const isCredit = (t: DBTransaction) => t.type === 'credit' || ['Income', 'Salary', 'Refund'].includes(t.category);
   
   const thisMonthExpenses = allTransactions.filter(t => 
@@ -261,7 +267,7 @@ export async function computeCategories(transactions?: DBTransaction[]) {
 export async function computeTrends(transactions?: DBTransaction[]) {
   const allTransactions = transactions || (await db.transactions.toArray());
   const todayDate = new Date(todayISO());
-  const excludeCats = ['Savings', 'SecretVault'];
+  const excludeCats = EXCLUDED_EXPENSE_CATEGORIES;
   
   const result: { month: string, amount: number }[] = [];
   const map: Record<string, number> = {};
@@ -299,7 +305,7 @@ export async function computeHeatmap(transactions?: DBTransaction[]) {
   const todayDate = new Date();
   const firstOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
   const endOfThisMonthStr = toLocalDateStr(new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0));
-  const excludeCats = ['Savings', 'SecretVault'];
+  const excludeCats = EXCLUDED_EXPENSE_CATEGORIES;
 
   const thisMonthExpenses = allTransactions.filter(t => 
     t.date >= firstOfThisMonthStr && 
@@ -330,7 +336,7 @@ export async function computeHeatmap(transactions?: DBTransaction[]) {
 // 5. computeTopMerchants
 export async function computeTopMerchants(transactions?: DBTransaction[]) {
   const allTransactions = transactions || (await db.transactions.toArray());
-  const excludeCats = ['Savings', 'SecretVault'];
+  const excludeCats = EXCLUDED_EXPENSE_CATEGORIES;
 
   const map: Record<string, { amount: number, count: number }> = {};
   
@@ -353,7 +359,7 @@ export async function computeTopMerchants(transactions?: DBTransaction[]) {
 // 6. computeInsights
 export async function computeInsights(user: DBUser, transactions?: DBTransaction[]) {
   const allTransactions = transactions || (await db.transactions.toArray());
-  const excludeCats = ['Savings', 'SecretVault'];
+  const excludeCats = EXCLUDED_EXPENSE_CATEGORIES;
   const todayDate = new Date(todayISO());
   
   const sevenDaysAgo = new Date(todayDate);
@@ -497,7 +503,7 @@ export async function computeAlerts(user: DBUser) {
   const daily_limit = monthly_budget / daysInMonth;
   const allTransactions = await db.transactions.toArray();
   const todayStr = toLocalDateStr(todayDate);
-  const todayTxs = allTransactions.filter(t => t.date.startsWith(todayStr) && !['Savings', 'SecretVault'].includes(t.category));
+  const todayTxs = allTransactions.filter(t => t.date.startsWith(todayStr) && !EXCLUDED_EXPENSE_CATEGORIES.includes(t.category));
   const todayTotal = todayTxs.reduce((sum, t) => sum + t.amount, 0);
   
   if (daily_limit > 0 && todayTotal > daily_limit * 1.5) {

@@ -87,7 +87,7 @@ export function RolloverModal({ onSuccess }: { onSuccess: () => void }) {
                 disabled={processing}
               >
                 <Rocket className="w-5 h-5" />
-                <span>Reinvest to Budget</span>
+                <span>Add to Spending Budget</span>
               </button>
               
               <button 
@@ -96,7 +96,7 @@ export function RolloverModal({ onSuccess }: { onSuccess: () => void }) {
                 disabled={processing}
               >
                 <PiggyBank className="w-5 h-5" />
-                <span>Add to Savings</span>
+                <span>Lock in Secret Vault</span>
               </button>
             </div>
             
